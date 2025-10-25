@@ -42,10 +42,11 @@ export interface TempoChange {
   timeSignature: string;
 }
 
-export interface TimeSignatureChange {
-  time: number;
-  timeSignature: string;
-}
+// TimeSignatureChange não é mais explicitamente necessário se incluído em TempoChange
+// export interface TimeSignatureChange {
+//   time: number;
+//   timeSignature: string;
+// }
 
 export interface Loop {
   id: string;
@@ -68,7 +69,7 @@ export interface Note {
   id: string;
   userId: string;
   content: string;
-  time?: number;
+  time?: number; // Associada a um tempo na música
   isPrivate: boolean;
 }
 
@@ -81,10 +82,10 @@ export interface Song {
   duration: number;
   tracks: AudioTrack[];
   markers: SectionMarker[];
-  chords: ChordData[];
+  chords: ChordData[]; // Mantido por enquanto, mas pode ser removido se não usado
   loops: Loop[];
   mixPresets: MixPreset[];
-  notes: Note[];
+  notes: Note[]; // Notas específicas da música
   pdfUrl?: string;
   thumbnailUrl?: string;
   version: number | string;
@@ -95,12 +96,13 @@ export interface Song {
   chordMarkers?: ChordMarker[];
   permissions?: {
     canEdit: boolean;
-    canShare: boolean;
+    canShare: boolean; // Pode ser removido se não houver compartilhamento
     canDelete: boolean;
   };
-  source?: 'imported' | 'project'; // Distinguish between imported songs and created projects
+  source?: 'imported' | 'project';
 }
 
+// Novo tipo para item da setlist
 export type SetlistItem =
   | { type: 'song'; id: string }
   | { type: 'note'; id: string; content: string }; // Adiciona um ID para a nota também
@@ -113,7 +115,7 @@ export interface Setlist {
   createdBy: string;
   // sharedWith: string[]; // << REMOVIDO
   eventDate?: Date;
-  notes?: string; // Mantém notas gerais da setlist
+  notes?: string; // Notas gerais da setlist
 }
 
 export interface User {
