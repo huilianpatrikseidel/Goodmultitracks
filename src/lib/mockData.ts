@@ -1,193 +1,86 @@
-import { Song, Setlist, User, AudioTrack, SectionMarker, ChordData } from '../types';
+import { Song, Setlist, User, AudioTrack, SectionMarker, ChordData, TempoChange, ChordMarker } from '../types'; // Adicionado TempoChange e ChordMarker
 
 // Generate mock waveform data
 const generateWaveform = (samples: number = 200): number[] => {
   return Array.from({ length: samples }, () => Math.random() * 0.8 + 0.1);
 };
 
-// Mock audio tracks
-const createMockTracks = (): AudioTrack[] => [
-  {
-    id: 'track-1',
-    name: 'Drums',
-    type: 'drums',
-    volume: 1.0, // 0dB
-    muted: false,
-    solo: false,
-    waveformData: generateWaveform(),
-    output: 1,
-    color: '#60a5fa',
-  },
-  {
-    id: 'track-2',
-    name: 'Bass',
-    type: 'bass',
-    volume: 0.89, // -1dB
-    muted: false,
-    solo: false,
-    waveformData: generateWaveform(),
-    output: 1,
-    color: '#ef4444',
-  },
-  {
-    id: 'track-3',
-    name: 'Electric Guitar',
-    type: 'guitar',
-    volume: 0.79, // -2dB
-    muted: false,
-    solo: false,
-    waveformData: generateWaveform(),
-    output: 1,
-    color: '#22c55e',
-  },
-  {
-    id: 'track-4',
-    name: 'Keys',
-    type: 'keys',
-    volume: 0.71, // -3dB
-    muted: false,
-    solo: false,
-    waveformData: generateWaveform(),
-    output: 1,
-    color: '#f59e0b',
-  },
-  {
-    id: 'track-5',
-    name: 'Lead Vocals',
-    type: 'vocals',
-    volume: 1.12, // +1dB
-    muted: false,
-    solo: false,
-    waveformData: generateWaveform(),
-    output: 1,
-    color: '#a855f7',
-  },
-  {
-    id: 'track-6',
-    name: 'Backing Vocals',
-    type: 'vocals',
-    volume: 0.63, // -4dB
-    muted: false,
-    solo: false,
-    waveformData: generateWaveform(),
-    output: 1,
-    color: '#ec4899',
-  },
-  {
-    id: 'track-7',
-    name: 'Click Track',
-    type: 'click',
-    volume: 0.56, // -5dB
-    muted: false,
-    solo: false,
-    waveformData: generateWaveform(200),
-    output: 2, // Separate output for drummer
-    color: '#14b8a6',
-  },
-  {
-    id: 'track-8',
-    name: 'Guide Cue',
-    type: 'guide',
-    volume: 0.79, // -2dB
-    muted: false,
-    solo: false,
-    waveformData: generateWaveform(),
-    output: 2,
-    color: '#f97316',
-  },
-];
+// Mock audio tracks - Função reutilizada
+const createMockTracks = (count: number = 8, includeClickGuide: boolean = true): AudioTrack[] => {
+    const baseTracks = [
+      { idSuffix: 'drums', name: 'Drums', type: 'drums', color: '#60a5fa' },
+      { idSuffix: 'bass', name: 'Bass', type: 'bass', color: '#ef4444' },
+      { idSuffix: 'eg1', name: 'Electric Gtr 1', type: 'guitar', color: '#22c55e' },
+      { idSuffix: 'keys', name: 'Keys', type: 'keys', color: '#f59e0b' },
+      { idSuffix: 'vox', name: 'Lead Vocals', type: 'vocals', color: '#a855f7' },
+      { idSuffix: 'bgv', name: 'Backing Vocals', type: 'vocals', color: '#ec4899' },
+    ] as const; // Use 'as const' para tipos mais específicos
 
-// Mock section markers
-const createMockMarkers = (): SectionMarker[] => [
-  { id: 'm1', time: 0, label: 'Intro', type: 'intro' },
-  { id: 'm2', time: 15, label: 'Verse 1', type: 'verse' },
-  { id: 'm3', time: 45, label: 'Chorus', type: 'chorus' },
-  { id: 'm4', time: 75, label: 'Verse 2', type: 'verse' },
-  { id: 'm5', time: 105, label: 'Chorus', type: 'chorus' },
-  { id: 'm6', time: 135, label: 'Bridge', type: 'bridge' },
-  { id: 'm7', time: 165, label: 'Chorus', type: 'chorus' },
-  { id: 'm8', time: 195, label: 'Outro', type: 'outro' },
-];
+    const additionalTracks = includeClickGuide ? [
+      { idSuffix: 'click', name: 'Click Track', type: 'click', color: '#14b8a6', output: 2 },
+      { idSuffix: 'guide', name: 'Guide Cue', type: 'guide', color: '#f97316', output: 2 },
+    ] as const : []; // Use 'as const' aqui também
 
-// Mock chord data
-const createMockChords = (): ChordData[] => [
-  { time: 0, chord: 'C', duration: 4 },
-  { time: 4, chord: 'G', duration: 4 },
-  { time: 8, chord: 'Am', duration: 4 },
-  { time: 12, chord: 'F', duration: 4 },
-  { time: 15, chord: 'C', duration: 4 },
-  { time: 19, chord: 'G', duration: 4 },
-  { time: 23, chord: 'Am', duration: 4 },
-  { time: 27, chord: 'F', duration: 4 },
-  { time: 45, chord: 'F', duration: 4 },
-  { time: 49, chord: 'C', duration: 4 },
-  { time: 53, chord: 'G', duration: 4 },
-  { time: 57, chord: 'Am', duration: 4 },
-];
+    const allBaseTracks = [...baseTracks, ...additionalTracks];
+    const tracksToCreate = Math.min(count, allBaseTracks.length);
 
-// Mock chord markers for performance mode
-const createMockChordMarkers = () => [
-  { time: 0, chord: 'C' },
-  { time: 4, chord: 'G' },
-  { time: 8, chord: 'Am' },
-  { time: 12, chord: 'F' },
-  { time: 15, chord: 'C' },
-  { time: 19, chord: 'G' },
-  { time: 23, chord: 'Am' },
-  { time: 27, chord: 'F' },
-  { time: 31, chord: 'C' },
-  { time: 35, chord: 'G/B' },
-  { time: 39, chord: 'Am7' },
-  { time: 43, chord: 'F' },
-  { time: 45, chord: 'F' },
-  { time: 49, chord: 'C' },
-  { time: 53, chord: 'G' },
-  { time: 57, chord: 'Am' },
-  { time: 61, chord: 'F' },
-  { time: 65, chord: 'C/E' },
-  { time: 69, chord: 'G' },
-  { time: 73, chord: 'Am7' },
-  { time: 75, chord: 'C' },
-  { time: 79, chord: 'G' },
-  { time: 83, chord: 'Am' },
-  { time: 87, chord: 'F' },
-  { time: 91, chord: 'C' },
-  { time: 95, chord: 'G/B' },
-  { time: 99, chord: 'Am7' },
-  { time: 103, chord: 'F' },
-  { time: 105, chord: 'F' },
-  { time: 109, chord: 'C' },
-  { time: 113, chord: 'G' },
-  { time: 117, chord: 'Am' },
-  { time: 121, chord: 'F' },
-  { time: 125, chord: 'C/E' },
-  { time: 129, chord: 'G' },
-  { time: 133, chord: 'Am7' },
-  { time: 135, chord: 'Dm7' },
-  { time: 139, chord: 'Am' },
-  { time: 143, chord: 'G' },
-  { time: 147, chord: 'F' },
-  { time: 151, chord: 'C/E' },
-  { time: 155, chord: 'Dm7' },
-  { time: 159, chord: 'G' },
-  { time: 163, chord: 'Gsus4' },
-  { time: 165, chord: 'F' },
-  { time: 169, chord: 'C' },
-  { time: 173, chord: 'G' },
-  { time: 177, chord: 'Am' },
-  { time: 181, chord: 'F' },
-  { time: 185, chord: 'C/E' },
-  { time: 189, chord: 'G' },
-  { time: 193, chord: 'Am7' },
-  { time: 195, chord: 'F' },
-  { time: 199, chord: 'C' },
-  { time: 203, chord: 'G' },
-  { time: 207, chord: 'Am' },
-  { time: 211, chord: 'F' },
-  { time: 215, chord: 'C/E' },
-  { time: 219, chord: 'G' },
-  { time: 223, chord: 'C' },
-];
+    return allBaseTracks.slice(0, tracksToCreate).map((base, index) => ({
+      id: `track-${base.idSuffix}-${Date.now() + index}`, // ID mais único
+      name: base.name,
+      type: base.type,
+      volume: 1.0, // Default to 0dB
+      muted: false,
+      solo: false,
+      waveformData: generateWaveform(),
+      output: base.output || 1,
+      color: base.color,
+    }));
+};
+
+// Mock section markers - Função reutilizada
+const createMockMarkers = (duration: number): SectionMarker[] => {
+    // Ajusta os tempos dos marcadores com base na duração
+    const scaleFactor = duration / 225; // Usa a duração original da primeira música como base
+    return [
+      { id: 'm1', time: 0 * scaleFactor, label: 'Intro', type: 'intro' },
+      { id: 'm2', time: 15 * scaleFactor, label: 'Verse 1', type: 'verse' },
+      { id: 'm3', time: 45 * scaleFactor, label: 'Chorus', type: 'chorus' },
+      { id: 'm4', time: 75 * scaleFactor, label: 'Verse 2', type: 'verse' },
+      { id: 'm5', time: 105 * scaleFactor, label: 'Chorus', type: 'chorus' },
+      { id: 'm6', time: 135 * scaleFactor, label: 'Bridge', type: 'bridge' },
+      { id: 'm7', time: 165 * scaleFactor, label: 'Chorus', type: 'chorus' },
+      { id: 'm8', time: 195 * scaleFactor, label: 'Outro', type: 'outro' },
+    ].filter(m => m.time < duration); // Garante que os marcadores estejam dentro da duração
+};
+
+// Mock chord data (simplificado para o projeto) - Função reutilizada
+const createMockChords = (duration: number): ChordData[] => {
+    // Simplificado para o projeto, apenas alguns acordes
+    const scaleFactor = duration / 120; // Base de 2 minutos
+    return [
+      { time: 0 * scaleFactor, chord: 'G', duration: 4 * scaleFactor },
+      { time: 8 * scaleFactor, chord: 'C', duration: 4 * scaleFactor },
+      { time: 16 * scaleFactor, chord: 'D', duration: 4 * scaleFactor },
+      { time: 24 * scaleFactor, chord: 'Em', duration: 4 * scaleFactor },
+    ].filter(c => c.time < duration);
+};
+
+// Mock chord markers (performance mode) - Função reutilizada
+const createMockChordMarkers = (duration: number): ChordMarker[] => {
+    // Versão simplificada para o projeto
+     const scaleFactor = duration / 120; // Base de 2 minutos
+     return [
+       { time: 0 * scaleFactor, chord: 'G' },
+       { time: 4 * scaleFactor, chord: 'G/B' },
+       { time: 8 * scaleFactor, chord: 'C' },
+       { time: 12 * scaleFactor, chord: 'C/E' },
+       { time: 16 * scaleFactor, chord: 'D' },
+       { time: 20 * scaleFactor, chord: 'Dsus4' },
+       { time: 24 * scaleFactor, chord: 'Em' },
+       { time: 28 * scaleFactor, chord: 'C' },
+       { time: 32 * scaleFactor, chord: 'G' },
+     ].filter(c => c.time < duration);
+};
 
 // Mock songs
 export const mockSongs: Song[] = [
@@ -195,13 +88,13 @@ export const mockSongs: Song[] = [
     id: 'song-1',
     title: 'Amazing Grace',
     artist: 'Traditional',
-    key: 'C',
+    key: 'C Major', // Ajustado
     tempo: 120,
     duration: 225,
-    tracks: createMockTracks(),
-    markers: createMockMarkers(),
-    chords: createMockChords(),
-    chordMarkers: createMockChordMarkers(),
+    tracks: createMockTracks(8), // Cria 8 tracks padrão
+    markers: createMockMarkers(225),
+    chords: [], // Removido chords antigos
+    chordMarkers: createMockChordMarkers(225),
     loops: [
       { id: 'loop-1', name: 'Chorus Loop', startTime: 45, endTime: 75 },
     ],
@@ -210,9 +103,9 @@ export const mockSongs: Song[] = [
         id: 'preset-1',
         name: 'My Practice Mix',
         tracks: [
-          { trackId: 'track-1', volume: 0.5, muted: false },
-          { trackId: 'track-5', volume: 0.3, muted: false },
-          { trackId: 'track-7', volume: 0.8, muted: false },
+          { trackId: 'track-drums-1', volume: 0.5, muted: false }, // IDs precisam ser ajustados se createMockTracks mudar
+          { trackId: 'track-vox-1', volume: 0.3, muted: false },
+          { trackId: 'track-click-1', volume: 0.8, muted: false },
         ],
       },
     ],
@@ -230,19 +123,21 @@ export const mockSongs: Song[] = [
     lastModified: new Date('2025-10-20'),
     createdBy: 'admin-1',
     tags: ['worship', 'traditional'],
-    source: 'imported',
+    source: 'imported', // Marcado como importado
+    tempoChanges: [{ time: 0, tempo: 120, timeSignature: '4/4' }], // Adicionado tempoChanges
+    permissions: { canEdit: false, canShare: true, canDelete: false }, // Permissões de exemplo
   },
   {
     id: 'song-2',
     title: 'How Great Is Our God',
     artist: 'Chris Tomlin',
-    key: 'G',
+    key: 'G Major', // Ajustado
     tempo: 76,
     duration: 240,
-    tracks: createMockTracks(),
-    markers: createMockMarkers(),
-    chords: createMockChords(),
-    chordMarkers: createMockChordMarkers(),
+    tracks: createMockTracks(8),
+    markers: createMockMarkers(240),
+    chords: [],
+    chordMarkers: createMockChordMarkers(240),
     loops: [],
     mixPresets: [],
     notes: [],
@@ -252,18 +147,21 @@ export const mockSongs: Song[] = [
     createdBy: 'admin-1',
     tags: ['worship', 'contemporary'],
     source: 'imported',
+    tempoChanges: [{ time: 0, tempo: 76, timeSignature: '4/4' }],
+    permissions: { canEdit: false, canShare: true, canDelete: false },
   },
+  // ... (outras músicas importadas mantidas como antes)
   {
     id: 'song-3',
     title: 'Oceans',
     artist: 'Hillsong United',
-    key: 'D',
+    key: 'D Minor', // Ajustado
     tempo: 72,
     duration: 510,
-    tracks: createMockTracks(),
-    markers: createMockMarkers(),
-    chords: createMockChords(),
-    chordMarkers: createMockChordMarkers(),
+    tracks: createMockTracks(8),
+    markers: createMockMarkers(510),
+    chords: [],
+    chordMarkers: createMockChordMarkers(510),
     loops: [],
     mixPresets: [],
     notes: [],
@@ -273,18 +171,20 @@ export const mockSongs: Song[] = [
     createdBy: 'user-2',
     tags: ['worship', 'ballad'],
     source: 'imported',
+    tempoChanges: [{ time: 0, tempo: 72, timeSignature: '4/4' }],
+    permissions: { canEdit: false, canShare: true, canDelete: false },
   },
   {
     id: 'song-4',
     title: 'Reckless Love',
     artist: 'Cory Asbury',
-    key: 'E',
+    key: 'E Major', // Ajustado
     tempo: 130,
     duration: 320,
-    tracks: createMockTracks(),
-    markers: createMockMarkers(),
-    chords: createMockChords(),
-    chordMarkers: createMockChordMarkers(),
+    tracks: createMockTracks(8),
+    markers: createMockMarkers(320),
+    chords: [],
+    chordMarkers: createMockChordMarkers(320),
     loops: [],
     mixPresets: [],
     notes: [],
@@ -294,18 +194,20 @@ export const mockSongs: Song[] = [
     createdBy: 'user-2',
     tags: ['worship', 'upbeat'],
     source: 'imported',
+    tempoChanges: [{ time: 0, tempo: 130, timeSignature: '4/4' }],
+    permissions: { canEdit: false, canShare: true, canDelete: false },
   },
   {
     id: 'song-5',
     title: 'Goodness of God',
     artist: 'Bethel Music',
-    key: 'C',
+    key: 'C Major', // Ajustado
     tempo: 123,
     duration: 378,
-    tracks: createMockTracks(),
-    markers: createMockMarkers(),
-    chords: createMockChords(),
-    chordMarkers: createMockChordMarkers(),
+    tracks: createMockTracks(8),
+    markers: createMockMarkers(378),
+    chords: [],
+    chordMarkers: createMockChordMarkers(378),
     loops: [],
     mixPresets: [],
     notes: [],
@@ -315,10 +217,55 @@ export const mockSongs: Song[] = [
     createdBy: 'admin-1',
     tags: ['worship', 'contemporary'],
     source: 'imported',
+    tempoChanges: [{ time: 0, tempo: 123, timeSignature: '4/4' }],
+    permissions: { canEdit: false, canShare: true, canDelete: false },
   },
+
+  // --- NOVO PROJETO FICTÍCIO ---
+  {
+    id: 'project-1',
+    title: 'My New Song Idea',
+    artist: 'User', // Ou o nome do usuário atual
+    key: 'A Minor',
+    tempo: 95,
+    duration: 180, // Duração inicial (pode ser ajustada)
+    tracks: createMockTracks(4, false), // Cria 4 tracks básicas (sem click/guide)
+    markers: [ // Marcadores iniciais simples
+        { id: 'm-proj-1', time: 0, label: 'Verse 1', type: 'verse' },
+        { id: 'm-proj-2', time: 60, label: 'Chorus', type: 'chorus' },
+        { id: 'm-proj-3', time: 120, label: 'Verse 2', type: 'verse' },
+    ],
+    chords: [], // Sem chords antigos
+    chordMarkers: [ // Acordes iniciais simples
+        { time: 0, chord: 'Am' },
+        { time: 8, chord: 'G' },
+        { time: 16, chord: 'C' },
+        { time: 24, chord: 'F' },
+        { time: 60, chord: 'C' },
+        { time: 68, chord: 'G' },
+        { time: 76, chord: 'Am' },
+        { time: 84, chord: 'F' },
+    ],
+    loops: [],
+    mixPresets: [],
+    notes: [],
+    thumbnailUrl: '', // Sem thumbnail inicial
+    version: '1.0', // Versão inicial como string
+    lastModified: new Date(), // Data atual
+    createdBy: 'user-1', // ID do usuário atual
+    tags: ['project', 'idea'],
+    source: 'project', // Marcado como projeto
+    tempoChanges: [{ time: 0, tempo: 95, timeSignature: '4/4' }], // Tempo e TS iniciais
+    permissions: { // Permissões completas para o criador
+      canEdit: true,
+      canShare: true,
+      canDelete: true,
+    },
+  },
+  // --- FIM DO NOVO PROJETO ---
 ];
 
-// Mock setlists
+// Mock setlists (sem alterações)
 export const mockSetlists: Setlist[] = [
   {
     id: 'setlist-1',
@@ -340,13 +287,13 @@ export const mockSetlists: Setlist[] = [
   {
     id: 'setlist-3',
     name: 'Practice Session',
-    songIds: ['song-1', 'song-3', 'song-4', 'song-5'],
+    songIds: ['song-1', 'song-3', 'song-4', 'song-5', 'project-1'], // Adicionado o projeto
     createdBy: 'user-1',
     sharedWith: [],
   },
 ];
 
-// Mock users
+// Mock users (sem alterações)
 export const mockUsers: User[] = [
   {
     id: 'user-1',
@@ -380,4 +327,4 @@ export const mockUsers: User[] = [
   },
 ];
 
-export const currentUser = mockUsers[0];
+export const currentUser = mockUsers[0]; // Mantido como user-1

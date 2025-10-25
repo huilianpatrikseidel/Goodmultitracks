@@ -1864,23 +1864,43 @@ ${chordMarkers.map(chord => `    <chord>
   );
 }
 
-function generateWaveformPath(data: number[] | undefined, width: number, height: number): string { // Adicionado undefined check
-    if (!data || data.length === 0) return `M 0 ${height / 2} L ${width} ${height / 2}`; // Linha reta se não houver dados
+function generateWaveformPath(data: number[] | undefined, width: number, height: number): string {
+  // Se não houver dados ou a largura for 0, desenha uma linha reta no meio
+  if (!data || data.length === 0 || width <= 0) {
+      const centerY = height / 2;
+      return `M 0 ${centerY} L ${width} ${centerY}`;
+  }
 
-    const step = width / data.length;
-    const centerY = height / 2;
+  const step = width / data.length;
+  const centerY = height / 2;
 
-    let path = `M 0 ${centerY}`;
+  let path = `M 0 ${centerY}`; // Começa no meio à esquerda
 
-    data.forEach((value, i) => {
-        const x = i * step;
-        const yTop = centerY - (value * centerY * 0.9); // 0.9 para dar uma margem
-        const yBottom = centerY + (value * centerY * 0.9);
-        // Desenha uma linha vertical fina para cada ponto de dado
-        path += ` M ${x} ${yTop} L ${x} ${yBottom}`;
-    });
+  // Desenha a parte superior da onda
+  data.forEach((value, i) => {
+    // Garante que o valor esteja entre 0 e 1 para evitar picos estranhos
+    const normalizedValue = Math.max(0, Math.min(1, value));
+    const x = i * step;
+    // Multiplica por centerY para escalar a altura, subtrai para ir para cima
+    const y = centerY - (normalizedValue * centerY);
+    path += ` L ${x.toFixed(2)} ${y.toFixed(2)}`; // Limita casas decimais para performance
+  });
 
-    // Em vez de espelhar, desenhamos linhas verticais
-    // path += ' Z'; // Não precisamos fechar o caminho para linhas verticais
-    return path;
+   // Linha final na borda direita (no meio) para fechar a parte superior
+  path += ` L ${width.toFixed(2)} ${centerY}`;
+
+  // Desenha a parte inferior da onda (espelhada), voltando da direita para a esquerda
+  // (Começamos do último ponto já adicionado: width, centerY)
+  for (let i = data.length - 1; i >= 0; i--) {
+      // Garante que o valor esteja entre 0 e 1
+      const normalizedValue = Math.max(0, Math.min(1, data[i]));
+      const x = i * step;
+      // Adiciona a centerY para ir para baixo
+      const y = centerY + (normalizedValue * centerY);
+      path += ` L ${x.toFixed(2)} ${y.toFixed(2)}`;
+  }
+
+  // Linha final de volta ao ponto inicial (0, centerY) para fechar o caminho
+  path += ' Z';
+  return path;
 }
