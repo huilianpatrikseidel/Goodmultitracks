@@ -67,6 +67,7 @@
     --color-green-600: oklch(.627 .194 149.214);
     --color-green-700: oklch(.527 .154 150.069);
     --color-green-800: oklch(.448 .119 151.328);
+    --color-teal-600: oklch(.6 .118 184.704);
     --color-blue-50: oklch(.97 .014 254.604);
     --color-blue-200: oklch(.882 .059 254.128);
     --color-blue-300: oklch(.809 .105 251.813);
@@ -77,6 +78,7 @@
     --color-blue-800: oklch(.424 .199 265.638);
     --color-blue-900: oklch(.379 .146 265.522);
     --color-purple-600: oklch(.558 .288 302.321);
+    --color-pink-600: oklch(.592 .249 .584);
     --color-gray-50: oklch(.985 .002 247.839);
     --color-gray-100: oklch(.967 .003 264.542);
     --color-gray-200: oklch(.928 .006 264.531);
@@ -964,6 +966,10 @@
     width: calc(var(--spacing) * 64);
   }
 
+  .w-72 {
+    width: calc(var(--spacing) * 72);
+  }
+
   .w-\[50px\] {
     width: 50px;
   }
@@ -998,6 +1004,10 @@
 
   .max-w-\[calc\(100\%-2rem\)\] {
     max-width: calc(100% - 2rem);
+  }
+
+  .max-w-full {
+    max-width: 100%;
   }
 
   .max-w-md {
@@ -1038,6 +1048,10 @@
 
   .origin-\(--radix-dropdown-menu-content-transform-origin\) {
     transform-origin: var(--radix-dropdown-menu-content-transform-origin);
+  }
+
+  .origin-\(--radix-popover-content-transform-origin\) {
+    transform-origin: var(--radix-popover-content-transform-origin);
   }
 
   .origin-\(--radix-select-content-transform-origin\) {
@@ -1109,6 +1123,10 @@
 
   .grid-cols-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .grid-rows-\[auto_auto\] {
@@ -1468,6 +1486,14 @@
     background-color: var(--color-gray-200);
   }
 
+  .bg-gray-400 {
+    background-color: var(--color-gray-400);
+  }
+
+  .bg-gray-500 {
+    background-color: var(--color-gray-500);
+  }
+
   .bg-gray-600 {
     background-color: var(--color-gray-600);
   }
@@ -1514,6 +1540,10 @@
     }
   }
 
+  .bg-pink-600 {
+    background-color: var(--color-pink-600);
+  }
+
   .bg-popover {
     background-color: var(--popover);
   }
@@ -1536,6 +1566,10 @@
 
   .bg-secondary {
     background-color: var(--secondary);
+  }
+
+  .bg-teal-600 {
+    background-color: var(--color-teal-600);
   }
 
   .bg-white {
@@ -1672,6 +1706,10 @@
 
   .pt-6 {
     padding-top: calc(var(--spacing) * 6);
+  }
+
+  .pr-1 {
+    padding-right: calc(var(--spacing) * 1);
   }
 
   .pr-2 {
@@ -2211,6 +2249,12 @@
   @media (hover: hover) {
     .hover\:underline:hover {
       text-decoration-line: underline;
+    }
+  }
+
+  @media (hover: hover) {
+    .hover\:opacity-80:hover {
+      opacity: .8;
     }
   }
 

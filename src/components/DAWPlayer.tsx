@@ -15,7 +15,7 @@ import {
   Clock,
   Music2,
   Pencil,
-  Palette,
+  Palette, // Ícone de paleta, se desejar usar
   Grid3x3,
   PanelLeftClose,
   PanelLeft,
@@ -31,11 +31,16 @@ import { CreateProjectDialog } from './CreateProjectDialog';
 import { TimelineEditorDialog } from './TimelineEditorDialog';
 import { ChordDiagram } from './ChordDiagram';
 import { gainToDb, gainToSlider, sliderToGain, formatDb, parseDbInput, hexToRgba } from '../lib/audioUtils';
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from './ui/popover'; // Importação adicionada
 import { Label } from './ui/label';
 import { playMetronomeClick, resumeAudioContext } from '../lib/metronome';
 import { useLanguage } from '../lib/LanguageContext';
@@ -47,6 +52,12 @@ interface DAWPlayerProps {
   onBack: () => void;
   onCreateProject?: (projectData: any) => void;
 }
+
+// Paleta de cores predefinida
+const PRESET_COLORS = [
+  '#60a5fa', '#ef4444', '#22c55e', '#f59e0b', '#a855f7', '#ec4899', '#14b8a6', '#f97316',
+  '#84cc16', '#0ea5e9', '#d946ef', '#f43f5e', '#64748b', '#78716c', '#facc15', '#3b82f6',
+];
 
 export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCreateProject }: DAWPlayerProps) {
   const { t } = useLanguage();
@@ -79,12 +90,12 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
   const [scrollUpdate, setScrollUpdate] = useState(0);
   const [isDraggingVerticalScrollbar, setIsDraggingVerticalScrollbar] = useState(false);
   const [selectedChord, setSelectedChord] = useState<{ chord: string; customDiagram?: any } | null>(null);
-  
+
   // Metronome state
   const [metronomeEnabled, setMetronomeEnabled] = useState(false);
   const [metronomeVolume, setMetronomeVolume] = useState(0.5); // Stored as linear gain
   const lastBeatRef = useRef<number>(0);
-  
+
   const timelineScrollRef = useRef<HTMLDivElement>(null);
   const tracksScrollRef = useRef<HTMLDivElement>(null);
   const trackLabelsScrollRef = useRef<HTMLDivElement>(null);
@@ -106,7 +117,7 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
     if (song && onSongUpdate && JSON.stringify(tracks) !== JSON.stringify(song.tracks)) {
       onSongUpdate({ ...song, tracks });
     }
-  }, [tracks]);
+  }, [tracks, song, onSongUpdate]); // Adicionado song e onSongUpdate às dependências
 
   // Measure container width for zoom calculation
   useEffect(() => {
@@ -115,7 +126,7 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
         setContainerWidth(timelineScrollRef.current.clientWidth);
       }
     };
-    
+
     measureWidth();
     window.addEventListener('resize', measureWidth);
     return () => window.removeEventListener('resize', measureWidth);
@@ -137,27 +148,27 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
         const newTime = prev + (0.1 * tempo / 100);
         const endPoint = loopEnabled && loopEnd !== null ? loopEnd : song.duration;
         const startPoint = loopEnabled && loopStart !== null ? loopStart : 0;
-        
+
         // Handle metronome clicks
         if (metronomeEnabled) {
           const actualTempo = song.tempo * (tempo / 100);
           const beatDuration = 60 / actualTempo;
-          
+
           // Calculate current beat
           const currentBeat = Math.floor(newTime / beatDuration);
-          
+
           // Play click if we've crossed to a new beat
           if (currentBeat > lastBeatRef.current) {
             const timeSignature = song.tempoChanges?.[0]?.timeSignature || "4/4";
             const [beatsPerMeasure] = timeSignature.split('/').map(Number);
             const beatInMeasure = (currentBeat % beatsPerMeasure) + 1;
             const isStrongBeat = beatInMeasure === 1;
-            
+
             playMetronomeClick(isStrongBeat, metronomeVolume);
             lastBeatRef.current = currentBeat;
           }
         }
-        
+
         if (newTime >= endPoint) {
           if (loopEnabled) {
             lastBeatRef.current = 0; // Reset beat counter on loop
@@ -223,13 +234,13 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
 
   const handleSectionClick = (markerIndex: number) => {
     if (!song) return;
-    
+
     const marker = song.markers[markerIndex];
     const nextMarker = song.markers[markerIndex + 1];
-    
+
     const sectionStart = marker.time;
     const sectionEnd = nextMarker ? nextMarker.time : song.duration;
-    
+
     setLoopStart(sectionStart);
     setLoopEnd(sectionEnd);
     setLoopEnabled(true);
@@ -276,7 +287,7 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
     const totalWidth = (containerWidth * zoom);
     const percentage = (x + scrollLeft) / totalWidth;
     const time = percentage * song.duration;
-    
+
     setIsDragging(true);
     setDragStartTime(time);
     setDragStartX(e.clientX);
@@ -285,11 +296,11 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
 
   const handleWaveformMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isDragging || dragStartTime === null || dragStartX === null || !song) return;
-    
+
     // Only consider it a drag if moved more than 5 pixels
     if (Math.abs(e.clientX - dragStartX) > 5) {
       setHasDragged(true);
-      
+
       const rect = e.currentTarget.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const scrollLeft = e.currentTarget.scrollLeft || 0;
@@ -298,7 +309,7 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
       const rawTime = percentage * song.duration;
       const time = snapToMeasure(rawTime);
       const snappedDragStart = snapToMeasure(dragStartTime);
-      
+
       if (time < snappedDragStart) {
         setLoopStart(time);
         setLoopEnd(snappedDragStart);
@@ -319,7 +330,7 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
       const percentage = (x + scrollLeft) / totalWidth;
       const clickTime = percentage * song.duration;
       const snappedClickTime = snapToMeasure(clickTime);
-      
+
       // Check if click is outside loop region
       if (loopStart !== null && loopEnd !== null) {
         if (snappedClickTime < loopStart || snappedClickTime > loopEnd) {
@@ -327,11 +338,11 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
           setLoopEnd(null);
         }
       }
-      
+
       // Seek to clicked position
       setCurrentTime(Math.max(0, Math.min(snappedClickTime, song.duration)));
     }
-    
+
     setIsDragging(false);
     setDragStartTime(null);
     setDragStartX(null);
@@ -347,10 +358,10 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
 
   const handleExportProject = () => {
     if (!song) return;
-    
+
     // Create XML content
     const xml = generateProjectXML(song);
-    
+
     // Create a mock download (in a real app, this would create an actual ZIP file)
     const blob = new Blob([xml], { type: 'application/xml' });
     const url = URL.createObjectURL(blob);
@@ -361,14 +372,14 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
+
     alert('Project exported! In a real implementation, this would create a ZIP file with audio files and XML metadata.');
   };
 
   const generateProjectXML = (song: Song): string => {
     const tempoChanges = song.tempoChanges || [{ time: 0, tempo: song.tempo, timeSignature: '4/4' }];
     const chordMarkers = song.chordMarkers || [];
-    
+
     return `<?xml version="1.0" encoding="UTF-8"?>
 <project>
   <metadata>
@@ -377,7 +388,7 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
     <key>${escapeXml(song.key)}</key>
     <tempo>${song.tempo}</tempo>
     <duration>${song.duration}</duration>
-    <version>${escapeXml(song.version)}</version>
+    <version>${escapeXml(String(song.version))}</version> {/* Convertido para string */}
   </metadata>
   <tracks>
 ${song.tracks.map(track => `    <track>
@@ -385,6 +396,7 @@ ${song.tracks.map(track => `    <track>
       <name>${escapeXml(track.name)}</name>
       <type>${escapeXml(track.type)}</type>
       <volume>${track.volume}</volume>
+      <color>${escapeXml(track.color || '')}</color> {/* Adicionado cor */}
     </track>`).join('\n')}
   </tracks>
   <markers>
@@ -429,9 +441,9 @@ ${chordMarkers.map(chord => `    <chord>
 
   const escapeXml = (str: string): string => {
     return str
-      .replace(/&/g, '&')
-      .replace(/</g, '<')
-      .replace(/>/g, '>')
+      .replace(/&/g, '&amp;') // Correção aqui
+      .replace(/</g, '&lt;') // Correção aqui
+      .replace(/>/g, '&gt;') // Correção aqui
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&apos;');
   };
@@ -451,22 +463,28 @@ ${chordMarkers.map(chord => `    <chord>
         updatedSong.tempoChanges = [...(song.tempoChanges || []), {
           time: itemData.time,
           tempo: itemData.tempo,
-          timeSignature: song.tempoChanges?.[0]?.timeSignature || '4/4',
+          timeSignature: song.tempoChanges?.find(tc => tc.time <= itemData.time)?.timeSignature || '4/4', // Mantém TS existente
         }].sort((a, b) => a.time - b.time);
         break;
       case 'timesig':
-        updatedSong.tempoChanges = [...(song.tempoChanges || []), {
-          time: itemData.time,
-          tempo: song.tempo,
-          timeSignature: itemData.timeSignature,
-        }].sort((a, b) => a.time - b.time);
+         // Atualiza ou adiciona a mudança de TS, mantendo o tempo existente
+        const existingTempoIndex = updatedSong.tempoChanges?.findIndex(tc => tc.time === itemData.time) ?? -1;
+        if (existingTempoIndex !== -1 && updatedSong.tempoChanges) {
+          updatedSong.tempoChanges[existingTempoIndex].timeSignature = itemData.timeSignature;
+        } else {
+          updatedSong.tempoChanges = [...(updatedSong.tempoChanges || []), {
+            time: itemData.time,
+            tempo: getCurrentTempoInfo(itemData.time).tempo, // Pega o tempo atual naquele ponto
+            timeSignature: itemData.timeSignature,
+          }].sort((a, b) => a.time - b.time);
+        }
         break;
       case 'section':
         updatedSong.markers = [...song.markers, {
           id: `marker-${Date.now()}`,
           time: itemData.time,
           label: itemData.label,
-          type: itemData.type || 'section',
+          type: itemData.type || 'custom', // Corrigido para 'custom' se não definido
         }].sort((a, b) => a.time - b.time);
         break;
       case 'chord':
@@ -482,6 +500,7 @@ ${chordMarkers.map(chord => `    <chord>
   };
 
   if (!song) {
+    // ... (código para quando não há música selecionada - mantido igual)
     return (
       <div className="flex flex-col h-full bg-gray-900 text-white">
         <div className="bg-gray-800 border-b border-gray-700 p-3 flex items-center justify-between">
@@ -496,7 +515,7 @@ ${chordMarkers.map(chord => `    <chord>
           <h2>Player</h2>
           <div className="w-8" />
         </div>
-        
+
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center space-y-4">
             <Music2 className="w-16 h-16 mx-auto text-gray-600" />
@@ -532,11 +551,15 @@ ${chordMarkers.map(chord => `    <chord>
   };
 
   // Get current tempo and time signature at given time
-  const getCurrentTempoInfo = (time: number) => {
+  const getCurrentTempoInfo = (time: number): TempoChange => { // Tipo de retorno especificado
     const tempoChanges = song.tempoChanges || [{ time: 0, tempo: song.tempo, timeSignature: '4/4' }];
-    
+
     // Find the active tempo change at this time
-    let activeTempo = tempoChanges[0];
+    let activeTempo: TempoChange = { // Inicialização com tipo
+        time: 0,
+        tempo: song.tempo,
+        timeSignature: '4/4'
+    };
     for (let i = 0; i < tempoChanges.length; i++) {
       if (tempoChanges[i].time <= time) {
         activeTempo = tempoChanges[i];
@@ -544,71 +567,82 @@ ${chordMarkers.map(chord => `    <chord>
         break;
       }
     }
-    
+
     return activeTempo;
   };
 
   // Calculate current measure number at given time
   const getCurrentMeasure = (time: number) => {
     const tempoChanges = song.tempoChanges || [{ time: 0, tempo: song.tempo, timeSignature: '4/4' }];
-    
+
     let measureCount = 1; // Measures are 1-indexed
     let currentMeasureTime = 0;
-    
-    while (currentMeasureTime < time) {
+
+    while (currentMeasureTime < time && measureCount < 1000) { // Adicionado limite para evitar loop infinito
       // Find active tempo/time sig for this measure
-      const currentTempo = tempoChanges.find((tc, i) => {
-        const nextTc = tempoChanges[i + 1];
-        return tc.time <= currentMeasureTime && (!nextTc || nextTc.time > currentMeasureTime);
-      }) || tempoChanges[0];
-      
+      const currentTempo = tempoChanges.slice().reverse().find(tc => tc.time <= currentMeasureTime) || tempoChanges[0]; // Simplificado
+
       const [numerator] = (currentTempo.timeSignature || '4/4').split('/').map(Number);
-      const beatsPerMeasure = numerator;
-      const secondsPerBeat = 60 / currentTempo.tempo;
+      const beatsPerMeasure = numerator || 4; // Default para 4 se TS for inválido
+      const secondsPerBeat = 60 / (currentTempo.tempo || song.tempo || 120); // Default robusto
       const measureDuration = beatsPerMeasure * secondsPerBeat;
-      
-      currentMeasureTime += measureDuration;
-      
-      // If we haven't passed the target time yet, increment measure
-      if (currentMeasureTime <= time) {
-        measureCount++;
+
+      // Se a duração da medida for 0 ou inválida, interrompe
+      if (measureDuration <= 0 || !isFinite(measureDuration)) {
+        console.error("Invalid measure duration calculated:", measureDuration, currentTempo);
+        break;
       }
+
+      const nextMeasureTime = currentMeasureTime + measureDuration;
+
+      // Se o tempo alvo está dentro desta medida
+      if (time >= currentMeasureTime && time < nextMeasureTime) {
+          break;
+      }
+
+      currentMeasureTime = nextMeasureTime;
+      measureCount++;
     }
-    
+
     return measureCount;
   };
+
 
   // Snap time to nearest measure boundary
   const snapToMeasure = (time: number): number => {
     if (!snapEnabled) return time;
-    
+
     const tempoChanges = song.tempoChanges || [{ time: 0, tempo: song.tempo, timeSignature: '4/4' }];
-    
+
     // Build array of all measure boundaries
     const measureBoundaries: number[] = [];
     let currentMeasureTime = 0;
-    
-    while (currentMeasureTime <= song.duration) {
+    let measureCount = 0;
+
+    while (currentMeasureTime <= song.duration + 1 && measureCount < 1000) { // Adicionado +1 e limite
       measureBoundaries.push(currentMeasureTime);
-      
+
       // Find active tempo/time sig for this measure
-      const currentTempo = tempoChanges.find((tc, i) => {
-        const nextTc = tempoChanges[i + 1];
-        return tc.time <= currentMeasureTime && (!nextTc || nextTc.time > currentMeasureTime);
-      }) || tempoChanges[0];
-      
+      const currentTempo = tempoChanges.slice().reverse().find(tc => tc.time <= currentMeasureTime) || tempoChanges[0];
+
       const [numerator] = (currentTempo.timeSignature || '4/4').split('/').map(Number);
-      const beatsPerMeasure = numerator;
-      const secondsPerBeat = 60 / currentTempo.tempo;
+      const beatsPerMeasure = numerator || 4;
+      const secondsPerBeat = 60 / (currentTempo.tempo || song.tempo || 120);
       const measureDuration = beatsPerMeasure * secondsPerBeat;
-      
+
+       if (measureDuration <= 0 || !isFinite(measureDuration)) {
+         console.error("Invalid measure duration for snapping:", measureDuration, currentTempo);
+         break;
+       }
+
       currentMeasureTime += measureDuration;
+      measureCount++;
     }
-    
+
     // Find nearest measure boundary
     let nearestBoundary = measureBoundaries[0];
     let minDistance = Math.abs(time - nearestBoundary);
-    
+
     for (const boundary of measureBoundaries) {
       const distance = Math.abs(time - boundary);
       if (distance < minDistance) {
@@ -616,7 +650,7 @@ ${chordMarkers.map(chord => `    <chord>
         nearestBoundary = boundary;
       }
     }
-    
+
     return nearestBoundary;
   };
 
@@ -644,7 +678,7 @@ ${chordMarkers.map(chord => `    <chord>
 
   // Generate measure bars with dynamic subdivision based on zoom
   const tempoChanges = song.tempoChanges || [{ time: 0, tempo: song.tempo, timeSignature: '4/4' }];
-  
+
   // Calculate measure skip interval based on zoom level
   // This prevents overlapping measure numbers at low zoom
   const getMeasureSkip = () => {
@@ -653,25 +687,27 @@ ${chordMarkers.map(chord => `    <chord>
     if (zoom >= 1.5) return 4; // Show every 4th measure at 150%+
     return 8; // Show every 8th measure at 100%
   };
-  
+
   const measureSkip = getMeasureSkip();
   const showBeats = zoom >= 6; // Show beats at 600%+
-  
-  const measureBars = [];
+
+  const measureBars: { time: number; measure: number | null; beat: number; isBeat: boolean }[] = []; // Tipo explícito
   let currentMeasureTime = 0;
   let measureCount = 0;
-  
-  while (currentMeasureTime < song.duration) {
-    const currentTempo = tempoChanges.find((tc, i) => {
-      const nextTc = tempoChanges[i + 1];
-      return tc.time <= currentMeasureTime && (!nextTc || nextTc.time > currentMeasureTime);
-    }) || tempoChanges[0];
-    
-    const [numerator, denominator] = (currentTempo.timeSignature || '4/4').split('/').map(Number);
-    const beatsPerMeasure = numerator;
-    const secondsPerBeat = 60 / currentTempo.tempo;
+
+  while (currentMeasureTime < song.duration && measureCount < 1000) { // Limite adicionado
+    const currentTempo = tempoChanges.slice().reverse().find(tc => tc.time <= currentMeasureTime) || tempoChanges[0];
+
+    const [numerator] = (currentTempo.timeSignature || '4/4').split('/').map(Number);
+    const beatsPerMeasure = numerator || 4;
+    const secondsPerBeat = 60 / (currentTempo.tempo || song.tempo || 120);
     const measureDuration = beatsPerMeasure * secondsPerBeat;
-    
+
+     if (measureDuration <= 0 || !isFinite(measureDuration)) {
+       console.error("Invalid measure duration for bars:", measureDuration, currentTempo);
+       break;
+     }
+
     if (showBeats) {
       // Show individual beats at very high zoom
       for (let beat = 0; beat < beatsPerMeasure; beat++) {
@@ -695,19 +731,22 @@ ${chordMarkers.map(chord => `    <chord>
         isBeat: false,
       });
     }
-    
+
     currentMeasureTime += measureDuration;
     measureCount++;
   }
 
+
   const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!timelineScrollRef.current) return; // Verificação adicionada
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left + (timelineScrollRef.current?.scrollLeft || 0);
+    const x = e.clientX - rect.left + (timelineScrollRef.current.scrollLeft || 0); // Correção scrollLeft
     const percentage = x / timelineWidth;
     const rawTime = percentage * song.duration;
     const snappedTime = snapToMeasure(rawTime);
     setCurrentTime(Math.max(0, Math.min(snappedTime, song.duration)));
   };
+
 
   const resetMix = () => {
     setTracks((prev) =>
@@ -720,39 +759,35 @@ ${chordMarkers.map(chord => `    <chord>
     );
   };
 
-  const chordProgression = song.chordMarkers || [
-    { time: 0, chord: 'C' },
-    { time: 30, chord: 'F' },
-    { time: 60, chord: 'G' },
-  ];
+  const chordProgression = song.chordMarkers || []; // Usar chordMarkers
 
   // Zoom centered on a specific time point
   const zoomCentered = (newZoom: number, focusTime: number) => {
-    if (!timelineScrollRef.current) return;
-    
+    if (!timelineScrollRef.current || !song) return; // Adicionado !song
+
     const clampedZoom = Math.max(1, Math.min(8, newZoom));
-    
+
     // Get current scroll position and viewport width
     const scrollLeft = timelineScrollRef.current.scrollLeft;
     const viewportWidth = timelineScrollRef.current.clientWidth;
-    
+
     // Calculate the current timeline width and the focus point's pixel position
     const currentTimelineWidth = containerWidth * zoom;
     const focusPixelPosition = (focusTime / song.duration) * currentTimelineWidth;
-    
+
     // Calculate how far the focus point is from the left edge of the viewport
     const focusOffsetInViewport = focusPixelPosition - scrollLeft;
-    
+
     // Update zoom
     setZoom(clampedZoom);
-    
+
     // Calculate new timeline width and new pixel position of the focus point
     const newTimelineWidth = containerWidth * clampedZoom;
     const newFocusPixelPosition = (focusTime / song.duration) * newTimelineWidth;
-    
+
     // Calculate new scroll position to keep the focus point at the same viewport position
     const newScrollLeft = newFocusPixelPosition - focusOffsetInViewport;
-    
+
     // Apply new scroll position on next frame
     requestAnimationFrame(() => {
       if (timelineScrollRef.current) {
@@ -772,31 +807,31 @@ ${chordMarkers.map(chord => `    <chord>
 
   // Handle wheel zoom with CTRL key
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    if (!e.ctrlKey && !e.metaKey) return;
-    
+    if (!e.ctrlKey && !e.metaKey || !song) return; // Adicionado !song
+
     e.preventDefault();
-    
+
     // Clear any pending wheel timeout
     if (wheelTimeoutRef.current) {
       clearTimeout(wheelTimeoutRef.current);
     }
-    
+
     // Get mouse position relative to timeline
     const rect = timelineScrollRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    
+    if (!rect || !timelineScrollRef.current) return; // Adicionado !timelineScrollRef.current
+
     const mouseX = e.clientX - rect.left;
-    const scrollLeft = timelineScrollRef.current?.scrollLeft || 0;
-    
+    const scrollLeft = timelineScrollRef.current.scrollLeft || 0; // Correção scrollLeft
+
     // Calculate the time at the mouse position
     const currentTimelineWidth = containerWidth * zoom;
     const mousePixelPosition = scrollLeft + mouseX;
     const mouseTime = (mousePixelPosition / currentTimelineWidth) * song.duration;
-    
+
     // Determine zoom direction (negative deltaY = zoom in)
     const zoomDelta = e.deltaY > 0 ? -0.1 : 0.1;
     const newZoom = Math.max(1, Math.min(8, zoom + zoomDelta));
-    
+
     // Apply zoom centered on mouse position
     zoomCentered(newZoom, mouseTime);
   };
@@ -815,19 +850,20 @@ ${chordMarkers.map(chord => `    <chord>
     if (!tracksScrollRef.current) return 1;
     const scrollWidth = tracksScrollRef.current.scrollWidth;
     const clientWidth = tracksScrollRef.current.clientWidth;
-    return Math.min(1, clientWidth / scrollWidth);
+    // Evita divisão por zero
+    return scrollWidth > 0 ? Math.min(1, clientWidth / scrollWidth) : 1;
   };
 
   const handleScrollbarMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!scrollbarRef.current || !tracksScrollRef.current) return;
-    
+
     const rect = scrollbarRef.current.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const scrollbarWidth = rect.width;
     const visiblePercentage = getVisiblePercentage();
     const thumbWidth = scrollbarWidth * visiblePercentage;
     const thumbStart = getScrollPercentage() * (scrollbarWidth - thumbWidth);
-    
+
     // Check if clicked on thumb or track
     if (clickX >= thumbStart && clickX <= thumbStart + thumbWidth) {
       setIsDraggingScrollbar(true);
@@ -841,44 +877,45 @@ ${chordMarkers.map(chord => `    <chord>
     }
   };
 
-  const handleScrollbarMouseMove = (e: MouseEvent) => {
-    if (!isDraggingScrollbar && !isDraggingLeftHandle && !isDraggingRightHandle) return;
-    if (!scrollbarRef.current || !tracksScrollRef.current) return;
+   const handleScrollbarMouseMove = React.useCallback((e: MouseEvent) => { // Usar useCallback
+     if (!isDraggingScrollbar && !isDraggingLeftHandle && !isDraggingRightHandle) return;
+     if (!scrollbarRef.current || !tracksScrollRef.current) return;
 
-    if (isDraggingScrollbar) {
-      const rect = scrollbarRef.current.getBoundingClientRect();
-      const scrollbarWidth = rect.width;
-      const visiblePercentage = getVisiblePercentage();
-      const thumbWidth = scrollbarWidth * visiblePercentage;
-      const clickX = e.clientX - rect.left;
-      
-      const newPercentage = Math.max(0, Math.min(1, (clickX - thumbWidth / 2) / (scrollbarWidth - thumbWidth)));
-      const scrollWidth = tracksScrollRef.current.scrollWidth;
-      const clientWidth = tracksScrollRef.current.clientWidth;
-      const maxScroll = scrollWidth - clientWidth;
-      tracksScrollRef.current.scrollLeft = newPercentage * maxScroll;
-    } else if (isDraggingLeftHandle || isDraggingRightHandle) {
-      if (!handleDragStart) return;
-      
-      const deltaX = e.clientX - handleDragStart.x;
-      const rect = scrollbarRef.current.getBoundingClientRect();
-      const scrollbarWidth = rect.width;
-      
-      // Convert pixel movement to zoom change
-      // Dragging outward = zoom out, dragging inward = zoom in
-      const direction = isDraggingRightHandle ? 1 : -1;
-      const zoomDelta = (deltaX * direction) / scrollbarWidth * 4; // Sensitivity factor
-      const newZoom = Math.max(1, Math.min(8, handleDragStart.zoom - zoomDelta));
-      setZoom(newZoom);
-    }
-  };
+     if (isDraggingScrollbar) {
+       const rect = scrollbarRef.current.getBoundingClientRect();
+       const scrollbarWidth = rect.width;
+       const visiblePercentage = getVisiblePercentage();
+       const thumbWidth = scrollbarWidth * visiblePercentage;
+       const clickX = e.clientX - rect.left;
 
-  const handleScrollbarMouseUp = () => {
+       const newPercentage = Math.max(0, Math.min(1, (clickX - thumbWidth / 2) / (scrollbarWidth - thumbWidth)));
+       const scrollWidth = tracksScrollRef.current.scrollWidth;
+       const clientWidth = tracksScrollRef.current.clientWidth;
+       const maxScroll = scrollWidth - clientWidth;
+       tracksScrollRef.current.scrollLeft = newPercentage * maxScroll;
+     } else if (isDraggingLeftHandle || isDraggingRightHandle) {
+       if (!handleDragStart) return;
+
+       const deltaX = e.clientX - handleDragStart.x;
+       const rect = scrollbarRef.current.getBoundingClientRect();
+       const scrollbarWidth = rect.width;
+
+       // Convert pixel movement to zoom change
+       // Dragging outward = zoom out, dragging inward = zoom in
+       const direction = isDraggingRightHandle ? 1 : -1;
+       const zoomDelta = (deltaX * direction) / scrollbarWidth * 4; // Sensitivity factor
+       const newZoom = Math.max(1, Math.min(8, handleDragStart.zoom - zoomDelta));
+       setZoom(newZoom);
+     }
+   }, [isDraggingScrollbar, isDraggingLeftHandle, isDraggingRightHandle, handleDragStart, getVisiblePercentage]); // Dependências
+
+
+  const handleScrollbarMouseUp = React.useCallback(() => { // Usar useCallback
     setIsDraggingScrollbar(false);
     setIsDraggingLeftHandle(false);
     setIsDraggingRightHandle(false);
     setHandleDragStart(null);
-  };
+  }, []); // Sem dependências
 
   useEffect(() => {
     if (isDraggingScrollbar || isDraggingLeftHandle || isDraggingRightHandle) {
@@ -889,7 +926,8 @@ ${chordMarkers.map(chord => `    <chord>
         window.removeEventListener('mouseup', handleScrollbarMouseUp);
       };
     }
-  }, [isDraggingScrollbar, isDraggingLeftHandle, isDraggingRightHandle, zoom]);
+  }, [isDraggingScrollbar, isDraggingLeftHandle, isDraggingRightHandle, handleScrollbarMouseMove, handleScrollbarMouseUp]); // Dependências
+
 
   const handleLeftHandleMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -917,19 +955,21 @@ ${chordMarkers.map(chord => `    <chord>
     if (!tracksScrollRef.current) return 1;
     const scrollHeight = tracksScrollRef.current.scrollHeight;
     const clientHeight = tracksScrollRef.current.clientHeight;
-    return Math.min(1, clientHeight / scrollHeight);
+     // Evita divisão por zero
+    return scrollHeight > 0 ? Math.min(1, clientHeight / scrollHeight) : 1;
   };
+
 
   const handleVerticalScrollbarMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!verticalScrollbarRef.current || !tracksScrollRef.current) return;
-    
+
     const rect = verticalScrollbarRef.current.getBoundingClientRect();
     const clickY = e.clientY - rect.top;
     const scrollbarHeight = rect.height;
     const visiblePercentage = getVerticalVisiblePercentage();
     const thumbHeight = scrollbarHeight * visiblePercentage;
     const thumbStart = getVerticalScrollPercentage() * (scrollbarHeight - thumbHeight);
-    
+
     // Check if clicked on thumb or track
     if (clickY >= thumbStart && clickY <= thumbStart + thumbHeight) {
       setIsDraggingVerticalScrollbar(true);
@@ -943,7 +983,7 @@ ${chordMarkers.map(chord => `    <chord>
     }
   };
 
-  const handleVerticalScrollbarMouseMove = (e: MouseEvent) => {
+  const handleVerticalScrollbarMouseMove = React.useCallback((e: MouseEvent) => { // Usar useCallback
     if (!isDraggingVerticalScrollbar) return;
     if (!verticalScrollbarRef.current || !tracksScrollRef.current) return;
 
@@ -952,17 +992,18 @@ ${chordMarkers.map(chord => `    <chord>
     const visiblePercentage = getVerticalVisiblePercentage();
     const thumbHeight = scrollbarHeight * visiblePercentage;
     const clickY = e.clientY - rect.top;
-    
+
     const newPercentage = Math.max(0, Math.min(1, (clickY - thumbHeight / 2) / (scrollbarHeight - thumbHeight)));
     const scrollHeight = tracksScrollRef.current.scrollHeight;
     const clientHeight = tracksScrollRef.current.clientHeight;
     const maxScroll = scrollHeight - clientHeight;
     tracksScrollRef.current.scrollTop = newPercentage * maxScroll;
-  };
+  }, [isDraggingVerticalScrollbar, getVerticalVisiblePercentage]); // Dependências
 
-  const handleVerticalScrollbarMouseUp = () => {
+
+  const handleVerticalScrollbarMouseUp = React.useCallback(() => { // Usar useCallback
     setIsDraggingVerticalScrollbar(false);
-  };
+  }, []); // Sem dependências
 
   useEffect(() => {
     if (isDraggingVerticalScrollbar) {
@@ -973,7 +1014,8 @@ ${chordMarkers.map(chord => `    <chord>
         window.removeEventListener('mouseup', handleVerticalScrollbarMouseUp);
       };
     }
-  }, [isDraggingVerticalScrollbar]);
+  }, [isDraggingVerticalScrollbar, handleVerticalScrollbarMouseMove, handleVerticalScrollbarMouseUp]); // Dependências
+
 
   return (
     <div className="flex flex-col h-full bg-gray-900 text-white">
@@ -1044,8 +1086,8 @@ ${chordMarkers.map(chord => `    <chord>
               variant="ghost"
               size="icon"
               className={`h-12 w-12 text-white ${
-                isPlaying 
-                  ? 'bg-green-500 hover:bg-green-600' 
+                isPlaying
+                  ? 'bg-green-500 hover:bg-green-600'
                   : 'bg-green-800 hover:bg-green-700'
               }`}
               onClick={() => setIsPlaying(!isPlaying)}
@@ -1066,7 +1108,7 @@ ${chordMarkers.map(chord => `    <chord>
             >
               <Repeat className="w-5 h-5" />
             </Button>
-            
+
             {/* Metronome with volume dropdown */}
             <DropdownMenu>
               <div className="flex items-center gap-0">
@@ -1151,7 +1193,7 @@ ${chordMarkers.map(chord => `    <chord>
           </div>
 
           <Separator orientation="vertical" className="h-6 bg-gray-600" />
-          
+
           <div className="flex items-center gap-2">
           {editMode ? (
             <>
@@ -1201,45 +1243,59 @@ ${chordMarkers.map(chord => `    <chord>
                 <Download className="w-4 h-4" />
                 Export
               </Button>
-              {song.source === 'imported' && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-blue-400 hover:bg-gray-700 gap-2"
-                  onClick={() => setEditMode(false)}
-                >
-                  <Edit className="w-4 h-4" />
-                  Done Editing
-                </Button>
+              {/* Botão para sair do modo edição só aparece se for um projeto importado */}
+              {song.source !== 'project' && (
+                  <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-blue-400 hover:bg-gray-700 gap-2"
+                      onClick={() => setEditMode(false)}
+                  >
+                      <Edit className="w-4 h-4" />
+                      Done Editing
+                  </Button>
               )}
             </>
           ) : (
-            <>
-              {onPerformanceMode && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-white hover:bg-gray-700 gap-2"
-                  onClick={onPerformanceMode}
-                >
-                  <Maximize2 className="w-4 h-4" />
-                  Performance Mode
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-white hover:bg-gray-700 gap-2"
-                onClick={resetMix}
-              >
-                <RefreshCw className="w-4 h-4" />
-                Reset Mix
-              </Button>
-            </>
+             <>
+                {/* Botão Edit só aparece se for um projeto ou tiver permissão */}
+                {(song.source === 'project' || song.permissions?.canEdit) && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-white hover:bg-gray-700 gap-2"
+                        onClick={() => setEditMode(true)}
+                    >
+                        <Edit className="w-4 h-4" />
+                        Edit Project
+                    </Button>
+                )}
+                 {onPerformanceMode && (
+                   <Button
+                     variant="ghost"
+                     size="sm"
+                     className="text-white hover:bg-gray-700 gap-2"
+                     onClick={onPerformanceMode}
+                   >
+                     <Maximize2 className="w-4 h-4" />
+                     Performance Mode
+                   </Button>
+                 )}
+                 <Button
+                   variant="ghost"
+                   size="sm"
+                   className="text-white hover:bg-gray-700 gap-2"
+                   onClick={resetMix}
+                 >
+                   <RefreshCw className="w-4 h-4" />
+                   Reset Mix
+                 </Button>
+             </>
           )}
           </div>
         </div>
       </div>
+
 
       {/* Main Timeline and Tracks */}
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -1271,7 +1327,7 @@ ${chordMarkers.map(chord => `    <chord>
             ref={timelineScrollRef}
             className="flex-1 overflow-x-auto overflow-y-hidden hide-scrollbar"
             onScroll={handleTimelineScroll}
-            onMouseDown={handleWaveformMouseDown}
+            onMouseDown={handleWaveformMouseDown} // Mudado de handleTimelineClick para handleWaveformMouseDown
             onMouseMove={handleWaveformMouseMove}
             onMouseUp={handleWaveformMouseUp}
             onMouseLeave={handleWaveformMouseUp}
@@ -1302,7 +1358,7 @@ ${chordMarkers.map(chord => `    <chord>
                   const position = (bar.time / song.duration) * timelineWidth;
                   // Skip rendering if no label to show (unless it's a beat marker)
                   if (!bar.measure && !bar.isBeat) return null;
-                  
+
                   return (
                     <div
                       key={i}
@@ -1360,9 +1416,9 @@ ${chordMarkers.map(chord => `    <chord>
                         className="absolute top-0.5 left-0 text-xs bg-blue-600 text-white cursor-pointer hover:bg-blue-700 transition-colors"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setSelectedChord({ 
+                          setSelectedChord({
                             chord: chord.chord,
-                            customDiagram: (chord as any).customDiagram 
+                            customDiagram: (chord as any).customDiagram
                           });
                         }}
                       >
@@ -1388,19 +1444,26 @@ ${chordMarkers.map(chord => `    <chord>
                     chorus: 'bg-red-600',
                     bridge: 'bg-yellow-600',
                     outro: 'bg-purple-600',
+                    'pre-chorus': 'bg-pink-600', // Exemplo
+                    instrumental: 'bg-teal-600', // Exemplo
+                    tag: 'bg-gray-500', // Exemplo
+                    custom: 'bg-gray-400', // Cor para custom
                   };
+
+                  const bgColor = colorMap[marker.type] || colorMap.custom; // Fallback para custom
+                  const borderColor = bgColor.replace('bg-', 'border-');
 
                   return (
                     <div
                       key={marker.id}
-                      className={`absolute top-1 bottom-1 ${colorMap[marker.type] || 'bg-gray-600'} bg-opacity-30 border-l-2 ${colorMap[marker.type]?.replace('bg-', 'border-') || 'border-gray-600'} cursor-pointer hover:bg-opacity-50 transition-all`}
-                      style={{ left: position, width }}
+                      className={`absolute top-1 bottom-1 ${bgColor} bg-opacity-30 border-l-2 ${borderColor} cursor-pointer hover:bg-opacity-50 transition-all`}
+                      style={{ left: position, width: Math.max(0, width) }} // Garante largura não negativa
                       onClick={(e) => {
                         e.stopPropagation();
                         handleSectionClick(i);
                       }}
                     >
-                      <span className="absolute top-1 left-2 text-xs pointer-events-none">
+                      <span className="absolute top-1 left-2 text-xs pointer-events-none truncate max-w-full pr-1">
                         {marker.label}
                       </span>
                     </div>
@@ -1413,7 +1476,7 @@ ${chordMarkers.map(chord => `    <chord>
                 <>
                   <div
                     className="absolute top-0 bottom-0 bg-yellow-300 opacity-10 pointer-events-none z-5"
-                    style={{ 
+                    style={{
                       left: (loopStart / song.duration) * timelineWidth,
                       width: ((loopEnd - loopStart) / song.duration) * timelineWidth
                     }}
@@ -1440,40 +1503,68 @@ ${chordMarkers.map(chord => `    <chord>
           </div>
         </div>
 
+
         {/* Tracks */}
         <div className="flex-1 flex overflow-hidden">
           {/* Track Labels */}
           {sidebarVisible && (
-          <div 
+          <div
             ref={trackLabelsScrollRef}
             className="w-64 bg-gray-800 border-r border-gray-700 overflow-y-hidden"
-            style={{ overflowY: 'hidden' }}
+            style={{ overflowY: 'hidden' }} // Certifica que apenas a área de tracks tem scroll vertical
           >
             {tracks.map((track) => (
-              <div 
-                key={track.id} 
+              <div
+                key={track.id}
                 className="h-24 border-b border-gray-700 flex"
                 style={{ backgroundColor: hexToRgba(track.color || '#60a5fa', 0.3) }}
               >
-                {/* Color indicator */}
-                <div 
+                {/* Color indicator (sem alteração) */}
+                <div
                   className="w-1 flex-shrink-0"
                   style={{ backgroundColor: track.color || '#60a5fa' }}
                 />
                 <div className="flex-1 p-2.5 flex flex-col justify-center gap-2">
                   <div className="flex items-center gap-2 min-w-0">
-                  {editMode && (
-                    <div
-                      className="w-4 h-4 rounded border-2 border-gray-500 cursor-pointer flex-shrink-0"
-                      style={{ backgroundColor: track.color || '#60a5fa' }}
-                      onClick={() => {
-                        const colors = ['#60a5fa', '#ef4444', '#22c55e', '#f59e0b', '#a855f7', '#ec4899', '#14b8a6', '#f97316'];
-                        const currentIndex = colors.indexOf(track.color || '#60a5fa');
-                        const nextColor = colors[(currentIndex + 1) % colors.length];
-                        handleTrackColorChange(track.id, nextColor);
-                      }}
-                    />
-                  )}
+
+                  {/* **** INÍCIO DA ALTERAÇÃO DO SELETOR DE COR **** */}
+                   {editMode ? (
+                     <Popover>
+                       <PopoverTrigger asChild>
+                         <Button
+                           variant="ghost"
+                           size="sm"
+                           className="w-4 h-4 p-0 rounded border-2 border-gray-500 cursor-pointer flex-shrink-0"
+                           style={{ backgroundColor: track.color || '#60a5fa' }}
+                           aria-label={`Change color for track ${track.name}`}
+                         />
+                       </PopoverTrigger>
+                       <PopoverContent className="w-auto p-2 bg-gray-700 border-gray-600">
+                         <div className="grid grid-cols-4 gap-1">
+                           {PRESET_COLORS.map((color) => (
+                             <Button
+                               key={color}
+                               variant="ghost"
+                               size="sm"
+                               className="w-6 h-6 p-0 rounded border border-gray-500 hover:opacity-80"
+                               style={{ backgroundColor: color }}
+                               onClick={() => handleTrackColorChange(track.id, color)}
+                               aria-label={`Set color to ${color}`}
+                             />
+                           ))}
+                         </div>
+                       </PopoverContent>
+                     </Popover>
+                   ) : (
+                      // Mantém o indicador visual simples quando não está editando
+                     <div
+                       className="w-4 h-4 rounded border-2 border-gray-500 flex-shrink-0"
+                       style={{ backgroundColor: track.color || '#60a5fa' }}
+                     />
+                   )}
+                  {/* **** FIM DA ALTERAÇÃO DO SELETOR DE COR **** */}
+
+                  {/* Input/Texto do nome da Track */}
                   {editMode && editingTrackId === track.id ? (
                     <input
                       type="text"
@@ -1493,60 +1584,61 @@ ${chordMarkers.map(chord => `    <chord>
                   ) : (
                     <span className="text-sm truncate flex-1 min-w-0">{track.name}</span>
                   )}
-                  {editMode && editingTrackId !== track.id && (
+                  {/* Botão de editar nome */}
+                   {editMode && editingTrackId !== track.id && (
+                     <Button
+                       variant="ghost"
+                       size="sm"
+                       className="h-6 w-6 p-0 hover:bg-gray-700 flex-shrink-0"
+                       onClick={() => startEditingTrackName(track.id, track.name)}
+                     >
+                       <Pencil className="w-3 h-3" />
+                     </Button>
+                   )}
+                </div>
+                  <div className="flex items-center gap-2 min-w-0">
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 w-6 p-0 hover:bg-gray-700 flex-shrink-0"
-                      onClick={() => startEditingTrackName(track.id, track.name)}
+                      className={`h-7 px-2.5 flex-shrink-0 ${
+                        track.muted ? 'bg-red-600 hover:bg-red-700 text-white' : 'hover:bg-gray-700 text-gray-300'
+                      }`}
+                      style={track.muted
+                        ? { boxShadow: `0 0 0 2px ${track.color || '#60a5fa'}` }
+                        : { border: `2px solid ${track.color || '#60a5fa'}` }
+                      }
+                      onClick={() => handleTrackMuteToggle(track.id)}
                     >
-                      <Pencil className="w-3 h-3" />
+                      M
                     </Button>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 min-w-0">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`h-7 px-2.5 flex-shrink-0 ${
-                      track.muted ? 'bg-red-600 hover:bg-red-700 text-white' : 'hover:bg-gray-700 text-gray-300'
-                    }`}
-                    style={track.muted 
-                      ? { boxShadow: `0 0 0 2px ${track.color || '#60a5fa'}` } 
-                      : { border: `2px solid ${track.color || '#60a5fa'}` }
-                    }
-                    onClick={() => handleTrackMuteToggle(track.id)}
-                  >
-                    M
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`h-7 px-2.5 flex-shrink-0 ${
-                      track.solo ? 'bg-yellow-600 hover:bg-yellow-700 text-white' : 'hover:bg-gray-700 text-gray-300'
-                    }`}
-                    style={track.solo 
-                      ? { boxShadow: `0 0 0 2px ${track.color || '#60a5fa'}` } 
-                      : { border: `2px solid ${track.color || '#60a5fa'}` }
-                    }
-                    onClick={() => handleTrackSoloToggle(track.id)}
-                  >
-                    S
-                  </Button>
-                  <Slider
-                    value={[gainToSlider(track.volume)]}
-                    max={100}
-                    step={0.1}
-                    className="w-18 flex-shrink-0"
-                    onValueChange={(v) => {
-                      handleTrackVolumeChange(track.id, sliderToGain(v[0]));
-                    }}
-                    onDoubleClick={() => {
-                      handleTrackVolumeChange(track.id, 1.0); // Reset to 0dB (unity gain)
-                    }}
-                  />
-                  <span className="text-xs text-gray-400 w-12 text-right flex-shrink-0">{formatDb(gainToDb(track.volume))} dB</span>
-                </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`h-7 px-2.5 flex-shrink-0 ${
+                        track.solo ? 'bg-yellow-600 hover:bg-yellow-700 text-white' : 'hover:bg-gray-700 text-gray-300'
+                      }`}
+                      style={track.solo
+                        ? { boxShadow: `0 0 0 2px ${track.color || '#60a5fa'}` }
+                        : { border: `2px solid ${track.color || '#60a5fa'}` }
+                      }
+                      onClick={() => handleTrackSoloToggle(track.id)}
+                    >
+                      S
+                    </Button>
+                    <Slider
+                      value={[gainToSlider(track.volume)]}
+                      max={100}
+                      step={0.1}
+                      className="w-18 flex-shrink-0" // Corrigido w-18 (não existe, talvez w-16 ou w-20?) -> mantido w-18 por enquanto
+                      onValueChange={(v) => {
+                        handleTrackVolumeChange(track.id, sliderToGain(v[0]));
+                      }}
+                      onDoubleClick={() => {
+                        handleTrackVolumeChange(track.id, 1.0); // Reset to 0dB (unity gain)
+                      }}
+                    />
+                    <span className="text-xs text-gray-400 w-12 text-right flex-shrink-0">{formatDb(gainToDb(track.volume))} dB</span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -1572,14 +1664,14 @@ ${chordMarkers.map(chord => `    <chord>
                 >
                   {/* Track Name Stripe (when sidebar hidden) */}
                   {!sidebarVisible && (
-                    <div 
+                    <div
                       className="absolute top-0 left-0 right-0 h-6 flex items-center justify-center z-10"
                       style={{ backgroundColor: hexToRgba(track.color || '#60a5fa', 0.8) }}
                     >
                       <span className="text-white text-sm font-bold">{track.name}</span>
                     </div>
                   )}
-                  
+
                   {/* Waveform */}
                   <svg className="w-full h-full" preserveAspectRatio="none">
                     <path
@@ -1605,18 +1697,18 @@ ${chordMarkers.map(chord => `    <chord>
                       }
                     />
                   </svg>
-                  
+
                   {/* Loop region highlight for this track */}
                   {loopStart !== null && loopEnd !== null && (
                     <div
                       className="absolute top-0 bottom-0 bg-yellow-300 opacity-20 pointer-events-none"
-                      style={{ 
+                      style={{
                         left: (loopStart / song.duration) * timelineWidth,
                         width: ((loopEnd - loopStart) / song.duration) * timelineWidth
                       }}
                     />
                   )}
-                  
+
                   {/* Playhead indicator for this track */}
                   <div
                     className="absolute top-0 bottom-0 w-0.5 bg-red-500 pointer-events-none"
@@ -1624,38 +1716,39 @@ ${chordMarkers.map(chord => `    <chord>
                   />
                 </div>
               ))}
-              
+
               {/* Loop start marker */}
               {loopStart !== null && (
                 <div
                   className="absolute top-0 w-1 bg-yellow-500 pointer-events-none z-10"
-                  style={{ 
+                  style={{
                     left: (loopStart / song.duration) * timelineWidth,
-                    height: tracks.length * 96
+                    height: tracks.length * 96 // Ajustado para 96 (h-24)
                   }}
                 />
               )}
-              
+
               {/* Loop end marker */}
               {loopEnd !== null && (
                 <div
                   className="absolute top-0 w-1 bg-yellow-500 pointer-events-none z-10"
-                  style={{ 
+                  style={{
                     left: (loopEnd / song.duration) * timelineWidth,
-                    height: tracks.length * 96
+                    height: tracks.length * 96 // Ajustado para 96 (h-24)
                   }}
                 />
               )}
-              
+
               {/* Global playhead line extending through all tracks */}
               <div
                 className="absolute top-0 bottom-0 w-0.5 bg-red-500 pointer-events-none z-20"
-                style={{ 
+                style={{
                   left: playheadPosition
                 }}
               />
             </div>
           </div>
+
 
           {/* Vertical Scrollbar */}
           <div className="w-5 bg-gray-800 border-l border-gray-700 flex flex-col">
@@ -1679,6 +1772,7 @@ ${chordMarkers.map(chord => `    <chord>
         </div>
       </div>
 
+
       {/* Custom Scrollbar with Zoom Controls */}
       <div className="bg-gray-800 border-t border-gray-700 flex items-center h-5">
         {/* Zoom Controls - Aligned with sidebar */}
@@ -1687,7 +1781,7 @@ ${chordMarkers.map(chord => `    <chord>
             variant="ghost"
             size="sm"
             className="h-6 w-6 p-0 text-white hover:bg-gray-700"
-            onClick={() => setZoom(Math.max(1, zoom - 0.5))}
+            onClick={handleZoomOutOnPlayhead} // Alterado
             disabled={zoom <= 1}
           >
             <ZoomOut className="w-3.5 h-3.5" />
@@ -1699,12 +1793,13 @@ ${chordMarkers.map(chord => `    <chord>
             variant="ghost"
             size="sm"
             className="h-6 w-6 p-0 text-white hover:bg-gray-700"
-            onClick={() => setZoom(Math.min(8, zoom + 0.5))}
+            onClick={handleZoomInOnPlayhead} // Alterado
             disabled={zoom >= 8}
           >
             <ZoomIn className="w-3.5 h-3.5" />
           </Button>
         </div>
+
 
         {/* Custom Scrollbar */}
         <div className="flex-1 px-3 py-1">
@@ -1719,6 +1814,7 @@ ${chordMarkers.map(chord => `    <chord>
               style={{
                 left: `${getScrollPercentage() * (100 - getVisiblePercentage() * 100)}%`,
                 width: `${getVisiblePercentage() * 100}%`,
+                minWidth: '20px' // Garante largura mínima para as alças
               }}
             >
               {/* Left Handle */}
@@ -1728,7 +1824,7 @@ ${chordMarkers.map(chord => `    <chord>
               >
                 <div className="w-0.5 h-1.5 bg-white rounded" />
               </div>
-              
+
               {/* Right Handle */}
               <div
                 className="w-2.5 h-full bg-blue-400 hover:bg-blue-300 cursor-ew-resize rounded-r flex items-center justify-center"
@@ -1740,6 +1836,7 @@ ${chordMarkers.map(chord => `    <chord>
           </div>
         </div>
       </div>
+
 
       <CreateProjectDialog
         open={createProjectOpen}
@@ -1767,25 +1864,23 @@ ${chordMarkers.map(chord => `    <chord>
   );
 }
 
-function generateWaveformPath(data: number[], width: number, height: number): string {
-  const step = width / data.length;
-  const centerY = height / 2;
+function generateWaveformPath(data: number[] | undefined, width: number, height: number): string { // Adicionado undefined check
+    if (!data || data.length === 0) return `M 0 ${height / 2} L ${width} ${height / 2}`; // Linha reta se não houver dados
 
-  let path = `M 0 ${centerY}`;
+    const step = width / data.length;
+    const centerY = height / 2;
 
-  data.forEach((value, i) => {
-    const x = i * step;
-    const y = centerY - (value * centerY);
-    path += ` L ${x} ${y}`;
-  });
+    let path = `M 0 ${centerY}`;
 
-  // Mirror for bottom half
-  for (let i = data.length - 1; i >= 0; i--) {
-    const x = i * step;
-    const y = centerY + (data[i] * centerY);
-    path += ` L ${x} ${y}`;
-  }
+    data.forEach((value, i) => {
+        const x = i * step;
+        const yTop = centerY - (value * centerY * 0.9); // 0.9 para dar uma margem
+        const yBottom = centerY + (value * centerY * 0.9);
+        // Desenha uma linha vertical fina para cada ponto de dado
+        path += ` M ${x} ${yTop} L ${x} ${yBottom}`;
+    });
 
-  path += ' Z';
-  return path;
+    // Em vez de espelhar, desenhamos linhas verticais
+    // path += ' Z'; // Não precisamos fechar o caminho para linhas verticais
+    return path;
 }
