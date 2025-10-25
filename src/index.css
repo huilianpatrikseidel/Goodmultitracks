@@ -888,6 +888,10 @@
     height: 1px;
   }
 
+  .h-screen {
+    height: 100vh;
+  }
+
   .max-h-\(--radix-dropdown-menu-content-available-height\) {
     max-height: var(--radix-dropdown-menu-content-available-height);
   }
