@@ -90,6 +90,7 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
   const [scrollUpdate, setScrollUpdate] = useState(0);
   const [isDraggingVerticalScrollbar, setIsDraggingVerticalScrollbar] = useState(false);
   const [selectedChord, setSelectedChord] = useState<{ chord: string; customDiagram?: any } | null>(null);
+  const [editingChordMarker, setEditingChordMarker] = useState<ChordMarker | null>(null);
 
   // Metronome state
   const [metronomeEnabled, setMetronomeEnabled] = useState(false);
@@ -541,6 +542,46 @@ ${chordMarkers.map(chord => `    <chord>
     );
   }
 
+const handleUpdateOrDeleteTimelineItem = (
+    action: 'update' | 'delete',
+    itemData: any,
+    originalItem?: ChordMarker | SectionMarker | TempoChange // Adiciona originalItem opcional
+) => {
+    if (!song || !onSongUpdate) return;
+
+    let updatedSong = { ...song };
+    const itemType = editorType; // Usa o editorType atual
+
+    switch (itemType) {
+        // Adicionar cases para outros tipos (section, tempo, timesig) se precisar editar/excluir eles também
+        case 'chord':
+            if (action === 'update' && originalItem) {
+                updatedSong.chordMarkers = (updatedSong.chordMarkers || [])
+                    .map(marker => marker.time === originalItem.time ? // Encontra pelo tempo original (ou um ID se tiver)
+                         { ...itemData } // Substitui com os novos dados
+                         : marker
+                    )
+                    .sort((a, b) => a.time - b.time);
+            } else if (action === 'delete' && originalItem) {
+                 updatedSong.chordMarkers = (updatedSong.chordMarkers || [])
+                    .filter(marker => marker.time !== originalItem.time) // Remove pelo tempo original
+                    .sort((a, b) => a.time - b.time);
+            } else if (action === 'add') { // Reutiliza a lógica de adicionar se não for update/delete
+                 updatedSong.chordMarkers = [...(updatedSong.chordMarkers || []), {
+                     time: itemData.time,
+                     chord: itemData.chord,
+                     customDiagram: itemData.customDiagram,
+                 }].sort((a, b) => a.time - b.time);
+            }
+            break;
+        // Adicionar cases para 'section', 'tempo', 'timesig' aqui se necessário
+    }
+
+    onSongUpdate(updatedSong);
+    setEditingChordMarker(null); // Limpa o estado de edição
+    setTimelineEditorOpen(false); // Fecha o dialog
+};
+  
   const isAnySolo = tracks.some((t) => t.solo);
 
   const formatTime = (seconds: number) => {
@@ -1413,13 +1454,21 @@ ${chordMarkers.map(chord => `    <chord>
                     >
                       <Badge
                         variant="secondary"
-                        className="absolute top-0.5 left-0 text-xs bg-blue-600 text-white cursor-pointer hover:bg-blue-700 transition-colors"
+                        className="absolute top-0.5 left-0 text-xs bg-blue-600 text-white cursor-pointer hover:bg-blue-700 transition-colors whitespace-nowrap"
                         onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedChord({
-                            chord: chord.chord,
-                            customDiagram: (chord as any).customDiagram
-                          });
+                          e.stopPropagation(); // Impede que o clique se propague para a timeline
+                          if (editMode) {
+                            // Modo Edição: Prepara e abre o editor
+                            setEditingChordMarker(chord); // Guarda o acorde clicado
+                            setEditorType('chord');      // Define o tipo do editor
+                            setTimelineEditorOpen(true); // Abre o dialog de edição
+                          } else {
+                            // Modo Player: Abre o visualizador de diagrama
+                            setSelectedChord({
+                              chord: chord.chord,
+                              customDiagram: chord.customDiagram
+                            });
+                          }
                         }}
                       >
                         {chord.chord}
@@ -1846,10 +1895,17 @@ ${chordMarkers.map(chord => `    <chord>
 
       <TimelineEditorDialog
         open={timelineEditorOpen}
-        onOpenChange={setTimelineEditorOpen}
+        onOpenChange={(isOpen) => {
+            setTimelineEditorOpen(isOpen);
+            if (!isOpen) {
+                setEditingChordMarker(null); // Limpa ao fechar
+            }
+        }}
         type={editorType}
-        currentTime={currentTime}
-        onAdd={handleAddTimelineItem}
+        currentTime={editingChordMarker ? editingChordMarker.time : currentTime} // Usa tempo do acorde se editando
+        initialData={editingChordMarker} // Passa o acorde para edição
+        // Renomeia onAdd para onSubmit e passa a nova função
+        onSubmit={(action, data) => handleUpdateOrDeleteTimelineItem(action, data, editingChordMarker || undefined)}
       />
 
       {selectedChord && (
