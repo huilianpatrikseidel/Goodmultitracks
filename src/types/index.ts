@@ -101,14 +101,19 @@ export interface Song {
   source?: 'imported' | 'project'; // Distinguish between imported songs and created projects
 }
 
+export type SetlistItem =
+  | { type: 'song'; id: string }
+  | { type: 'note'; id: string; content: string }; // Adiciona um ID para a nota também
+
 export interface Setlist {
   id: string;
   name: string;
-  songIds: string[];
+  // songIds: string[]; // << REMOVIDO
+  items: SetlistItem[]; // << ADICIONADO: Array de músicas ou notas
   createdBy: string;
-  sharedWith: string[];
+  // sharedWith: string[]; // << REMOVIDO
   eventDate?: Date;
-  notes?: string;
+  notes?: string; // Mantém notas gerais da setlist
 }
 
 export interface User {
