@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo } from 'react'; // Added useMemo, removed unused useEffect
+import React, { createContext, useContext, useState, useMemo } from 'react';
 import { Language, Translations, getTranslation } from './translations';
 
 interface LanguageContextType {
@@ -22,7 +22,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
         console.error("Could not access localStorage:", e);
     }
-    return 'en'; // Default language
+    // VVVVVV --- ALTERAÇÃO AQUI --- VVVVVV
+    return 'pt'; // Define 'pt' como o padrão
+    // ^^^^^^ --- ALTERAÇÃO AQUI --- ^^^^^^
   });
 
   const setLanguage = (lang: Language) => {

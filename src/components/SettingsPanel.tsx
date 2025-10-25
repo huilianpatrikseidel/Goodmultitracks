@@ -1,37 +1,41 @@
 import React from 'react';
-import { Settings, Music, Mic, Users, Bell, Smartphone, Languages } from 'lucide-react';
+// Ícones removidos: Mic, Users, Bell, Smartphone
+import { Settings, Music, Languages } from 'lucide-react';
 import { Label } from './ui/label';
-import { Switch } from './ui/switch';
+import { Switch } from './ui/switch'; // Switch não é mais usado, pode ser removido se não houver outras opções
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Separator } from './ui/separator';
+// Separator não é mais usado, pode ser removido
+// import { Separator } from './ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
+// Button não é mais usado, pode ser removido
+// import { Button } from './ui/button';
 import { useLanguage } from '../lib/LanguageContext';
 import { Language } from '../lib/translations';
 
 export function SettingsPanel() {
   const { t, language, setLanguage } = useLanguage();
-  
+
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       <div>
-        <h2 className="text-2xl mb-2">{t.appSettings}</h2>
-        <p className="text-gray-600">Configure your application preferences</p>
+        <h2 className="text-2xl font-semibold mb-1">{t.appSettings}</h2> {/* Adicionado font-semibold e ajustado mb */}
+        <p className="text-sm text-gray-600">Configure suas preferências da aplicação.</p> {/* Ajustado texto e tamanho */}
       </div>
 
       {/* Appearance Settings */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-lg"> {/* Ajustado tamanho do título */}
             <Languages className="w-5 h-5" />
             {t.appearance}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>{t.theme}</Label>
-            <Select defaultValue="system">
-              <SelectTrigger>
+        <CardContent className="space-y-4 pt-4"> {/* Adicionado pt-4 */}
+          {/* Theme (Mantido como exemplo, pode ser removido se não necessário) */}
+          <div className="space-y-1.5"> {/* Ajustado espaçamento */}
+            <Label htmlFor="theme-select">{t.theme}</Label>
+            <Select defaultValue="system" disabled> {/* Exemplo: desabilitado */}
+              <SelectTrigger id="theme-select">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -40,12 +44,13 @@ export function SettingsPanel() {
                 <SelectItem value="system">{t.system}</SelectItem>
               </SelectContent>
             </Select>
+             <p className="text-xs text-gray-500">Seleção de tema ainda não implementada.</p> {/* Info adicional */}
           </div>
 
-          <div className="space-y-2">
-            <Label>{t.language}</Label>
+          <div className="space-y-1.5"> {/* Ajustado espaçamento */}
+            <Label htmlFor="language-select">{t.language}</Label>
             <Select value={language} onValueChange={(value) => setLanguage(value as Language)}>
-              <SelectTrigger>
+              <SelectTrigger id="language-select">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -57,288 +62,73 @@ export function SettingsPanel() {
         </CardContent>
       </Card>
 
-      {/* Audio Settings */}
+      {/* Audio Settings (Simplificado) */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-lg"> {/* Ajustado tamanho do título */}
             <Music className="w-5 h-5" />
             {t.audio}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>{t.audioOutput}</Label>
+        <CardContent className="space-y-4 pt-4"> {/* Adicionado pt-4 */}
+          <div className="space-y-1.5"> {/* Ajustado espaçamento */}
+            <Label htmlFor="audio-output-select">{t.audioOutput}</Label>
             <Select defaultValue="default">
-              <SelectTrigger>
+              <SelectTrigger id="audio-output-select">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="default">System Default</SelectItem>
-                <SelectItem value="output-1">Built-in Output</SelectItem>
-                <SelectItem value="output-2">Audio Interface (8 channels)</SelectItem>
-                <SelectItem value="output-3">USB Audio Device</SelectItem>
+                <SelectItem value="default">Padrão do Sistema</SelectItem>
+                <SelectItem value="output-1">Saída Embutida</SelectItem>
+                {/* Adicionar mais opções dinamicamente se possível no futuro */}
               </SelectContent>
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label>Click Track Output</Label>
-            <Select defaultValue="2">
-              <SelectTrigger>
+          <div className="space-y-1.5"> {/* Ajustado espaçamento */}
+            <Label htmlFor="click-output-select">Saída do Click/Guia</Label>
+            <Select defaultValue="1"> {/* Default para Main */}
+              <SelectTrigger id="click-output-select">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">Output 1-2 (Main)</SelectItem>
-                <SelectItem value="2">Output 3-4 (Monitors)</SelectItem>
-                <SelectItem value="3">Output 5-6</SelectItem>
-                <SelectItem value="4">Output 7-8</SelectItem>
+                <SelectItem value="1">Saída 1-2 (Main)</SelectItem>
+                <SelectItem value="2">Saída 3-4</SelectItem>
+                {/* Adicionar mais opções dinamicamente se possível */}
               </SelectContent>
             </Select>
-            <p className="text-sm text-gray-600">
-              Route metronome and guide tracks to a separate output
+            <p className="text-xs text-gray-500"> {/* Tamanho de fonte ajustado */}
+              Direcione o metrônomo e guias para uma saída separada (se disponível).
             </p>
           </div>
 
-          <Separator />
+          {/* Opções Auto-gain e Pitch Shifting REMOVIDAS */}
+          {/* <Separator /> */}
+          {/* Opções removidas */}
 
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Auto-gain Control</Label>
-              <p className="text-sm text-gray-600">Automatically normalize audio levels</p>
-            </div>
-            <Switch defaultChecked />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>High Quality Pitch Shifting</Label>
-              <p className="text-sm text-gray-600">Better quality, higher CPU usage</p>
-            </div>
-            <Switch defaultChecked />
-          </div>
         </CardContent>
       </Card>
 
-      {/* MIDI Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mic className="w-5 h-5" />
-            {t.midi}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>{t.midiInput}</Label>
-            <Select defaultValue="none">
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                <SelectItem value="midi-1">MIDI Foot Controller</SelectItem>
-                <SelectItem value="midi-2">USB MIDI Keyboard</SelectItem>
-                <SelectItem value="midi-3">Virtual MIDI Bus</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+      {/* Seção MIDI REMOVIDA */}
+      {/* Seção Collaboration REMOVIDA */}
+      {/* Seção Notifications REMOVIDA */}
+      {/* Seção Display REMOVIDA */}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm">{t.playPause}</Label>
-              <Select defaultValue="cc1">
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cc1">CC 1</SelectItem>
-                  <SelectItem value="note60">Note C4</SelectItem>
-                  <SelectItem value="none">Not Mapped</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+       {/* Seção Sobre (Opcional, mas comum) */}
+       <Card>
+           <CardHeader>
+               <CardTitle className="flex items-center gap-2 text-lg">
+                   <Settings className="w-5 h-5" /> {/* Ícone genérico */}
+                   {t.about}
+               </CardTitle>
+           </CardHeader>
+           <CardContent className="pt-4 text-sm text-gray-700 space-y-1">
+                <p><strong>GoodMultitracks</strong></p>
+                <p>{t.version}: 0.1.0 (Exemplo)</p>
+                {/* Adicionar mais informações se desejar */}
+           </CardContent>
+       </Card>
 
-            <div className="space-y-2">
-              <Label className="text-sm">Next Section</Label>
-              <Select defaultValue="cc2">
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cc2">CC 2</SelectItem>
-                  <SelectItem value="note61">Note C#4</SelectItem>
-                  <SelectItem value="none">Not Mapped</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm">Previous Section</Label>
-              <Select defaultValue="cc3">
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cc3">CC 3</SelectItem>
-                  <SelectItem value="note62">Note D4</SelectItem>
-                  <SelectItem value="none">Not Mapped</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm">Toggle Loop</Label>
-              <Select defaultValue="cc4">
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cc4">CC 4</SelectItem>
-                  <SelectItem value="note63">Note D#4</SelectItem>
-                  <SelectItem value="none">Not Mapped</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <Button variant="outline" className="w-full">
-            Learn MIDI Controls
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Collaboration Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            Collaboration
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Auto-sync Settings</Label>
-              <p className="text-sm text-gray-600">
-                Automatically sync presets and notes across devices
-              </p>
-            </div>
-            <Switch defaultChecked />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Offline Mode</Label>
-              <p className="text-sm text-gray-600">
-                Download songs for offline access
-              </p>
-            </div>
-            <Switch />
-          </div>
-
-          <Separator />
-
-          <div className="space-y-2">
-            <Label>Your Role</Label>
-            <Select defaultValue="musician">
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="admin">Administrator</SelectItem>
-                <SelectItem value="leader">Worship Leader</SelectItem>
-                <SelectItem value="musician">Musician</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Notification Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="w-5 h-5" />
-            Notifications
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Setlist Updates</Label>
-              <p className="text-sm text-gray-600">
-                Get notified when setlists are updated
-              </p>
-            </div>
-            <Switch defaultChecked />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>New Song Versions</Label>
-              <p className="text-sm text-gray-600">
-                Alert when songs are updated
-              </p>
-            </div>
-            <Switch defaultChecked />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Practice Reminders</Label>
-              <p className="text-sm text-gray-600">
-                Daily practice session reminders
-              </p>
-            </div>
-            <Switch />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Display Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Smartphone className="w-5 h-5" />
-            Display
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Performance Mode by Default</Label>
-              <p className="text-sm text-gray-600">
-                Start in performance mode for live events
-              </p>
-            </div>
-            <Switch />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Show Waveforms</Label>
-              <p className="text-sm text-gray-600">
-                Display audio waveforms in track controls
-              </p>
-            </div>
-            <Switch defaultChecked />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Theme</Label>
-            <Select defaultValue="light">
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="light">Light</SelectItem>
-                <SelectItem value="dark">Dark</SelectItem>
-                <SelectItem value="auto">Auto (System)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
