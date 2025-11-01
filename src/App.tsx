@@ -1,16 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Music, ListMusic, Settings, Play } from 'lucide-react';
 import { DAWPlayer } from './components/DAWPlayer';
 import { SongLibrary } from './components/SongLibrary';
 import { SetlistManager } from './components/SetlistManager';
 import { SettingsPanel } from './components/SettingsPanel';
 import { PerformanceMode } from './components/PerformanceMode';
+import { FirstTimeSetup } from './components/FirstTimeSetup';
 import { MobileNav } from './components/MobileNav';
 import { Button } from './components/ui/button';
 import { Separator } from './components/ui/separator';
 import { mockSongs, mockSetlists, currentUser } from './lib/mockData';
-import { Song, Setlist, AudioTrack } from './types';
+import { Song, Setlist, AudioTrack, TrackTag } from './types';
 import { LanguageProvider, useLanguage } from './lib/LanguageContext';
+import { ThemeProvider } from './lib/ThemeContext';
 
 function AppContent() {
   const { t } = useLanguage();
@@ -21,6 +23,27 @@ function AppContent() {
   const [activeView, setActiveView] = useState<'library' | 'setlists' | 'player' | 'settings'>('library');
   const [previousView, setPreviousView] = useState<'library' | 'setlists' | 'settings'>('library');
   const [activeTab, setActiveTab] = useState('library');
+  const [showFirstTimeSetup, setShowFirstTimeSetup] = useState(false);
+  const [userPreferences, setUserPreferences] = useState(currentUser.preferences);
+
+  // Check if first time setup is needed
+  useEffect(() => {
+    const hasCompletedSetup = localStorage.getItem('goodmultitracks_setup_complete');
+    if (!hasCompletedSetup) {
+      setShowFirstTimeSetup(true);
+    }
+  }, []);
+
+  const handleFirstTimeSetupComplete = (selectedInstruments: TrackTag[], mainInstrument: TrackTag) => {
+    const updatedPreferences = {
+      ...userPreferences,
+      selectedInstruments,
+      mainInstrument,
+    };
+    setUserPreferences(updatedPreferences);
+    localStorage.setItem('goodmultitracks_setup_complete', 'true');
+    setShowFirstTimeSetup(false);
+  };
 
   const handleSongUpdate = (updatedSong: Song) => {
     setSongs((prev) => prev.map((s) => (s.id === updatedSong.id ? updatedSong : s)));
@@ -30,14 +53,13 @@ function AppContent() {
     }
   };
 
-  // Funções originais (baseadas nos arquivos revertidos)
+  // Setlist functions using new structure with items
   const handleCreateSetlist = (name: string, songId?: string) => {
     const newSetlist: Setlist = {
       id: `setlist-${Date.now()}`,
       name,
-      songIds: songId ? [songId] : [],
+      items: songId ? [{ type: 'song', id: songId }] : [],
       createdBy: currentUser.id,
-      sharedWith: [], // Mantido do arquivo original
     };
     setSetlists((prev) => [...prev, newSetlist]);
   };
@@ -46,14 +68,31 @@ function AppContent() {
     setSetlists((prev) =>
       prev.map((setlist) => {
         if (setlist.id === setlistId) {
-          if (setlist.songIds.includes(songId)) {
+          const songAlreadyExists = setlist.items.some(
+            (item) => item.type === 'song' && item.id === songId
+          );
+          if (songAlreadyExists) {
             return setlist;
           }
-          return { ...setlist, songIds: [...setlist.songIds, songId] };
+          return { ...setlist, items: [...setlist.items, { type: 'song', id: songId }] };
         }
         return setlist;
       })
     );
+  };
+
+  const handleUpdateSetlist = (updatedSetlist: Setlist) => {
+    setSetlists((prev) =>
+      prev.map((setlist) => (setlist.id === updatedSetlist.id ? updatedSetlist : setlist))
+    );
+  };
+
+  const handleDeleteSetlist = (setlistId: string) => {
+    setSetlists((prev) => prev.filter((setlist) => setlist.id !== setlistId));
+  };
+
+  const handleReorderSetlists = (reorderedSetlists: Setlist[]) => {
+    setSetlists(reorderedSetlists);
   };
 
   const handleImportSetlist = () => {
@@ -103,14 +142,22 @@ function AppContent() {
   };
 
   const handleSetlistSelect = (setlist: Setlist) => {
-    if (setlist.songIds.length > 0) {
-      const firstSong = songs.find((s) => s.id === setlist.songIds[0]);
+    const firstSongItem = setlist.items.find((item) => item.type === 'song');
+    if (firstSongItem && firstSongItem.type === 'song') {
+      const firstSong = songs.find((s) => s.id === firstSongItem.id);
       if (firstSong) {
         setSelectedSong(firstSong);
         setPreviousView('setlists');
         setActiveView('player');
         setActiveTab('player');
       }
+    }
+  };
+
+  const handleSongClick = (songId: string) => {
+    const song = songs.find((s) => s.id === songId);
+    if (song) {
+      handleSongSelect(song);
     }
   };
 
@@ -129,6 +176,11 @@ function AppContent() {
   const handleCreateNewProject = (projectData: any) => {
     handleCreateProject(projectData);
   };
+
+  // Show first time setup if needed
+  if (showFirstTimeSetup) {
+    return <FirstTimeSetup onComplete={handleFirstTimeSetupComplete} />;
+  }
 
   if (performanceMode && selectedSong) {
     return (
@@ -245,8 +297,11 @@ function AppContent() {
                 <SetlistManager
                   setlists={setlists}
                   songs={songs}
-                  onSetlistSelect={handleSetlistSelect}
+                  onSongClick={handleSongClick}
                   onCreateSetlist={handleCreateSetlist}
+                  onUpdateSetlist={handleUpdateSetlist}
+                  onDeleteSetlist={handleDeleteSetlist}
+                  onReorderSetlists={handleReorderSetlists}
                 />
               )}
 
@@ -278,8 +333,11 @@ function AppContent() {
               <SetlistManager
                 setlists={setlists}
                 songs={songs}
-                onSetlistSelect={handleSetlistSelect}
+                onSongClick={handleSongClick}
                 onCreateSetlist={handleCreateSetlist}
+                onUpdateSetlist={handleUpdateSetlist}
+                onDeleteSetlist={handleDeleteSetlist}
+                onReorderSetlists={handleReorderSetlists}
               />
             </div>
           )}
@@ -315,8 +373,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <LanguageProvider>
-      <AppContent />
-    </LanguageProvider>
+    <ThemeProvider>
+      <LanguageProvider>
+        <AppContent />
+      </LanguageProvider>
+    </ThemeProvider>
   );
 }

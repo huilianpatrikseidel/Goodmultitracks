@@ -1,6 +1,9 @@
 import React from 'react';
+import { Play } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Button } from './ui/button';
+import { playChord, playGuitarChord, playUkuleleChord } from '../lib/chordPlayback';
 
 interface ChordDiagramProps {
   chord: string;
@@ -169,8 +172,21 @@ const GuitarDiagram: React.FC<{ chord: string; customData?: { frets: number[]; f
   }
   const strings = ['E', 'A', 'D', 'G', 'B', 'e'];
 
+  const handlePlay = () => {
+    playGuitarChord(frets);
+  };
+
   return (
     <div className="flex flex-col items-center">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handlePlay}
+        className="mb-3 gap-2"
+      >
+        <Play className="w-4 h-4" />
+        Play Chord
+      </Button>
       <svg width="200" height="280" viewBox="0 0 200 280" className="mb-2">
         {/* Fretboard */}
         {[...Array(5)].map((_, i) => (
@@ -271,8 +287,21 @@ const PianoDiagram: React.FC<{ chord: string; customData?: { keys: string[] } }>
   const allKeys = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
   const blackKeys = ['C#', 'D#', 'F#', 'G#', 'A#'];
 
+  const handlePlay = () => {
+    playChord(keys);
+  };
+
   return (
     <div className="flex flex-col items-center">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handlePlay}
+        className="mb-3 gap-2"
+      >
+        <Play className="w-4 h-4" />
+        Play Chord
+      </Button>
       <svg width="400" height="180" viewBox="0 0 400 180" className="mb-2">
         {/* White keys */}
         {allKeys.filter(k => !blackKeys.includes(k)).map((key, i) => {
@@ -346,8 +375,21 @@ const UkuleleDiagram: React.FC<{ chord: string; customData?: { frets: number[]; 
   }
   const strings = ['G', 'C', 'E', 'A'];
 
+  const handlePlay = () => {
+    playUkuleleChord(frets);
+  };
+
   return (
     <div className="flex flex-col items-center">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handlePlay}
+        className="mb-3 gap-2"
+      >
+        <Play className="w-4 h-4" />
+        Play Chord
+      </Button>
       <svg width="160" height="280" viewBox="0 0 160 280" className="mb-2">
         {/* Fretboard */}
         {[...Array(5)].map((_, i) => (

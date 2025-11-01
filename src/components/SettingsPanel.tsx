@@ -1,40 +1,37 @@
 import React from 'react';
-// Ícones removidos: Mic, Users, Bell, Smartphone
-import { Settings, Music, Languages } from 'lucide-react';
+import { Settings, Music, Languages, Sliders } from 'lucide-react';
 import { Label } from './ui/label';
-import { Switch } from './ui/switch'; // Switch não é mais usado, pode ser removido se não houver outras opções
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-// Separator não é mais usado, pode ser removido
-// import { Separator } from './ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-// Button não é mais usado, pode ser removido
-// import { Button } from './ui/button';
+import { Checkbox } from './ui/checkbox';
 import { useLanguage } from '../lib/LanguageContext';
 import { Language } from '../lib/translations';
+import { useTheme } from '../lib/ThemeContext';
 
 export function SettingsPanel() {
   const { t, language, setLanguage } = useLanguage();
+  const { theme, setTheme } = useTheme();
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       <div>
-        <h2 className="text-2xl font-semibold mb-1">{t.appSettings}</h2> {/* Adicionado font-semibold e ajustado mb */}
-        <p className="text-sm text-gray-600">Configure suas preferências da aplicação.</p> {/* Ajustado texto e tamanho */}
+        <h2 className="text-2xl font-semibold mb-1">{t.appSettings}</h2>
+        <p className="text-sm text-gray-600">Configure suas preferências da aplicação.</p>
       </div>
 
       {/* Appearance Settings */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg"> {/* Ajustado tamanho do título */}
+          <CardTitle className="flex items-center gap-2 text-lg">
             <Languages className="w-5 h-5" />
             {t.appearance}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 pt-4"> {/* Adicionado pt-4 */}
-          {/* Theme (Mantido como exemplo, pode ser removido se não necessário) */}
-          <div className="space-y-1.5"> {/* Ajustado espaçamento */}
+        <CardContent className="space-y-4 pt-4">
+          {/* Theme */}
+          <div className="space-y-1.5">
             <Label htmlFor="theme-select">{t.theme}</Label>
-            <Select defaultValue="system" disabled> {/* Exemplo: desabilitado */}
+            <Select value={theme} onValueChange={setTheme}>
               <SelectTrigger id="theme-select">
                 <SelectValue />
               </SelectTrigger>
@@ -44,10 +41,9 @@ export function SettingsPanel() {
                 <SelectItem value="system">{t.system}</SelectItem>
               </SelectContent>
             </Select>
-             <p className="text-xs text-gray-500">Seleção de tema ainda não implementada.</p> {/* Info adicional */}
           </div>
 
-          <div className="space-y-1.5"> {/* Ajustado espaçamento */}
+          <div className="space-y-1.5">
             <Label htmlFor="language-select">{t.language}</Label>
             <Select value={language} onValueChange={(value) => setLanguage(value as Language)}>
               <SelectTrigger id="language-select">
@@ -62,16 +58,16 @@ export function SettingsPanel() {
         </CardContent>
       </Card>
 
-      {/* Audio Settings (Simplificado) */}
+      {/* Audio Settings */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg"> {/* Ajustado tamanho do título */}
+          <CardTitle className="flex items-center gap-2 text-lg">
             <Music className="w-5 h-5" />
             {t.audio}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 pt-4"> {/* Adicionado pt-4 */}
-          <div className="space-y-1.5"> {/* Ajustado espaçamento */}
+        <CardContent className="space-y-4 pt-4">
+          <div className="space-y-1.5">
             <Label htmlFor="audio-output-select">{t.audioOutput}</Label>
             <Select defaultValue="default">
               <SelectTrigger id="audio-output-select">
@@ -80,52 +76,119 @@ export function SettingsPanel() {
               <SelectContent>
                 <SelectItem value="default">Padrão do Sistema</SelectItem>
                 <SelectItem value="output-1">Saída Embutida</SelectItem>
-                {/* Adicionar mais opções dinamicamente se possível no futuro */}
               </SelectContent>
             </Select>
           </div>
 
-          <div className="space-y-1.5"> {/* Ajustado espaçamento */}
+          <div className="space-y-1.5">
             <Label htmlFor="click-output-select">Saída do Click/Guia</Label>
-            <Select defaultValue="1"> {/* Default para Main */}
+            <Select defaultValue="1">
               <SelectTrigger id="click-output-select">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="1">Saída 1-2 (Main)</SelectItem>
                 <SelectItem value="2">Saída 3-4</SelectItem>
-                {/* Adicionar mais opções dinamicamente se possível */}
               </SelectContent>
             </Select>
-            <p className="text-xs text-gray-500"> {/* Tamanho de fonte ajustado */}
+            <p className="text-xs text-gray-500">
               Direcione o metrônomo e guias para uma saída separada (se disponível).
             </p>
           </div>
-
-          {/* Opções Auto-gain e Pitch Shifting REMOVIDAS */}
-          {/* <Separator /> */}
-          {/* Opções removidas */}
-
         </CardContent>
       </Card>
 
-      {/* Seção MIDI REMOVIDA */}
-      {/* Seção Collaboration REMOVIDA */}
-      {/* Seção Notifications REMOVIDA */}
-      {/* Seção Display REMOVIDA */}
+      {/* Player Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Sliders className="w-5 h-5" />
+            Player Settings
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="track-height-select">Track Height</Label>
+            <Select 
+              defaultValue={localStorage.getItem('goodmultitracks_track_height') || 'medium'}
+              onValueChange={(value) => {
+                localStorage.setItem('goodmultitracks_track_height', value);
+                window.dispatchEvent(new Event('storage'));
+              }}
+            >
+              <SelectTrigger id="track-height-select">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="small">Small</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="large">Large</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-       {/* Seção Sobre (Opcional, mas comum) */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Visible Rulers</Label>
+            <div className="space-y-3 pl-2">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  defaultChecked={localStorage.getItem('goodmultitracks_show_tempo_ruler') !== 'false'}
+                  onCheckedChange={(checked) => {
+                    localStorage.setItem('goodmultitracks_show_tempo_ruler', String(checked));
+                    window.dispatchEvent(new Event('storage'));
+                  }}
+                />
+                Tempo Ruler
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  defaultChecked={localStorage.getItem('goodmultitracks_show_chord_ruler') !== 'false'}
+                  onCheckedChange={(checked) => {
+                    localStorage.setItem('goodmultitracks_show_chord_ruler', String(checked));
+                    window.dispatchEvent(new Event('storage'));
+                  }}
+                />
+                Chord Ruler
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  defaultChecked={localStorage.getItem('goodmultitracks_show_section_ruler') !== 'false'}
+                  onCheckedChange={(checked) => {
+                    localStorage.setItem('goodmultitracks_show_section_ruler', String(checked));
+                    window.dispatchEvent(new Event('storage'));
+                  }}
+                />
+                Section Ruler
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  defaultChecked={localStorage.getItem('goodmultitracks_show_timesig_ruler') !== 'false'}
+                  onCheckedChange={(checked) => {
+                    localStorage.setItem('goodmultitracks_show_timesig_ruler', String(checked));
+                    window.dispatchEvent(new Event('storage'));
+                  }}
+                />
+                Time Signature Ruler
+              </label>
+            </div>
+            <p className="text-xs text-gray-500">
+              Toggle visibility of rulers in the player view.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+       {/* About Section */}
        <Card>
            <CardHeader>
                <CardTitle className="flex items-center gap-2 text-lg">
-                   <Settings className="w-5 h-5" /> {/* Ícone genérico */}
+                   <Settings className="w-5 h-5" />
                    {t.about}
                </CardTitle>
            </CardHeader>
            <CardContent className="pt-4 text-sm text-gray-700 space-y-1">
                 <p><strong>GoodMultitracks</strong></p>
-                <p>{t.version}: 0.1.0 (Exemplo)</p>
-                {/* Adicionar mais informações se desejar */}
+                <p>{t.version}: 0.1.0</p>
            </CardContent>
        </Card>
 

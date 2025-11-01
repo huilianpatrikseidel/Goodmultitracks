@@ -8,12 +8,12 @@ const generateWaveform = (samples: number = 200): number[] => {
 // Mock audio tracks - Função reutilizada
 const createMockTracks = (count: number = 8, includeClickGuide: boolean = true): AudioTrack[] => {
     const baseTracks = [
-      { idSuffix: 'drums', name: 'Drums', type: 'drums', color: '#60a5fa' },
-      { idSuffix: 'bass', name: 'Bass', type: 'bass', color: '#ef4444' },
-      { idSuffix: 'eg1', name: 'Electric Gtr 1', type: 'guitar', color: '#22c55e' },
-      { idSuffix: 'keys', name: 'Keys', type: 'keys', color: '#f59e0b' },
-      { idSuffix: 'vox', name: 'Lead Vocals', type: 'vocals', color: '#a855f7' },
-      { idSuffix: 'bgv', name: 'Backing Vocals', type: 'vocals', color: '#ec4899' },
+      { idSuffix: 'drums', name: 'Drums', type: 'drums', color: '#60a5fa', tag: 'drums' as const },
+      { idSuffix: 'bass', name: 'Bass', type: 'bass', color: '#ef4444', tag: 'bass' as const },
+      { idSuffix: 'eg1', name: 'Electric Gtr 1', type: 'guitar', color: '#22c55e', tag: 'electric-guitar' as const },
+      { idSuffix: 'keys', name: 'Keys', type: 'keys', color: '#f59e0b', tag: 'keyboard-piano' as const },
+      { idSuffix: 'vox', name: 'Lead Vocals', type: 'vocals', color: '#a855f7', tag: 'lead-vocal' as const },
+      { idSuffix: 'bgv', name: 'Backing Vocals', type: 'vocals', color: '#ec4899', tag: 'backing-vocals' as const },
     ] as const;
 
     const additionalTracks = includeClickGuide ? [
@@ -34,6 +34,8 @@ const createMockTracks = (count: number = 8, includeClickGuide: boolean = true):
       waveformData: generateWaveform(),
       output: base.output || 1,
       color: base.color,
+      tag: 'tag' in base ? base.tag : undefined,
+      notes: '',
     }));
 };
 

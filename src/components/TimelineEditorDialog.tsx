@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from './ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Switch } from './ui/switch';
 import { Plus, Edit3, Trash2 } from 'lucide-react'; // Adicionado Trash2
 import { InteractiveGuitarDiagram } from './InteractiveGuitarDiagram';
 import { InteractiveUkuleleDiagram } from './InteractiveUkuleleDiagram';
@@ -67,6 +68,27 @@ const SECTION_TYPES = [
   { value: 'instrumental', label: 'Instrumental' }, { value: 'tag', label: 'Tag' }, { value: 'custom', label: 'Custom' } // Adicionado custom
 ];
 
+// Time signature options
+const TIME_SIG_DENOMINATORS = [
+  { value: '1', label: '1 (Whole Note)' },
+  { value: '2', label: '2 (Half Note)' },
+  { value: '4', label: '4 (Quarter Note)' },
+  { value: '8', label: '8 (Eighth Note)' },
+  { value: '16', label: '16 (Sixteenth Note)' },
+  { value: '32', label: '32 (32nd Note)' },
+];
+
+const TIME_SIG_PRESETS = [
+  { numerator: '4', denominator: '4', label: '4/4 (Common Time)' },
+  { numerator: '3', denominator: '4', label: '3/4 (Waltz)' },
+  { numerator: '6', denominator: '8', label: '6/8' },
+  { numerator: '2', denominator: '4', label: '2/4' },
+  { numerator: '5', denominator: '4', label: '5/4' },
+  { numerator: '7', denominator: '8', label: '7/8' },
+  { numerator: '9', denominator: '8', label: '9/8' },
+  { numerator: '12', denominator: '8', label: '12/8' },
+];
+
 const ROOT_NOTES = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 const ACCIDENTALS = [
   { value: 'natural', label: 'Natural', symbol: '' }, { value: 'sharp', label: '♯ (Sharp)', symbol: '#' },
@@ -101,6 +123,7 @@ export function TimelineEditorDialog({
   const [tempo, setTempo] = useState('120');
   const [timeSignatureNumerator, setTimeSignatureNumerator] = useState('4');
   const [timeSignatureDenominator, setTimeSignatureDenominator] = useState('4');
+  const [hidden, setHidden] = useState(false); // Hide in player mode
   const [sectionLabel, setSectionLabel] = useState('');
   const [sectionType, setSectionType] = useState('verse');
   const [chord, setChord] = useState('');
@@ -118,6 +141,15 @@ export function TimelineEditorDialog({
   const [ukuleleStartFret, setUkuleleStartFret] = useState(1);
   const [pianoKeys, setPianoKeys] = useState<string[]>(['C', 'E', 'G']);
   const [capo, setCapo] = useState(0);
+  
+  // Irregular time signature subdivision
+  const [subdivision, setSubdivision] = useState('');
+  
+  // Tempo curves
+  const [enableCurve, setEnableCurve] = useState(false);
+  const [curveType, setCurveType] = useState<'linear' | 'exponential'>('linear');
+  const [targetTempo, setTargetTempo] = useState('120');
+  const [targetTime, setTargetTime] = useState('0');
 
   // Função para limpar o formulário (usada ao abrir para adicionar)
     const resetForm = () => {
@@ -125,6 +157,7 @@ export function TimelineEditorDialog({
         setTempo('120');
         setTimeSignatureNumerator('4');
         setTimeSignatureDenominator('4');
+        setHidden(false);
         setSectionLabel('');
         setSectionType('verse');
         setChord('');
@@ -144,6 +177,11 @@ export function TimelineEditorDialog({
         setUkuleleStartFret(1);
         setPianoKeys(cMajorData?.piano.keys || ['C', 'E', 'G']);
         setCapo(0);
+        setSubdivision('');
+        setEnableCurve(false);
+        setCurveType('linear');
+        setTargetTempo('120');
+        setTargetTime('0');
     };
 
 
@@ -240,11 +278,23 @@ export function TimelineEditorDialog({
             }
             // Adicionar preenchimento para outros tipos (tempo, section) aqui
             else if (type === 'tempo' && 'tempo' in initialData) {
-                 setTempo(String(initialData.tempo));
+                 const tempoData = initialData as TempoChange;
+                 setTempo(String(tempoData.tempo));
+                 setHidden(tempoData.hidden || false);
+                 setSubdivision(tempoData.subdivision || '');
+                 if (tempoData.curve) {
+                   setEnableCurve(true);
+                   setCurveType(tempoData.curve.type);
+                   setTargetTempo(String(tempoData.curve.targetTempo));
+                   setTargetTime(String(tempoData.curve.targetTime));
+                 }
             } else if (type === 'timesig' && 'timeSignature' in initialData) {
-                 const [num, den] = initialData.timeSignature.split('/');
+                 const timesigData = initialData as TempoChange;
+                 const [num, den] = timesigData.timeSignature.split('/');
                  setTimeSignatureNumerator(num);
                  setTimeSignatureDenominator(den);
+                 setHidden(timesigData.hidden || false);
+                 setSubdivision(timesigData.subdivision || '');
             } else if (type === 'section' && 'label' in initialData) {
                  setSectionLabel(initialData.label);
                  setSectionType(initialData.type || 'custom');
@@ -309,6 +359,27 @@ export function TimelineEditorDialog({
             data.tempo = tempoValue;
             // Mantém timeSignature existente se estiver editando, senão pega um default
             data.timeSignature = (isEditing && initialData && 'timeSignature' in initialData) ? initialData.timeSignature : timeSignatureNumerator + '/' + timeSignatureDenominator;
+            data.hidden = hidden;
+            data.subdivision = subdivision.trim() || undefined;
+            
+            // Add tempo curve if enabled
+            if (enableCurve) {
+              const targetTempoValue = parseInt(targetTempo);
+              const targetTimeValue = parseFloat(targetTime);
+              if (isNaN(targetTempoValue) || targetTempoValue < 1) {
+                alert('Please enter a valid target tempo (BPM)');
+                return;
+              }
+              if (isNaN(targetTimeValue) || targetTimeValue <= timeValue) {
+                alert('Target time must be greater than start time');
+                return;
+              }
+              data.curve = {
+                type: curveType,
+                targetTempo: targetTempoValue,
+                targetTime: targetTimeValue,
+              };
+            }
             break;
         case 'timesig':
             const num = parseInt(timeSignatureNumerator);
@@ -317,6 +388,8 @@ export function TimelineEditorDialog({
             data.timeSignature = `${num}/${den}`;
             // Mantém tempo existente se estiver editando, senão pega um default
             data.tempo = (isEditing && initialData && 'tempo' in initialData) ? initialData.tempo : parseInt(tempo);
+            data.hidden = hidden;
+            data.subdivision = subdivision.trim() || undefined;
             break;
       case 'section':
         if (!sectionLabel.trim()) { alert('Please enter a section label'); return; }
@@ -376,19 +449,304 @@ export function TimelineEditorDialog({
 
           {/* Campos Tempo */}
           {type === 'tempo' && (
-            <div className="space-y-1">
-              <Label htmlFor="tempo">Tempo (BPM)</Label>
-              <Input id="tempo" type="number" placeholder="120" value={tempo} onChange={(e) => setTempo(e.target.value)} />
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <Label htmlFor="tempo">Tempo (BPM)</Label>
+                <Input id="tempo" type="number" placeholder="120" value={tempo} onChange={(e) => setTempo(e.target.value)} />
+              </div>
+              
+              {/* Tempo Curve (Rallentando/Accelerando) */}
+              <div className="space-y-3 border border-[#2B2B2B] rounded-md p-3">
+                <div className="flex items-center space-x-2">
+                  <Switch 
+                    id="enable-curve" 
+                    checked={enableCurve} 
+                    onCheckedChange={setEnableCurve} 
+                  />
+                  <Label htmlFor="enable-curve" className="text-sm cursor-pointer">
+                    Enable Tempo Curve (Rallentando/Accelerando)
+                  </Label>
+                </div>
+                
+                {enableCurve && (
+                  <div className="space-y-3 pl-6">
+                    <div className="space-y-1">
+                      <Label htmlFor="curve-type" className="text-xs text-muted-foreground">Curve Type</Label>
+                      <Select value={curveType} onValueChange={(v: 'linear' | 'exponential') => setCurveType(v)}>
+                        <SelectTrigger id="curve-type">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="linear">Linear (constant rate)</SelectItem>
+                          <SelectItem value="exponential">Exponential (natural feel)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label htmlFor="target-tempo" className="text-xs text-muted-foreground">Target Tempo</Label>
+                        <Input
+                          id="target-tempo"
+                          type="number"
+                          placeholder="90"
+                          value={targetTempo}
+                          onChange={(e) => setTargetTempo(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="target-time" className="text-xs text-muted-foreground">Target Time (sec)</Label>
+                        <Input
+                          id="target-time"
+                          type="number"
+                          step="0.1"
+                          placeholder="8.0"
+                          value={targetTime}
+                          onChange={(e) => setTargetTime(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="bg-[#1E1E1E] border border-[#2B2B2B] rounded-md p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-muted-foreground text-xs">Curve Preview:</p>
+                        {parseInt(tempo) > parseInt(targetTempo) ? (
+                          <span className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                            Rallentando (slowing down)
+                          </span>
+                        ) : parseInt(tempo) < parseInt(targetTempo) ? (
+                          <span className="text-xs px-2 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                            Accelerando (speeding up)
+                          </span>
+                        ) : (
+                          <span className="text-xs px-2 py-0.5 rounded bg-gray-500/20 text-gray-400 border border-gray-500/30">
+                            No change
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Visual curve graph */}
+                      <div className="relative w-full h-16 bg-[#171717] rounded border border-[#2B2B2B] overflow-hidden">
+                        <svg width="100%" height="100%" viewBox="0 0 200 60" preserveAspectRatio="none">
+                          {/* Grid lines */}
+                          <line x1="0" y1="15" x2="200" y2="15" stroke="#2B2B2B" strokeWidth="0.5" strokeDasharray="2,2" />
+                          <line x1="0" y1="30" x2="200" y2="30" stroke="#2B2B2B" strokeWidth="0.5" strokeDasharray="2,2" />
+                          <line x1="0" y1="45" x2="200" y2="45" stroke="#2B2B2B" strokeWidth="0.5" strokeDasharray="2,2" />
+                          
+                          {/* Tempo curve */}
+                          {(() => {
+                            const startTempo = parseInt(tempo) || 120;
+                            const endTempo = parseInt(targetTempo) || 120;
+                            const maxTempo = Math.max(startTempo, endTempo, 180);
+                            const minTempo = Math.min(startTempo, endTempo, 60);
+                            const tempoRange = maxTempo - minTempo || 1;
+                            
+                            // Calculate y positions (inverted for display)
+                            const startY = 55 - ((startTempo - minTempo) / tempoRange) * 50;
+                            const endY = 55 - ((endTempo - minTempo) / tempoRange) * 50;
+                            
+                            if (curveType === 'linear') {
+                              // Linear curve - straight line
+                              return (
+                                <line 
+                                  x1="10" 
+                                  y1={startY} 
+                                  x2="190" 
+                                  y2={endY} 
+                                  stroke={startTempo > endTempo ? "#60a5fa" : "#fb923c"}
+                                  strokeWidth="2"
+                                />
+                              );
+                            } else {
+                              // Exponential curve - smooth path
+                              const points: string[] = [];
+                              for (let i = 0; i <= 20; i++) {
+                                const t = i / 20;
+                                // Exponential interpolation
+                                const exponentialT = startTempo > endTempo 
+                                  ? 1 - Math.pow(1 - t, 2) // Ease out for slowing
+                                  : Math.pow(t, 2); // Ease in for speeding up
+                                const currentTempo = startTempo + (endTempo - startTempo) * exponentialT;
+                                const x = 10 + (t * 180);
+                                const y = 55 - ((currentTempo - minTempo) / tempoRange) * 50;
+                                points.push(`${x},${y}`);
+                              }
+                              return (
+                                <polyline 
+                                  points={points.join(' ')} 
+                                  fill="none" 
+                                  stroke={startTempo > endTempo ? "#60a5fa" : "#fb923c"}
+                                  strokeWidth="2"
+                                />
+                              );
+                            }
+                          })()}
+                          
+                          {/* Start and end markers */}
+                          <circle cx="10" cy={(() => {
+                            const startTempo = parseInt(tempo) || 120;
+                            const endTempo = parseInt(targetTempo) || 120;
+                            const maxTempo = Math.max(startTempo, endTempo, 180);
+                            const minTempo = Math.min(startTempo, endTempo, 60);
+                            const tempoRange = maxTempo - minTempo || 1;
+                            return 55 - ((startTempo - minTempo) / tempoRange) * 50;
+                          })()} r="3" fill="#10b981" />
+                          <circle cx="190" cy={(() => {
+                            const startTempo = parseInt(tempo) || 120;
+                            const endTempo = parseInt(targetTempo) || 120;
+                            const maxTempo = Math.max(startTempo, endTempo, 180);
+                            const minTempo = Math.min(startTempo, endTempo, 60);
+                            const tempoRange = maxTempo - minTempo || 1;
+                            return 55 - ((endTempo - minTempo) / tempoRange) * 50;
+                          })()} r="3" fill="#ef4444" />
+                        </svg>
+                        
+                        {/* Tempo labels */}
+                        <div className="absolute top-1 left-2 text-[10px] text-green-400">
+                          {tempo} BPM
+                        </div>
+                        <div className="absolute top-1 right-2 text-[10px] text-red-400">
+                          {targetTempo} BPM
+                        </div>
+                      </div>
+                      
+                      {/* Duration info */}
+                      <div className="flex items-center justify-between text-xs pt-1">
+                        <span className="text-muted-foreground">
+                          Duration: {(parseFloat(targetTime) - parseFloat(time)).toFixed(2)}s
+                        </span>
+                        <span className="text-muted-foreground">
+                          Change: {Math.abs(parseInt(targetTempo) - parseInt(tempo))} BPM
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Irregular Time Signature Subdivision */}
+              <div className="space-y-2">
+                <Label htmlFor="subdivision-tempo" className="text-sm">
+                  Subdivision Pattern (optional)
+                </Label>
+                <Input
+                  id="subdivision-tempo"
+                  placeholder="e.g., 2+3 for 5/8"
+                  value={subdivision}
+                  onChange={(e) => setSubdivision(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  For metronome click patterns in irregular time signatures.
+                </p>
+              </div>
+              
+              {/* Hide in Player Mode */}
+              <div className="flex items-center space-x-2">
+                <Switch id="hide-tempo" checked={hidden} onCheckedChange={setHidden} />
+                <Label htmlFor="hide-tempo" className="text-sm cursor-pointer">
+                  Hide in player mode (show only in edit mode)
+                </Label>
+              </div>
             </div>
           )}
 
           {/* Campos Time Signature */}
           {type === 'timesig' && (
-            <div className="space-y-2">
+            <div className="space-y-4">
               <Label>Time Signature</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1"> <Label htmlFor="ts-num" className="text-xs text-muted-foreground">Numerator</Label> <Input id="ts-num" type="number" value={timeSignatureNumerator} onChange={(e)=>setTimeSignatureNumerator(e.target.value)}/> </div>
-                <div className="space-y-1"> <Label htmlFor="ts-den" className="text-xs text-muted-foreground">Denominator</Label> <Input id="ts-den" type="number" value={timeSignatureDenominator} onChange={(e)=>setTimeSignatureDenominator(e.target.value)}/> </div>
+              
+              {/* Preset Selector */}
+              <div className="space-y-1">
+                <Label htmlFor="ts-preset" className="text-xs text-muted-foreground">Common Presets</Label>
+                <Select
+                  value={`${timeSignatureNumerator}/${timeSignatureDenominator}`}
+                  onValueChange={(value) => {
+                    const [num, den] = value.split('/');
+                    setTimeSignatureNumerator(num);
+                    setTimeSignatureDenominator(den);
+                  }}
+                >
+                  <SelectTrigger id="ts-preset">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIME_SIG_PRESETS.map(preset => (
+                      <SelectItem key={preset.label} value={`${preset.numerator}/${preset.denominator}`}>
+                        {preset.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Manual Input */}
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Custom Time Signature</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="ts-num" className="text-xs text-muted-foreground">Numerator (Beats)</Label>
+                    <Input 
+                      id="ts-num" 
+                      type="number" 
+                      min="1" 
+                      max="32"
+                      value={timeSignatureNumerator} 
+                      onChange={(e)=>setTimeSignatureNumerator(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="ts-den" className="text-xs text-muted-foreground">Denominator (Note Value)</Label>
+                    <Select value={timeSignatureDenominator} onValueChange={setTimeSignatureDenominator}>
+                      <SelectTrigger id="ts-den">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TIME_SIG_DENOMINATORS.map(den => (
+                          <SelectItem key={den.value} value={den.value}>
+                            {den.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Preview */}
+              <div className="bg-[#1E1E1E] border border-[#2B2B2B] rounded-md p-3 text-center">
+                <div className="text-xs text-muted-foreground mb-1">Preview</div>
+                <div className="text-3xl font-mono">
+                  {timeSignatureNumerator}<span className="text-muted-foreground">/</span>{timeSignatureDenominator}
+                </div>
+              </div>
+
+              {/* Irregular Time Signature Subdivision */}
+              <div className="space-y-2">
+                <Label htmlFor="subdivision" className="text-sm">
+                  Irregular Subdivision (optional)
+                </Label>
+                <Input
+                  id="subdivision"
+                  placeholder="e.g., 2+3 for 5/8, 3+2+2 for 7/8"
+                  value={subdivision}
+                  onChange={(e) => setSubdivision(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Define beat grouping for irregular time signatures. Leave empty for regular grouping.
+                </p>
+                {subdivision && (
+                  <div className="bg-[#1E1E1E] border border-[#2B2B2B] rounded-md p-2 text-xs">
+                    <span className="text-muted-foreground">Pattern:</span> {subdivision}
+                  </div>
+                )}
+              </div>
+
+              {/* Hide in Player Mode */}
+              <div className="flex items-center space-x-2">
+                <Switch id="hide-timesig" checked={hidden} onCheckedChange={setHidden} />
+                <Label htmlFor="hide-timesig" className="text-sm cursor-pointer">
+                  Hide in player mode (show only in edit mode)
+                </Label>
               </div>
             </div>
           )}

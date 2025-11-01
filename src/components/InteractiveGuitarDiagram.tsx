@@ -1,6 +1,8 @@
 import React from 'react';
-import { X } from 'lucide-react';
+import { X, Play } from 'lucide-react';
 import { useLanguage } from '../lib/LanguageContext';
+import { playGuitarChord } from '../lib/chordPlayback';
+import { Button } from './ui/button';
 
 interface InteractiveGuitarDiagramProps {
   frets: number[];
@@ -56,11 +58,26 @@ export function InteractiveGuitarDiagram({ frets, fingers, startFret = 1, onChan
     onChange(newFrets, newFingers);
   };
 
+  const handlePlayChord = () => {
+    playGuitarChord(frets);
+  };
+
   return (
     <div className="flex flex-col items-center space-y-4">
-      <p className="text-sm text-gray-600">
-        {t.clickFretsToPlace}
-      </p>
+      <div className="flex items-center gap-3">
+        <p className="text-sm text-gray-600">
+          {t.clickFretsToPlace}
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handlePlayChord}
+          className="gap-2"
+        >
+          <Play className="w-4 h-4" />
+          Play
+        </Button>
+      </div>
       
       <svg width="240" height="320" viewBox="0 0 240 320" className="border rounded-lg bg-white">
         {/* Fretboard horizontal lines */}

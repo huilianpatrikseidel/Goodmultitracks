@@ -49,7 +49,15 @@ export function SongLibrary({
   const [createProjectDialogOpen, setCreateProjectDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'imported' | 'projects'>('imported');
   const [sortOrder, setSortOrder] = useState<SortOption>('date_desc');
-  const [viewMode, setViewMode] = useState<ViewMode>('grid-image');
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    const saved = localStorage.getItem('goodmultitracks_library_view_mode');
+    return (saved as ViewMode) || 'grid-image';
+  });
+
+  // Save view mode to localStorage
+  React.useEffect(() => {
+    localStorage.setItem('goodmultitracks_library_view_mode', viewMode);
+  }, [viewMode]);
 
   // Contagens totais (baseado na busca)
   const { totalImportedCount, totalProjectsCount } = useMemo(() => {

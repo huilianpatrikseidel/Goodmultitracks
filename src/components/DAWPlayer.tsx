@@ -15,16 +15,28 @@ import {
   Clock,
   Music2,
   Pencil,
-  Palette, // Ícone de paleta, se desejar usar
+  Palette,
   Grid3x3,
   PanelLeftClose,
   PanelLeft,
   ChevronDown,
+  Settings,
+  Sliders,
+  Layers,
+  Keyboard,
+  Pin,
+  Save,
 } from 'lucide-react';
+import { PlayerViewSettings } from './PlayerViewSettings';
+import { TrackTagSelector } from './TrackTagSelector';
+import { PlaybackControls } from './PlaybackControls';
+import { KeyboardShortcutsHelp } from './KeyboardShortcutsHelp';
+import { MixPresetsManager } from './MixPresetsManager';
+import { MixerDock } from './MixerDock';
 import { Button } from './ui/button';
 import { Slider } from './ui/slider';
 import { Input } from './ui/input';
-import { Song, AudioTrack, SectionMarker, TimeSignatureChange, TempoChange, ChordMarker } from '../types';
+import { Song, AudioTrack, SectionMarker, TimeSignatureChange, TempoChange, ChordMarker, MixPreset } from '../types';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import { CreateProjectDialog } from './CreateProjectDialog';
@@ -40,7 +52,13 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from './ui/popover'; // Importação adicionada
+} from './ui/popover';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from './ui/tooltip';
 import { Label } from './ui/label';
 import { playMetronomeClick, resumeAudioContext } from '../lib/metronome';
 import { useLanguage } from '../lib/LanguageContext';
@@ -83,6 +101,9 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
   const [dragStartX, setDragStartX] = useState<number | null>(null);
   const [snapEnabled, setSnapEnabled] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(true);
+  const [mixerVisible, setMixerVisible] = useState(true);
+  const [mixerDockVisible, setMixerDockVisible] = useState(false);
+  const [mixPresetsPopoverOpen, setMixPresetsPopoverOpen] = useState(false);
   const [isDraggingScrollbar, setIsDraggingScrollbar] = useState(false);
   const [isDraggingLeftHandle, setIsDraggingLeftHandle] = useState(false);
   const [isDraggingRightHandle, setIsDraggingRightHandle] = useState(false);
@@ -91,11 +112,42 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
   const [isDraggingVerticalScrollbar, setIsDraggingVerticalScrollbar] = useState(false);
   const [selectedChord, setSelectedChord] = useState<{ chord: string; customDiagram?: any } | null>(null);
   const [editingChordMarker, setEditingChordMarker] = useState<ChordMarker | null>(null);
+  const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
+  
+  // Mix presets state
+  const [mixPresets, setMixPresets] = useState<MixPreset[]>([]);
+  const [pinnedTracks, setPinnedTracks] = useState<Set<string>>(new Set());
 
   // Metronome state
   const [metronomeEnabled, setMetronomeEnabled] = useState(false);
   const [metronomeVolume, setMetronomeVolume] = useState(0.5); // Stored as linear gain
   const lastBeatRef = useRef<number>(0);
+
+  // View settings with localStorage persistence
+  const [trackHeight, setTrackHeight] = useState<'small' | 'medium' | 'large'>(() => {
+    const saved = localStorage.getItem('goodmultitracks_track_height');
+    return (saved as 'small' | 'medium' | 'large') || 'medium';
+  });
+  const [showTempoRuler, setShowTempoRuler] = useState(() => {
+    const saved = localStorage.getItem('goodmultitracks_show_tempo_ruler');
+    return saved === null ? true : saved === 'true';
+  });
+  const [showChordRuler, setShowChordRuler] = useState(() => {
+    const saved = localStorage.getItem('goodmultitracks_show_chord_ruler');
+    return saved === null ? true : saved === 'true';
+  });
+  const [showSectionRuler, setShowSectionRuler] = useState(() => {
+    const saved = localStorage.getItem('goodmultitracks_show_section_ruler');
+    return saved === null ? true : saved === 'true';
+  });
+  const [showTimeSignatureRuler, setShowTimeSignatureRuler] = useState(() => {
+    const saved = localStorage.getItem('goodmultitracks_show_timesig_ruler');
+    return saved === null ? true : saved === 'true';
+  });
+  const [rulerOrder, setRulerOrder] = useState<string[]>(() => {
+    const saved = localStorage.getItem('goodmultitracks_ruler_order');
+    return saved ? JSON.parse(saved) : ['sections', 'chords', 'tempo', 'timesig'];
+  });
 
   const timelineScrollRef = useRef<HTMLDivElement>(null);
   const tracksScrollRef = useRef<HTMLDivElement>(null);
@@ -118,7 +170,32 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
     if (song && onSongUpdate && JSON.stringify(tracks) !== JSON.stringify(song.tracks)) {
       onSongUpdate({ ...song, tracks });
     }
-  }, [tracks, song, onSongUpdate]); // Adicionado song e onSongUpdate às dependências
+  }, [tracks, song, onSongUpdate]);
+
+  // Save view settings to localStorage
+  useEffect(() => {
+    localStorage.setItem('goodmultitracks_track_height', trackHeight);
+  }, [trackHeight]);
+
+  useEffect(() => {
+    localStorage.setItem('goodmultitracks_show_tempo_ruler', String(showTempoRuler));
+  }, [showTempoRuler]);
+
+  useEffect(() => {
+    localStorage.setItem('goodmultitracks_show_chord_ruler', String(showChordRuler));
+  }, [showChordRuler]);
+
+  useEffect(() => {
+    localStorage.setItem('goodmultitracks_show_section_ruler', String(showSectionRuler));
+  }, [showSectionRuler]);
+
+  useEffect(() => {
+    localStorage.setItem('goodmultitracks_show_timesig_ruler', String(showTimeSignatureRuler));
+  }, [showTimeSignatureRuler]);
+
+  useEffect(() => {
+    localStorage.setItem('goodmultitracks_ruler_order', JSON.stringify(rulerOrder));
+  }, [rulerOrder]);
 
   // Measure container width for zoom calculation
   useEffect(() => {
@@ -186,38 +263,145 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
     return () => clearInterval(interval);
   }, [isPlaying, tempo, song, loopEnabled, loopStart, loopEnd, metronomeEnabled, metronomeVolume]);
 
-  // Spacebar to play/pause
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Only trigger if spacebar is pressed and not in an input field
-      if (e.code === 'Space' && e.target instanceof HTMLElement) {
+      // Check if we're in an input field
+      if (e.target instanceof HTMLElement) {
         const tagName = e.target.tagName.toLowerCase();
-        if (tagName !== 'input' && tagName !== 'textarea' && !e.target.isContentEditable) {
+        const isInputField = tagName === 'input' || tagName === 'textarea' || e.target.isContentEditable;
+        
+        // Spacebar: Play/Pause
+        if (e.code === 'Space' && !isInputField) {
           e.preventDefault();
           setIsPlaying((prev) => !prev);
+          return;
+        }
+        
+        // Only allow other shortcuts when not in input field
+        if (isInputField) return;
+        
+        // Home: Go to start
+        if (e.code === 'Home') {
+          e.preventDefault();
+          setCurrentTime(0);
+          return;
+        }
+        
+        // End: Go to end
+        if (e.code === 'End' && song) {
+          e.preventDefault();
+          setCurrentTime(song.duration);
+          return;
+        }
+        
+        // L: Toggle loop
+        if (e.code === 'KeyL' && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          setLoopEnabled((prev) => !prev);
+          return;
+        }
+        
+        // M: Toggle metronome
+        if (e.code === 'KeyM' && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          setMetronomeEnabled((prev) => !prev);
+          return;
+        }
+        
+        // R: Reset to start
+        if (e.code === 'KeyR' && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          setCurrentTime(0);
+          return;
+        }
+        
+        // +/=: Zoom in
+        if ((e.code === 'Equal' || e.code === 'NumpadAdd') && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          setZoom((prev) => Math.min(8, prev + 0.25));
+          return;
+        }
+        
+        // -: Zoom out
+        if ((e.code === 'Minus' || e.code === 'NumpadSubtract') && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          setZoom((prev) => Math.max(1, prev - 0.25));
+          return;
+        }
+        
+        // 0: Reset zoom
+        if ((e.code === 'Digit0' || e.code === 'Numpad0') && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          setZoom(1);
+          return;
+        }
+        
+        // Left Arrow: Jump backward (5 seconds)
+        if (e.code === 'ArrowLeft' && !e.shiftKey) {
+          e.preventDefault();
+          setCurrentTime((prev) => Math.max(0, prev - 5));
+          return;
+        }
+        
+        // Right Arrow: Jump forward (5 seconds)
+        if (e.code === 'ArrowRight' && !e.shiftKey) {
+          e.preventDefault();
+          setCurrentTime((prev) => song ? Math.min(song.duration, prev + 5) : prev);
+          return;
+        }
+        
+        // Shift+Left: Previous section
+        if (e.code === 'ArrowLeft' && e.shiftKey && song) {
+          e.preventDefault();
+          const sorted = [...song.markers].sort((a, b) => a.time - b.time);
+          const prevMarker = sorted.reverse().find((m) => m.time < currentTime - 1);
+          if (prevMarker) setCurrentTime(prevMarker.time);
+          return;
+        }
+        
+        // Shift+Right: Next section
+        if (e.code === 'ArrowRight' && e.shiftKey && song) {
+          e.preventDefault();
+          const sorted = [...song.markers].sort((a, b) => a.time - b.time);
+          const nextMarker = sorted.find((m) => m.time > currentTime);
+          if (nextMarker) setCurrentTime(nextMarker.time);
+          return;
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [song, currentTime]);
 
   const handleTrackVolumeChange = (trackId: string, volume: number) => {
+    // Ensure volume is a valid number to prevent crashes
+    const safeVolume = isNaN(volume) || !isFinite(volume) ? 1.0 : Math.max(0, Math.min(10, volume));
     setTracks((prev) =>
-      prev.map((t) => (t.id === trackId ? { ...t, volume } : t))
+      prev.map((t) => (t.id === trackId ? { ...t, volume: safeVolume } : t))
     );
   };
 
   const handleTrackMuteToggle = (trackId: string) => {
     setTracks((prev) =>
-      prev.map((t) => (t.id === trackId ? { ...t, muted: !t.muted } : t))
+      prev.map((t) => {
+        if (t.id === trackId) {
+          return { ...t, muted: !t.muted };
+        }
+        return t;
+      })
     );
   };
 
   const handleTrackSoloToggle = (trackId: string) => {
     setTracks((prev) =>
-      prev.map((t) => (t.id === trackId ? { ...t, solo: !t.solo } : t))
+      prev.map((t) => {
+        if (t.id === trackId) {
+          return { ...t, solo: !t.solo };
+        }
+        return t;
+      })
     );
   };
 
@@ -230,6 +414,12 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
   const handleTrackColorChange = (trackId: string, color: string) => {
     setTracks((prev) =>
       prev.map((t) => (t.id === trackId ? { ...t, color } : t))
+    );
+  };
+
+  const handleTrackTagChange = (trackId: string, tag: any) => {
+    setTracks((prev) =>
+      prev.map((t) => (t.id === trackId ? { ...t, tag } : t))
     );
   };
 
@@ -260,19 +450,78 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
     setTrackNameInput('');
   };
 
+  // Mix Presets Functions
+  const handleSaveMixPreset = (name: string) => {
+    const newPreset: MixPreset = {
+      id: `preset-${Date.now()}`,
+      name,
+      tracks: tracks
+        .filter(t => !pinnedTracks.has(t.id)) // Only save non-pinned tracks
+        .map(t => ({
+          trackId: t.id,
+          volume: t.volume,
+          muted: t.muted,
+        })),
+    };
+    setMixPresets(prev => [...prev, newPreset]);
+  };
+
+  const handleLoadMixPreset = (presetId: string) => {
+    const preset = mixPresets.find(p => p.id === presetId);
+    if (!preset) return;
+
+    setTracks(prev =>
+      prev.map(track => {
+        // Skip pinned tracks
+        if (pinnedTracks.has(track.id)) return track;
+
+        const presetTrack = preset.tracks.find(pt => pt.trackId === track.id);
+        if (presetTrack) {
+          return {
+            ...track,
+            volume: presetTrack.volume,
+            muted: presetTrack.muted,
+          };
+        }
+        return track;
+      })
+    );
+  };
+
+  const handleDeleteMixPreset = (presetId: string) => {
+    setMixPresets(prev => prev.filter(p => p.id !== presetId));
+  };
+
+  const handleToggleTrackPin = (trackId: string) => {
+    setPinnedTracks(prev => {
+      const next = new Set(prev);
+      if (next.has(trackId)) {
+        next.delete(trackId);
+      } else {
+        next.add(trackId);
+      }
+      return next;
+    });
+  };
+
   // Sync scrolling between timeline and tracks
   const handleTimelineScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const scrollLeft = e.currentTarget.scrollLeft;
+    
     if (tracksScrollRef.current) {
-      tracksScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
+      // Scroll the tracks area horizontally by translating the content
+      const innerDiv = tracksScrollRef.current.querySelector('.tracks-content') as HTMLDivElement;
+      if (innerDiv) {
+        innerDiv.style.transform = `translateX(-${scrollLeft}px)`;
+      }
     }
+    // Force scrollbar to update
+    setScrollUpdate(prev => prev + 1);
   };
 
   const handleTracksScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    // Sync horizontal scroll with timeline
-    if (timelineScrollRef.current) {
-      timelineScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
-    }
-    // Sync vertical scroll with track labels
+    // Only sync vertical scroll with track labels
+    // Horizontal scroll is now controlled by timeline only
     if (trackLabelsScrollRef.current) {
       trackLabelsScrollRef.current.scrollTop = e.currentTarget.scrollTop;
     }
@@ -389,7 +638,7 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
     <key>${escapeXml(song.key)}</key>
     <tempo>${song.tempo}</tempo>
     <duration>${song.duration}</duration>
-    <version>${escapeXml(String(song.version))}</version> {/* Convertido para string */}
+    <version>${escapeXml(String(song.version))}</version>
   </metadata>
   <tracks>
 ${song.tracks.map(track => `    <track>
@@ -397,7 +646,7 @@ ${song.tracks.map(track => `    <track>
       <name>${escapeXml(track.name)}</name>
       <type>${escapeXml(track.type)}</type>
       <volume>${track.volume}</volume>
-      <color>${escapeXml(track.color || '')}</color> {/* Adicionado cor */}
+      <color>${escapeXml(track.color || '')}</color>
     </track>`).join('\n')}
   </tracks>
   <markers>
@@ -442,9 +691,9 @@ ${chordMarkers.map(chord => `    <chord>
 
   const escapeXml = (str: string): string => {
     return str
-      .replace(/&/g, '&amp;') // Correção aqui
-      .replace(/</g, '&lt;') // Correção aqui
-      .replace(/>/g, '&gt;') // Correção aqui
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&apos;');
   };
@@ -485,7 +734,7 @@ ${chordMarkers.map(chord => `    <chord>
           id: `marker-${Date.now()}`,
           time: itemData.time,
           label: itemData.label,
-          type: itemData.type || 'custom', // Corrigido para 'custom' se não definido
+          type: itemData.type || 'custom',
         }].sort((a, b) => a.time - b.time);
         break;
       case 'chord':
@@ -501,7 +750,6 @@ ${chordMarkers.map(chord => `    <chord>
   };
 
   if (!song) {
-    // ... (código para quando não há música selecionada - mantido igual)
     return (
       <div className="flex flex-col h-full bg-gray-900 text-white">
         <div className="bg-gray-800 border-b border-gray-700 p-3 flex items-center justify-between">
@@ -545,28 +793,24 @@ ${chordMarkers.map(chord => `    <chord>
 const handleUpdateOrDeleteTimelineItem = (
     action: 'update' | 'delete',
     itemData: any,
-    originalItem?: ChordMarker | SectionMarker | TempoChange // Adiciona originalItem opcional
+    originalItem?: ChordMarker | SectionMarker | TempoChange
 ) => {
     if (!song || !onSongUpdate) return;
 
     let updatedSong = { ...song };
-    const itemType = editorType; // Usa o editorType atual
+    const itemType = editorType;
 
     switch (itemType) {
-        // Adicionar cases para outros tipos (section, tempo, timesig) se precisar editar/excluir eles também
         case 'chord':
             if (action === 'update' && originalItem) {
                 updatedSong.chordMarkers = (updatedSong.chordMarkers || [])
-                    .map(marker => marker.time === originalItem.time ? // Encontra pelo tempo original (ou um ID se tiver)
-                         { ...itemData } // Substitui com os novos dados
-                         : marker
-                    )
+                    .map(marker => marker.time === originalItem.time ? { ...itemData } : marker)
                     .sort((a, b) => a.time - b.time);
             } else if (action === 'delete' && originalItem) {
                  updatedSong.chordMarkers = (updatedSong.chordMarkers || [])
-                    .filter(marker => marker.time !== originalItem.time) // Remove pelo tempo original
+                    .filter(marker => marker.time !== originalItem.time)
                     .sort((a, b) => a.time - b.time);
-            } else if (action === 'add') { // Reutiliza a lógica de adicionar se não for update/delete
+            } else if (action === 'add') {
                  updatedSong.chordMarkers = [...(updatedSong.chordMarkers || []), {
                      time: itemData.time,
                      chord: itemData.chord,
@@ -574,15 +818,37 @@ const handleUpdateOrDeleteTimelineItem = (
                  }].sort((a, b) => a.time - b.time);
             }
             break;
-        // Adicionar cases para 'section', 'tempo', 'timesig' aqui se necessário
     }
 
     onSongUpdate(updatedSong);
-    setEditingChordMarker(null); // Limpa o estado de edição
-    setTimelineEditorOpen(false); // Fecha o dialog
+    setEditingChordMarker(null);
+    setTimelineEditorOpen(false);
 };
   
   const isAnySolo = tracks.some((t) => t.solo);
+
+  // Calculate track height based on setting
+  const getTrackHeight = () => {
+    switch (trackHeight) {
+      case 'small':
+        return 'h-16';
+      case 'large':
+        return 'h-32';
+      default:
+        return 'h-24';
+    }
+  };
+
+  const getTrackHeightPx = () => {
+    switch (trackHeight) {
+      case 'small':
+        return 64;
+      case 'large':
+        return 128;
+      default:
+        return 96;
+    }
+  };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -591,12 +857,10 @@ const handleUpdateOrDeleteTimelineItem = (
     return `${mins}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
   };
 
-  // Get current tempo and time signature at given time
-  const getCurrentTempoInfo = (time: number): TempoChange => { // Tipo de retorno especificado
+  const getCurrentTempoInfo = (time: number): TempoChange => {
     const tempoChanges = song.tempoChanges || [{ time: 0, tempo: song.tempo, timeSignature: '4/4' }];
 
-    // Find the active tempo change at this time
-    let activeTempo: TempoChange = { // Inicialização com tipo
+    let activeTempo: TempoChange = {
         time: 0,
         tempo: song.tempo,
         timeSignature: '4/4'
@@ -612,8 +876,14 @@ const handleUpdateOrDeleteTimelineItem = (
     return activeTempo;
   };
 
+  // Get current time signature at given time
+  const getCurrentTimeSignature = () => {
+    return getCurrentTempoInfo(currentTime).timeSignature;
+  };
+
   // Calculate current measure number at given time
-  const getCurrentMeasure = (time: number) => {
+  const getCurrentMeasure = () => {
+    const time = currentTime;
     const tempoChanges = song.tempoChanges || [{ time: 0, tempo: song.tempo, timeSignature: '4/4' }];
 
     let measureCount = 1; // Measures are 1-indexed
@@ -718,7 +988,11 @@ const handleUpdateOrDeleteTimelineItem = (
   }
 
   // Generate measure bars with dynamic subdivision based on zoom
-  const tempoChanges = song.tempoChanges || [{ time: 0, tempo: song.tempo, timeSignature: '4/4' }];
+  // Filter out hidden tempo markers when not in edit mode
+  const allTempoChanges = song.tempoChanges || [{ time: 0, tempo: song.tempo, timeSignature: '4/4' }];
+  const tempoChanges = editMode 
+    ? allTempoChanges 
+    : allTempoChanges.filter(tc => !tc.hidden);
 
   // Calculate measure skip interval based on zoom level
   // This prevents overlapping measure numbers at low zoom
@@ -800,6 +1074,66 @@ const handleUpdateOrDeleteTimelineItem = (
     );
   };
 
+  // Mix Presets Management
+  const handleSavePreset = (name: string) => {
+    if (!song || !onSongUpdate) return;
+    
+    const newPreset = {
+      id: `preset-${Date.now()}`,
+      name,
+      tracks: tracks.map(t => ({
+        trackId: t.id,
+        volume: t.volume,
+        muted: t.muted,
+      })),
+    };
+    
+    const updatedPresets = [...(song.mixPresets || []), newPreset];
+    onSongUpdate({ ...song, mixPresets: updatedPresets });
+  };
+
+  const handleLoadPreset = (presetId: string) => {
+    if (!song) return;
+    
+    const preset = song.mixPresets?.find(p => p.id === presetId);
+    if (!preset) return;
+    
+    // Apply preset settings
+    setTracks(prev => prev.map(track => {
+      const presetTrack = preset.tracks.find(pt => pt.trackId === track.id);
+      if (presetTrack) {
+        return {
+          ...track,
+          volume: presetTrack.volume,
+          muted: presetTrack.muted,
+        };
+      }
+      return track;
+    }));
+    
+    // Track Pinning: Move main instrument to top if set in user preferences
+    const mainInstrument = localStorage.getItem('goodmultitracks_main_instrument');
+    if (mainInstrument) {
+      setTracks(prev => {
+        const mainTrackIndex = prev.findIndex(t => t.tag === mainInstrument);
+        if (mainTrackIndex > 0) {
+          const newTracks = [...prev];
+          const [mainTrack] = newTracks.splice(mainTrackIndex, 1);
+          newTracks.unshift(mainTrack);
+          return newTracks;
+        }
+        return prev;
+      });
+    }
+  };
+
+  const handleDeletePreset = (presetId: string) => {
+    if (!song || !onSongUpdate) return;
+    
+    const updatedPresets = song.mixPresets?.filter(p => p.id !== presetId) || [];
+    onSongUpdate({ ...song, mixPresets: updatedPresets });
+  };
+
   const chordProgression = song.chordMarkers || []; // Usar chordMarkers
 
   // Zoom centered on a specific time point
@@ -879,24 +1213,24 @@ const handleUpdateOrDeleteTimelineItem = (
 
   // Custom scrollbar handlers
   const getScrollPercentage = () => {
-    if (!tracksScrollRef.current) return 0;
-    const scrollLeft = tracksScrollRef.current.scrollLeft;
-    const scrollWidth = tracksScrollRef.current.scrollWidth;
-    const clientWidth = tracksScrollRef.current.clientWidth;
+    if (!timelineScrollRef.current) return 0;
+    const scrollLeft = timelineScrollRef.current.scrollLeft;
+    const scrollWidth = timelineScrollRef.current.scrollWidth;
+    const clientWidth = timelineScrollRef.current.clientWidth;
     const maxScroll = scrollWidth - clientWidth;
     return maxScroll > 0 ? scrollLeft / maxScroll : 0;
   };
 
   const getVisiblePercentage = () => {
-    if (!tracksScrollRef.current) return 1;
-    const scrollWidth = tracksScrollRef.current.scrollWidth;
-    const clientWidth = tracksScrollRef.current.clientWidth;
+    if (!timelineScrollRef.current) return 1;
+    const scrollWidth = timelineScrollRef.current.scrollWidth;
+    const clientWidth = timelineScrollRef.current.clientWidth;
     // Evita divisão por zero
     return scrollWidth > 0 ? Math.min(1, clientWidth / scrollWidth) : 1;
   };
 
   const handleScrollbarMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!scrollbarRef.current || !tracksScrollRef.current) return;
+    if (!scrollbarRef.current || !timelineScrollRef.current) return;
 
     const rect = scrollbarRef.current.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
@@ -911,16 +1245,16 @@ const handleUpdateOrDeleteTimelineItem = (
     } else {
       // Clicked on track, jump to position
       const newPercentage = Math.max(0, Math.min(1, (clickX - thumbWidth / 2) / (scrollbarWidth - thumbWidth)));
-      const scrollWidth = tracksScrollRef.current.scrollWidth;
-      const clientWidth = tracksScrollRef.current.clientWidth;
+      const scrollWidth = timelineScrollRef.current.scrollWidth;
+      const clientWidth = timelineScrollRef.current.clientWidth;
       const maxScroll = scrollWidth - clientWidth;
-      tracksScrollRef.current.scrollLeft = newPercentage * maxScroll;
+      timelineScrollRef.current.scrollLeft = newPercentage * maxScroll;
     }
   };
 
    const handleScrollbarMouseMove = React.useCallback((e: MouseEvent) => { // Usar useCallback
      if (!isDraggingScrollbar && !isDraggingLeftHandle && !isDraggingRightHandle) return;
-     if (!scrollbarRef.current || !tracksScrollRef.current) return;
+     if (!scrollbarRef.current || !timelineScrollRef.current) return;
 
      if (isDraggingScrollbar) {
        const rect = scrollbarRef.current.getBoundingClientRect();
@@ -930,10 +1264,10 @@ const handleUpdateOrDeleteTimelineItem = (
        const clickX = e.clientX - rect.left;
 
        const newPercentage = Math.max(0, Math.min(1, (clickX - thumbWidth / 2) / (scrollbarWidth - thumbWidth)));
-       const scrollWidth = tracksScrollRef.current.scrollWidth;
-       const clientWidth = tracksScrollRef.current.clientWidth;
+       const scrollWidth = timelineScrollRef.current.scrollWidth;
+       const clientWidth = timelineScrollRef.current.clientWidth;
        const maxScroll = scrollWidth - clientWidth;
-       tracksScrollRef.current.scrollLeft = newPercentage * maxScroll;
+       timelineScrollRef.current.scrollLeft = newPercentage * maxScroll;
      } else if (isDraggingLeftHandle || isDraggingRightHandle) {
        if (!handleDragStart) return;
 
@@ -941,10 +1275,11 @@ const handleUpdateOrDeleteTimelineItem = (
        const rect = scrollbarRef.current.getBoundingClientRect();
        const scrollbarWidth = rect.width;
 
-       // Convert pixel movement to zoom change
-       // Dragging outward = zoom out, dragging inward = zoom in
+       // 1:1 cursor movement to zoom ratio
+       // More movement = more zoom change
        const direction = isDraggingRightHandle ? 1 : -1;
-       const zoomDelta = (deltaX * direction) / scrollbarWidth * 4; // Sensitivity factor
+       const sensitivity = 0.01; // Adjust for smoother or faster zoom
+       const zoomDelta = (deltaX * direction) * sensitivity;
        const newZoom = Math.max(1, Math.min(8, handleDragStart.zoom - zoomDelta));
        setZoom(newZoom);
      }
@@ -1059,127 +1394,166 @@ const handleUpdateOrDeleteTimelineItem = (
 
 
   return (
-    <div className="flex flex-col h-full bg-gray-900 text-white">
-      {/* Header Bar - Song Info */}
-      <div className="bg-gray-850 border-b border-gray-700 px-4 py-2.5 flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 text-white hover:bg-gray-700"
-          onClick={onBack}
-        >
-          <ArrowLeft className="w-4 h-4" />
-        </Button>
-
-        <Separator orientation="vertical" className="h-6 bg-gray-600" />
-
-        <div className="flex items-center gap-4 text-sm">
-          <div>
-            <span className="text-gray-400">Song:</span>{' '}
-            <span>{song.title}</span>
-          </div>
-          <div>
-            <span className="text-gray-400">Key:</span>{' '}
-            <Badge variant="secondary" className="ml-1">{song.key}</Badge>
-          </div>
-          <div>
-            <span className="text-gray-400">Tempo:</span>{' '}
-            <Badge variant="secondary" className="ml-1">{song.tempo} BPM</Badge>
-          </div>
-        </div>
-      </div>
-
-      {/* Controls Toolbar */}
-      <div className="bg-gray-800 border-b border-gray-700 p-3 flex items-center justify-between gap-4">
+    <TooltipProvider>
+      <div className="flex flex-col h-full text-white" style={{ backgroundColor: '#1E1E1E' }}>
+      {/* Top Bar (Main) - Fixed at top */}
+      <div className="border-b px-4 py-3 flex items-center justify-between gap-4" style={{ backgroundColor: '#2B2B2B', borderColor: '#3A3A3A' }}>
+        {/* Left: Back Button + Project Name */}
         <div className="flex items-center gap-3">
-          {/* Sidebar Toggle */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className={`h-8 px-3 gap-2 ${
-              sidebarVisible ? 'bg-blue-600 text-white hover:bg-blue-700' : 'text-white hover:bg-gray-700'
-            }`}
-            onClick={() => setSidebarVisible(!sidebarVisible)}
-          >
-            {sidebarVisible ? (
-              <PanelLeftClose className="w-4 h-4" />
-            ) : (
-              <PanelLeft className="w-4 h-4" />
-            )}
-            Sidebar
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 rounded"
+                style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
+                onClick={onBack}
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Back to Library</TooltipContent>
+          </Tooltip>
 
-          <Separator orientation="vertical" className="h-6 bg-gray-600" />
+          <span className="text-lg" style={{ color: '#F1F1F1' }}>{song.title}</span>
+        </div>
 
+        {/* Center: Transport Controls + Info Box + Metronome */}
+        <div className="flex items-center gap-4">
+          {/* Transport Controls */}
           <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 text-white bg-gray-700 hover:bg-gray-600"
-              onClick={() => {
-                setIsPlaying(false);
-                setCurrentTime(0);
-              }}
-            >
-              <Square className="w-5 h-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`h-12 w-12 text-white ${
-                isPlaying
-                  ? 'bg-green-500 hover:bg-green-600'
-                  : 'bg-green-800 hover:bg-green-700'
-              }`}
-              onClick={() => setIsPlaying(!isPlaying)}
-            >
-              {isPlaying ? (
-                <Pause className="w-6 h-6" />
-              ) : (
-                <Play className="w-6 h-6" />
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`h-10 w-10 ${
-                loopEnabled ? 'text-blue-400 bg-blue-900 hover:bg-blue-800' : 'text-white bg-gray-700 hover:bg-gray-600'
-              }`}
-              onClick={() => setLoopEnabled(!loopEnabled)}
-            >
-              <Repeat className="w-5 h-5" />
-            </Button>
-
-            {/* Metronome with volume dropdown */}
-            <DropdownMenu>
-              <div className="flex items-center gap-0">
+            <Tooltip>
+              <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={`h-10 w-10 rounded-r-none ${
-                    metronomeEnabled ? 'text-blue-400 bg-blue-900 hover:bg-blue-800' : 'text-white bg-gray-700 hover:bg-gray-600'
-                  }`}
+                  className="h-10 w-10 rounded"
+                  style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
+                  onClick={() => {
+                    setIsPlaying(false);
+                    setCurrentTime(0);
+                  }}
+                >
+                  <Square className="w-5 h-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Stop</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-12 w-12 rounded"
+                  style={{
+                    backgroundColor: isPlaying ? '#4ADE80' : '#404040',
+                    color: '#F1F1F1'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isPlaying ? '#22c55e' : '#5A5A5A'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = isPlaying ? '#4ADE80' : '#404040'}
+                  onClick={() => setIsPlaying(!isPlaying)}
+                >
+                  {isPlaying ? (
+                    <Pause className="w-6 h-6" />
+                  ) : (
+                    <Play className="w-6 h-6" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isPlaying ? 'Pause' : 'Play'}</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 rounded"
+                  style={{
+                    backgroundColor: loopEnabled ? '#3B82F6' : '#404040',
+                    color: '#F1F1F1'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = loopEnabled ? '#3B82F6' : '#5A5A5A'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = loopEnabled ? '#3B82F6' : '#404040'}
+                  onClick={() => setLoopEnabled(!loopEnabled)}
+                >
+                  <Repeat className="w-5 h-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Loop</TooltipContent>
+            </Tooltip>
+          </div>
+
+          {/* Info Box */}
+          <div className="px-4 py-2 rounded flex items-center gap-4" style={{ backgroundColor: '#171717' }}>
+            <div className="text-sm tabular-nums" style={{ color: '#F1F1F1' }}>
+              {formatTime(currentTime)}
+            </div>
+            <Separator orientation="vertical" className="h-4" style={{ backgroundColor: '#3A3A3A' }} />
+            <div className="text-sm" style={{ color: '#9E9E9E' }}>
+              M: {getCurrentMeasure()}
+            </div>
+            <Separator orientation="vertical" className="h-4" style={{ backgroundColor: '#3A3A3A' }} />
+            <div className="text-sm" style={{ color: '#9E9E9E' }}>
+              {Math.round(song.tempo * (tempo / 100))} BPM
+            </div>
+            <Separator orientation="vertical" className="h-4" style={{ backgroundColor: '#3A3A3A' }} />
+            <div className="text-sm" style={{ color: '#9E9E9E' }}>
+              {getCurrentTimeSignature()}
+            </div>
+            <Separator orientation="vertical" className="h-4" style={{ backgroundColor: '#3A3A3A' }} />
+            <Badge variant="secondary" style={{ backgroundColor: '#404040', color: '#F1F1F1' }}>
+              {song.key}
+            </Badge>
+          </div>
+
+          {/* Metronome */}
+          <div className="flex items-center gap-0">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 rounded-r-none"
+                  style={{
+                    backgroundColor: metronomeEnabled ? '#3B82F6' : '#404040',
+                    color: '#F1F1F1'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = metronomeEnabled ? '#3B82F6' : '#5A5A5A'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = metronomeEnabled ? '#3B82F6' : '#404040'}
                   onClick={() => setMetronomeEnabled(!metronomeEnabled)}
                 >
                   <Music2 className="w-5 h-5" />
                 </Button>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={`h-10 w-6 rounded-l-none px-1 ${
-                      metronomeEnabled ? 'text-blue-400 bg-blue-900 hover:bg-blue-800' : 'text-white bg-gray-700 hover:bg-gray-600'
-                    }`}
-                  >
-                    <ChevronDown className="w-3 h-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-              </div>
-              <DropdownMenuContent className="w-64 p-4 bg-gray-800 border-gray-700">
+              </TooltipTrigger>
+              <TooltipContent>Metronome</TooltipContent>
+            </Tooltip>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-6 rounded-l-none px-1"
+                  style={{
+                    backgroundColor: metronomeEnabled ? '#3B82F6' : '#404040',
+                    color: '#F1F1F1'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = metronomeEnabled ? '#3B82F6' : '#5A5A5A'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = metronomeEnabled ? '#3B82F6' : '#404040'}
+                >
+                  <ChevronDown className="w-3 h-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-64 p-4" style={{ backgroundColor: '#2B2B2B', borderColor: '#3A3A3A' }}>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <Label className="text-sm text-white">{t.metronomeVolume}</Label>
-                    <span className="text-sm text-gray-400">{formatDb(gainToDb(metronomeVolume))} dB</span>
+                    <Label className="text-sm" style={{ color: '#F1F1F1' }}>{t.metronomeVolume}</Label>
+                    <span className="text-sm" style={{ color: '#9E9E9E' }}>{formatDb(gainToDb(metronomeVolume))} dB</span>
                   </div>
                   <Slider
                     value={[gainToSlider(metronomeVolume)]}
@@ -1188,204 +1562,432 @@ const handleUpdateOrDeleteTimelineItem = (
                     step={0.1}
                     className="w-full"
                     onDoubleClick={() => {
-                      setMetronomeVolume(0.5); // Reset to -6dB (default metronome level)
+                      setMetronomeVolume(0.5);
                     }}
                   />
                 </div>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-
-          <Separator orientation="vertical" className="h-6 bg-gray-600" />
-
-          <div className="flex items-center gap-3">
-            <div className="text-sm tabular-nums bg-gray-700 px-3 py-1 rounded">
-              {formatTime(currentTime)} / {formatTime(song.duration)}
-            </div>
-            <div className="text-sm bg-gray-700 px-3 py-1 rounded flex items-center gap-2">
-              <span className="text-gray-400">Measure:</span>
-              <span className="tabular-nums">{getCurrentMeasure(currentTime)}</span>
-            </div>
-            <div className="text-sm bg-gray-700 px-3 py-1 rounded flex items-center gap-2">
-              <span className="text-gray-400">TS:</span>
-              <span>{getCurrentTempoInfo(currentTime).timeSignature}</span>
-            </div>
-            <div className="text-sm bg-gray-700 px-3 py-1 rounded flex items-center gap-2">
-              <span className="text-gray-400">BPM:</span>
-              <span className="tabular-nums">{getCurrentTempoInfo(currentTime).tempo}</span>
-            </div>
-          </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* Snap to Measure Toggle */}
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-8 px-3 gap-2 ${
-                snapEnabled ? 'bg-blue-600 text-white hover:bg-blue-700' : 'text-white hover:bg-gray-700'
-              }`}
-              onClick={() => setSnapEnabled(!snapEnabled)}
-            >
-              <Grid3x3 className="w-4 h-4" />
-              Snap
-            </Button>
-          </div>
+        {/* Right: Controls */}
+        <div className="flex items-center gap-2">
+          <PlaybackControls
+            tempo={tempo}
+            onTempoChange={setTempo}
+            keyShift={keyShift}
+            onKeyShiftChange={setKeyShift}
+            originalKey={song.key}
+          />
 
-          <Separator orientation="vertical" className="h-6 bg-gray-600" />
+          <PlayerViewSettings
+            trackHeight={trackHeight}
+            onTrackHeightChange={setTrackHeight}
+            showTempoRuler={showTempoRuler}
+            onShowTempoRulerChange={setShowTempoRuler}
+            showChordRuler={showChordRuler}
+            onShowChordRulerChange={setShowChordRuler}
+            showSectionRuler={showSectionRuler}
+            onShowSectionRulerChange={setShowSectionRuler}
+            showTimeSignatureRuler={showTimeSignatureRuler}
+            onShowTimeSignatureRulerChange={setShowTimeSignatureRuler}
+          />
 
-          <div className="flex items-center gap-2">
-          {editMode ? (
-            <>
+          <Tooltip>
+            <TooltipTrigger asChild>
               <Button
                 variant="ghost"
-                size="sm"
-                className="text-white hover:bg-gray-700 gap-2"
-                onClick={() => openTimelineEditor('section')}
+                size="icon"
+                className="h-10 w-10 rounded"
+                style={{
+                  backgroundColor: snapEnabled ? '#3B82F6' : '#404040',
+                  color: '#F1F1F1'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = snapEnabled ? '#3B82F6' : '#5A5A5A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = snapEnabled ? '#3B82F6' : '#404040'}
+                onClick={() => setSnapEnabled(!snapEnabled)}
               >
-                <Plus className="w-4 h-4" />
-                Section
+                <Grid3x3 className="w-5 h-5" />
               </Button>
+            </TooltipTrigger>
+            <TooltipContent>Snap to Measure</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
               <Button
                 variant="ghost"
-                size="sm"
-                className="text-white hover:bg-gray-700 gap-2"
-                onClick={() => openTimelineEditor('chord')}
+                size="icon"
+                className="h-10 w-10 rounded"
+                style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#5A5A5A')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#404040')}
+                onClick={() => setShowShortcutsHelp(true)}
               >
-                <Plus className="w-4 h-4" />
-                Chord
+                <Keyboard className="w-5 h-5" />
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-white hover:bg-gray-700 gap-2"
-                onClick={() => openTimelineEditor('tempo')}
-              >
-                <Plus className="w-4 h-4" />
-                Tempo
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-white hover:bg-gray-700 gap-2"
-                onClick={() => openTimelineEditor('timesig')}
-              >
-                <Plus className="w-4 h-4" />
-                Time Sig
-              </Button>
-              <Separator orientation="vertical" className="h-6 bg-gray-600" />
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-white hover:bg-gray-700 gap-2"
-                onClick={handleExportProject}
-              >
-                <Download className="w-4 h-4" />
-                Export
-              </Button>
-              {/* Botão para sair do modo edição só aparece se for um projeto importado */}
-              {song.source !== 'project' && (
-                  <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-blue-400 hover:bg-gray-700 gap-2"
-                      onClick={() => setEditMode(false)}
-                  >
-                      <Edit className="w-4 h-4" />
-                      Done Editing
-                  </Button>
-              )}
-            </>
-          ) : (
-             <>
-                {/* Botão Edit só aparece se for um projeto ou tiver permissão */}
-                {(song.source === 'project' || song.permissions?.canEdit) && (
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-white hover:bg-gray-700 gap-2"
-                        onClick={() => setEditMode(true)}
-                    >
-                        <Edit className="w-4 h-4" />
-                        Edit Project
-                    </Button>
-                )}
-                 {onPerformanceMode && (
-                   <Button
-                     variant="ghost"
-                     size="sm"
-                     className="text-white hover:bg-gray-700 gap-2"
-                     onClick={onPerformanceMode}
-                   >
-                     <Maximize2 className="w-4 h-4" />
-                     Performance Mode
-                   </Button>
-                 )}
-                 <Button
-                   variant="ghost"
-                   size="sm"
-                   className="text-white hover:bg-gray-700 gap-2"
-                   onClick={resetMix}
-                 >
-                   <RefreshCw className="w-4 h-4" />
-                   Reset Mix
-                 </Button>
-             </>
-          )}
-          </div>
+            </TooltipTrigger>
+            <TooltipContent>Keyboard Shortcuts</TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
+      {/* Second Bar (Edit Tools) - Only shown when editMode === true */}
+      {editMode && (
+        <div className="border-b px-4 py-2.5 flex items-center gap-2" style={{ backgroundColor: '#2B2B2B', borderColor: '#3A3A3A' }}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 rounded"
+                style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
+                onClick={() => openTimelineEditor('section')}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Add Section</TooltipContent>
+          </Tooltip>
 
-      {/* Main Timeline and Tracks */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Timeline Rows */}
-        <div className="bg-gray-800 border-b border-gray-700 flex">
-          {/* Timeline Labels */}
-          {sidebarVisible && (
-          <div className="w-64 bg-gray-800 border-r border-gray-700">
-            <div className="h-7 bg-gray-750 border-b border-gray-700 flex items-center justify-end px-2 text-xs text-gray-400">
-              Time
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 rounded"
+                style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
+                onClick={() => openTimelineEditor('chord')}
+              >
+                <Music2 className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Add Chord</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 rounded"
+                style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
+                onClick={() => openTimelineEditor('tempo')}
+              >
+                <Clock className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Add Tempo Change</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 rounded"
+                style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
+                onClick={() => openTimelineEditor('timesig')}
+              >
+                <Grid3x3 className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Add Time Signature</TooltipContent>
+          </Tooltip>
+
+          <Separator orientation="vertical" className="h-6" style={{ backgroundColor: '#3A3A3A' }} />
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 rounded"
+                style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
+                onClick={handleExportProject}
+              >
+                <Download className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Export Project</TooltipContent>
+          </Tooltip>
+
+          {song.source !== 'project' && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 rounded"
+                  style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
+                  onClick={() => setEditMode(false)}
+                >
+                  <Edit className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Done Editing</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+      )}
+
+      {/* Main Content Area - Flexible, takes remaining space */}
+      <div className="flex-1 flex overflow-hidden" onWheel={handleWheel}>
+        {/* Sidebar (Left) - Track List */}
+        {sidebarVisible && mixerVisible && (
+          <div className="w-64 border-r flex flex-col" style={{ backgroundColor: '#2B2B2B', borderColor: '#3A3A3A' }}>
+            {/* Timeline Labels */}
+            <div>
+              <div className="h-7 border-b flex items-center justify-end px-2 text-xs" style={{ backgroundColor: '#2B2B2B', borderColor: '#3A3A3A', color: '#9E9E9E' }}>
+                Time
+              </div>
+              <div className="h-7 border-b flex items-center justify-end px-2 text-xs" style={{ backgroundColor: '#2B2B2B', borderColor: '#3A3A3A', color: '#9E9E9E' }}>
+                {showBeats ? 'Beats' : 'Measures'}
+              </div>
+              {showTempoRuler && (
+                <div className="h-7 border-b flex items-center justify-end px-2 text-xs" style={{ backgroundColor: '#2B2B2B', borderColor: '#3A3A3A', color: '#9E9E9E' }}>
+                  Tempo/TS
+                </div>
+              )}
+              {showChordRuler && (
+                <div className="h-7 border-b flex items-center justify-end px-2 text-xs" style={{ backgroundColor: '#2B2B2B', borderColor: '#3A3A3A', color: '#9E9E9E' }}>
+                  Chords
+                </div>
+              )}
+              {showSectionRuler && (
+                <div className="h-8 border-b flex items-center justify-end px-2 text-xs" style={{ backgroundColor: '#2B2B2B', borderColor: '#3A3A3A', color: '#9E9E9E' }}>
+                  Sections
+                </div>
+              )}
             </div>
-            <div className="h-7 bg-gray-800 border-b border-gray-700 flex items-center justify-end px-2 text-xs text-gray-400">
-              {showBeats ? 'Beats' : 'Measures'}
-            </div>
-            <div className="h-7 bg-gray-750 border-b border-gray-700 flex items-center justify-end px-2 text-xs text-gray-400">
-              Tempo/TS
-            </div>
-            <div className="h-7 bg-gray-800 border-b border-gray-700 flex items-center justify-end px-2 text-xs text-gray-400">
-              Chords
-            </div>
-            <div className="h-8 bg-gray-750 border-b border-gray-700 flex items-center justify-end px-2 text-xs text-gray-400">
-              Sections
+
+            {/* Track Labels with Faders */}
+            <div
+              ref={trackLabelsScrollRef}
+              className="flex-1 overflow-y-hidden"
+              style={{ backgroundColor: '#2B2B2B', overflowY: 'hidden' }}
+            >
+              {tracks.map((track) => (
+                <div
+                  key={track.id}
+                  className={`${getTrackHeight()} border-b flex`}
+                  style={{ backgroundColor: hexToRgba(track.color || '#60a5fa', 0.2), borderColor: '#3A3A3A' }}
+                >
+                  <div
+                    className="w-1 flex-shrink-0"
+                    style={{ backgroundColor: track.color || '#60a5fa' }}
+                  />
+                  <div className="flex-1 p-2.5 flex flex-col justify-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {editMode ? (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="w-4 h-4 p-0 rounded border-2 border-gray-500 cursor-pointer flex-shrink-0"
+                              style={{ backgroundColor: track.color || '#60a5fa' }}
+                              aria-label={`Change color for track ${track.name}`}
+                            />
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-2 bg-gray-700 border-gray-600">
+                            <div className="grid grid-cols-4 gap-1">
+                              {PRESET_COLORS.map((color) => (
+                                <Button
+                                  key={color}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="w-6 h-6 p-0 rounded border border-gray-500 hover:opacity-80"
+                                  style={{ backgroundColor: color }}
+                                  onClick={() => handleTrackColorChange(track.id, color)}
+                                  aria-label={`Set color to ${color}`}
+                                />
+                              ))}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      ) : (
+                        <div
+                          className="w-4 h-4 rounded border-2 border-gray-500 flex-shrink-0"
+                          style={{ backgroundColor: track.color || '#60a5fa' }}
+                        />
+                      )}
+
+                      {editMode && editingTrackId === track.id ? (
+                        <input
+                          type="text"
+                          value={trackNameInput}
+                          onChange={(e) => setTrackNameInput(e.target.value)}
+                          onBlur={finishEditingTrackName}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') finishEditingTrackName();
+                            if (e.key === 'Escape') {
+                              setEditingTrackId(null);
+                              setTrackNameInput('');
+                            }
+                          }}
+                          autoFocus
+                          className="flex-1 bg-gray-700 text-white text-sm px-2 py-1 rounded border border-blue-500 outline-none min-w-0"
+                        />
+                      ) : (
+                        <div className="flex-1 flex items-center gap-1 min-w-0">
+                          <span className="text-sm truncate">{track.name}</span>
+                          {editMode && (
+                            <TrackTagSelector
+                              currentTag={track.tag}
+                              onTagChange={(tag) => handleTrackTagChange(track.id, tag)}
+                            />
+                          )}
+                        </div>
+                      )}
+
+                      {editMode && editingTrackId !== track.id && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 hover:bg-gray-700 flex-shrink-0"
+                            onClick={() => startEditingTrackName(track.id, track.name)}
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 hover:bg-gray-700 flex-shrink-0"
+                                onClick={() => handleToggleTrackPin(track.id)}
+                                style={{
+                                  color: pinnedTracks.has(track.id) ? '#FBBF24' : '#9E9E9E'
+                                }}
+                              >
+                                <Pin className={`w-3 h-3 ${pinnedTracks.has(track.id) ? 'fill-current' : ''}`} />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {pinnedTracks.has(track.id) ? 'Unpin track (exclude from presets)' : 'Pin track (exclude from presets)'}
+                            </TooltipContent>
+                          </Tooltip>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-9 flex-shrink-0"
+                        style={{
+                          backgroundColor: track.muted ? '#F87171' : '#404040',
+                          color: '#FFFFFF'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = track.muted ? '#EF4444' : '#5A5A5A'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = track.muted ? '#F87171' : '#404040'}
+                        onClick={() => handleTrackMuteToggle(track.id)}
+                      >
+                        M
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-9 flex-shrink-0"
+                        style={{
+                          backgroundColor: track.solo ? '#FBBF24' : '#404040',
+                          color: '#FFFFFF'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = track.solo ? '#F59E0B' : '#5A5A5A'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = track.solo ? '#FBBF24' : '#404040'}
+                        onClick={() => handleTrackSoloToggle(track.id)}
+                      >
+                        S
+                      </Button>
+                      <div className="flex-1 flex items-center gap-1 min-w-0">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs flex-shrink-0 hover:bg-gray-700"
+                              style={{ color: '#F1F1F1' }}
+                            >
+                              {formatDb(gainToDb(track.volume || 1.0))}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent className="w-48 p-3" style={{ backgroundColor: '#2B2B2B', borderColor: '#3A3A3A' }}>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="text"
+                                value={formatDb(gainToDb(track.volume || 1.0))}
+                                onChange={(e) => {
+                                  const parsed = parseDbInput(e.target.value);
+                                  if (parsed !== null && isFinite(parsed)) {
+                                    handleTrackVolumeChange(track.id, parsed);
+                                  }
+                                }}
+                                className="h-8 text-center bg-gray-700 text-white border-gray-600"
+                              />
+                              <span className="text-sm text-gray-400">dB</span>
+                            </div>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                        <Slider
+                          value={[gainToSlider(track.volume || 1.0)]}
+                          onValueChange={([value]) => handleTrackVolumeChange(track.id, sliderToGain(value))}
+                          max={100}
+                          step={0.1}
+                          className="flex-1 min-w-0"
+                          onDoubleClick={() => {
+                            handleTrackVolumeChange(track.id, 1.0);
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-          )}
+        )}
 
-          {/* Timeline Content */}
+        {/* Timeline and Tracks (Right) - with rulers and waveforms */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Timeline Rows */}
           <div
             ref={timelineScrollRef}
-            className="flex-1 overflow-x-auto overflow-y-hidden hide-scrollbar"
+            className="border-b overflow-x-auto overflow-y-hidden hide-scrollbar"
+            style={{ backgroundColor: '#171717', borderColor: '#3A3A3A' }}
             onScroll={handleTimelineScroll}
-            onMouseDown={handleWaveformMouseDown} // Mudado de handleTimelineClick para handleWaveformMouseDown
+            onMouseDown={handleWaveformMouseDown}
             onMouseMove={handleWaveformMouseMove}
             onMouseUp={handleWaveformMouseUp}
             onMouseLeave={handleWaveformMouseUp}
-            onWheel={handleWheel}
           >
             <div style={{ width: timelineWidth }} className="relative">
               {/* Time Row */}
-              <div className="h-7 bg-gray-750 border-b border-gray-700 relative">
+              <div className="h-7 border-b relative" style={{ backgroundColor: '#171717', borderColor: '#3A3A3A' }}>
                 {timeMarkers.map((time) => {
                   const position = (time / song.duration) * timelineWidth;
                   return (
                     <div
                       key={time}
-                      className="absolute top-0 bottom-0 border-l border-gray-600"
-                      style={{ left: position }}
+                      className="absolute top-0 bottom-0 border-l"
+                      style={{ left: position, borderColor: '#3A3A3A' }}
                     >
-                      <span className="absolute top-0.5 left-1 text-xs text-gray-500">
+                      <span className="absolute top-0.5 left-1 text-xs" style={{ color: '#9E9E9E' }}>
                         {formatTime(time)}
                       </span>
                     </div>
@@ -1394,7 +1996,7 @@ const handleUpdateOrDeleteTimelineItem = (
               </div>
 
               {/* Measure Bars Row */}
-              <div className="h-7 bg-gray-800 border-b border-gray-700 relative">
+              <div className="h-7 border-b relative" style={{ backgroundColor: '#171717', borderColor: '#3A3A3A' }}>
                 {measureBars.map((bar, i) => {
                   const position = (bar.time / song.duration) * timelineWidth;
                   // Skip rendering if no label to show (unless it's a beat marker)
@@ -1403,16 +2005,16 @@ const handleUpdateOrDeleteTimelineItem = (
                   return (
                     <div
                       key={i}
-                      className={`absolute top-0 bottom-0 border-l ${bar.isBeat ? 'border-gray-700' : 'border-gray-600'}`}
-                      style={{ left: position }}
+                      className="absolute top-0 bottom-0 border-l"
+                      style={{ left: position, borderColor: bar.isBeat ? '#2B2B2B' : '#3A3A3A' }}
                     >
                       {bar.measure && (
-                        <span className="absolute top-0.5 left-1 text-xs text-gray-500">
+                        <span className="absolute top-0.5 left-1 text-xs" style={{ color: '#9E9E9E' }}>
                           {bar.measure}
                         </span>
                       )}
                       {showBeats && bar.isBeat && (
-                        <span className="absolute top-0.5 left-1 text-xs text-gray-600">
+                        <span className="absolute top-0.5 left-1 text-xs" style={{ color: '#9E9E9E' }}>
                           {bar.beat}
                         </span>
                       )}
@@ -1422,28 +2024,31 @@ const handleUpdateOrDeleteTimelineItem = (
               </div>
 
               {/* Tempo/Time Signature Row */}
-              <div className="h-7 bg-gray-750 border-b border-gray-700 relative">
-                {tempoChanges.map((change, i) => {
-                  const position = (change.time / song.duration) * timelineWidth;
-                  return (
-                    <div
-                      key={i}
-                      className="absolute top-0 bottom-0"
-                      style={{ left: position }}
-                    >
-                      <Badge
-                        variant="secondary"
-                        className="absolute top-0.5 left-0 text-xs bg-purple-600 text-white"
+              {showTempoRuler && (
+                <div className="h-7 border-b relative" style={{ backgroundColor: '#171717', borderColor: '#3A3A3A' }}>
+                  {tempoChanges.map((change, i) => {
+                    const position = (change.time / song.duration) * timelineWidth;
+                    return (
+                      <div
+                        key={i}
+                        className="absolute top-0 bottom-0"
+                        style={{ left: position }}
                       >
-                        {change.tempo} BPM · {change.timeSignature}
-                      </Badge>
-                    </div>
-                  );
-                })}
-              </div>
+                        <Badge
+                          variant="secondary"
+                          className="absolute top-0.5 left-0 text-xs bg-purple-600 text-white"
+                        >
+                          {change.tempo} BPM · {change.timeSignature}
+                        </Badge>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
 
               {/* Chords Row */}
-              <div className="h-7 bg-gray-800 border-b border-gray-700 relative">
+              {showChordRuler && (
+                <div className="h-7 border-b relative" style={{ backgroundColor: '#171717', borderColor: '#3A3A3A' }}>
                 {chordProgression.map((chord, i) => {
                   const position = (chord.time / song.duration) * timelineWidth;
                   return (
@@ -1476,10 +2081,12 @@ const handleUpdateOrDeleteTimelineItem = (
                     </div>
                   );
                 })}
-              </div>
+                </div>
+              )}
 
               {/* Sections Row */}
-              <div className="h-8 bg-gray-750 border-b border-gray-700 relative">
+              {showSectionRuler && (
+                <div className="h-8 border-b relative" style={{ backgroundColor: '#171717', borderColor: '#3A3A3A' }}>
                 {song.markers.map((marker, i) => {
                   const position = (marker.time / song.duration) * timelineWidth;
                   const nextMarker = song.markers[i + 1];
@@ -1518,7 +2125,8 @@ const handleUpdateOrDeleteTimelineItem = (
                     </div>
                   );
                 })}
-              </div>
+                </div>
+              )}
 
               {/* Loop region highlight in timeline */}
               {loopStart !== null && loopEnd !== null && (
@@ -1550,166 +2158,25 @@ const handleUpdateOrDeleteTimelineItem = (
               </div>
             </div>
           </div>
-        </div>
 
-
-        {/* Tracks */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Track Labels */}
-          {sidebarVisible && (
-          <div
-            ref={trackLabelsScrollRef}
-            className="w-64 bg-gray-800 border-r border-gray-700 overflow-y-hidden"
-            style={{ overflowY: 'hidden' }} // Certifica que apenas a área de tracks tem scroll vertical
-          >
-            {tracks.map((track) => (
-              <div
-                key={track.id}
-                className="h-24 border-b border-gray-700 flex"
-                style={{ backgroundColor: hexToRgba(track.color || '#60a5fa', 0.3) }}
-              >
-                {/* Color indicator (sem alteração) */}
-                <div
-                  className="w-1 flex-shrink-0"
-                  style={{ backgroundColor: track.color || '#60a5fa' }}
-                />
-                <div className="flex-1 p-2.5 flex flex-col justify-center gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-
-                  {/* **** INÍCIO DA ALTERAÇÃO DO SELETOR DE COR **** */}
-                   {editMode ? (
-                     <Popover>
-                       <PopoverTrigger asChild>
-                         <Button
-                           variant="ghost"
-                           size="sm"
-                           className="w-4 h-4 p-0 rounded border-2 border-gray-500 cursor-pointer flex-shrink-0"
-                           style={{ backgroundColor: track.color || '#60a5fa' }}
-                           aria-label={`Change color for track ${track.name}`}
-                         />
-                       </PopoverTrigger>
-                       <PopoverContent className="w-auto p-2 bg-gray-700 border-gray-600">
-                         <div className="grid grid-cols-4 gap-1">
-                           {PRESET_COLORS.map((color) => (
-                             <Button
-                               key={color}
-                               variant="ghost"
-                               size="sm"
-                               className="w-6 h-6 p-0 rounded border border-gray-500 hover:opacity-80"
-                               style={{ backgroundColor: color }}
-                               onClick={() => handleTrackColorChange(track.id, color)}
-                               aria-label={`Set color to ${color}`}
-                             />
-                           ))}
-                         </div>
-                       </PopoverContent>
-                     </Popover>
-                   ) : (
-                      // Mantém o indicador visual simples quando não está editando
-                     <div
-                       className="w-4 h-4 rounded border-2 border-gray-500 flex-shrink-0"
-                       style={{ backgroundColor: track.color || '#60a5fa' }}
-                     />
-                   )}
-                  {/* **** FIM DA ALTERAÇÃO DO SELETOR DE COR **** */}
-
-                  {/* Input/Texto do nome da Track */}
-                  {editMode && editingTrackId === track.id ? (
-                    <input
-                      type="text"
-                      value={trackNameInput}
-                      onChange={(e) => setTrackNameInput(e.target.value)}
-                      onBlur={finishEditingTrackName}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') finishEditingTrackName();
-                        if (e.key === 'Escape') {
-                          setEditingTrackId(null);
-                          setTrackNameInput('');
-                        }
-                      }}
-                      autoFocus
-                      className="flex-1 bg-gray-700 text-white text-sm px-2 py-1 rounded border border-blue-500 outline-none min-w-0"
-                    />
-                  ) : (
-                    <span className="text-sm truncate flex-1 min-w-0">{track.name}</span>
-                  )}
-                  {/* Botão de editar nome */}
-                   {editMode && editingTrackId !== track.id && (
-                     <Button
-                       variant="ghost"
-                       size="sm"
-                       className="h-6 w-6 p-0 hover:bg-gray-700 flex-shrink-0"
-                       onClick={() => startEditingTrackName(track.id, track.name)}
-                     >
-                       <Pencil className="w-3 h-3" />
-                     </Button>
-                   )}
-                </div>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`h-7 px-2.5 flex-shrink-0 ${
-                        track.muted ? 'bg-red-600 hover:bg-red-700 text-white' : 'hover:bg-gray-700 text-gray-300'
-                      }`}
-                      style={track.muted
-                        ? { boxShadow: `0 0 0 2px ${track.color || '#60a5fa'}` }
-                        : { border: `2px solid ${track.color || '#60a5fa'}` }
-                      }
-                      onClick={() => handleTrackMuteToggle(track.id)}
-                    >
-                      M
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={`h-7 px-2.5 flex-shrink-0 ${
-                        track.solo ? 'bg-yellow-600 hover:bg-yellow-700 text-white' : 'hover:bg-gray-700 text-gray-300'
-                      }`}
-                      style={track.solo
-                        ? { boxShadow: `0 0 0 2px ${track.color || '#60a5fa'}` }
-                        : { border: `2px solid ${track.color || '#60a5fa'}` }
-                      }
-                      onClick={() => handleTrackSoloToggle(track.id)}
-                    >
-                      S
-                    </Button>
-                    <Slider
-                      value={[gainToSlider(track.volume)]}
-                      max={100}
-                      step={0.1}
-                      className="w-18 flex-shrink-0" // Corrigido w-18 (não existe, talvez w-16 ou w-20?) -> mantido w-18 por enquanto
-                      onValueChange={(v) => {
-                        handleTrackVolumeChange(track.id, sliderToGain(v[0]));
-                      }}
-                      onDoubleClick={() => {
-                        handleTrackVolumeChange(track.id, 1.0); // Reset to 0dB (unity gain)
-                      }}
-                    />
-                    <span className="text-xs text-gray-400 w-12 text-right flex-shrink-0">{formatDb(gainToDb(track.volume))} dB</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          )}
-
+          {/* Tracks Waveforms Container */}
+          <div className="flex-1 flex overflow-hidden">
           {/* Track Waveforms */}
           <div
             ref={tracksScrollRef}
-            className="flex-1 overflow-x-auto overflow-y-auto hide-scrollbar"
+            className="flex-1 hide-scrollbar"
+            style={{ overflowY: 'auto', overflowX: 'hidden' }}
             onScroll={handleTracksScroll}
             onMouseDown={handleWaveformMouseDown}
             onMouseMove={handleWaveformMouseMove}
             onMouseUp={handleWaveformMouseUp}
             onMouseLeave={handleWaveformMouseUp}
-            onWheel={handleWheel}
           >
-            <div style={{ width: timelineWidth, minHeight: '100%' }} className="relative">
+            <div style={{ width: timelineWidth, minHeight: '100%', transition: 'transform 0s' }} className="relative tracks-content">
               {tracks.map((track, index) => (
                 <div
                   key={track.id}
-                  className="h-24 border-b border-gray-700 relative bg-gray-850"
+                  className={`${getTrackHeight()} border-b border-gray-700 relative bg-gray-850`}
                 >
                   {/* Track Name Stripe (when sidebar hidden) */}
                   {!sidebarVisible && (
@@ -1724,7 +2191,7 @@ const handleUpdateOrDeleteTimelineItem = (
                   {/* Waveform */}
                   <svg className="w-full h-full" preserveAspectRatio="none">
                     <path
-                      d={generateWaveformPath(track.waveformData, timelineWidth, 96)}
+                      d={generateWaveformPath(track.waveformData, timelineWidth, getTrackHeightPx())}
                       fill={
                         isAnySolo
                           ? track.solo
@@ -1772,7 +2239,7 @@ const handleUpdateOrDeleteTimelineItem = (
                   className="absolute top-0 w-1 bg-yellow-500 pointer-events-none z-10"
                   style={{
                     left: (loopStart / song.duration) * timelineWidth,
-                    height: tracks.length * 96 // Ajustado para 96 (h-24)
+                    height: tracks.length * getTrackHeightPx()
                   }}
                 />
               )}
@@ -1783,7 +2250,7 @@ const handleUpdateOrDeleteTimelineItem = (
                   className="absolute top-0 w-1 bg-yellow-500 pointer-events-none z-10"
                   style={{
                     left: (loopEnd / song.duration) * timelineWidth,
-                    height: tracks.length * 96 // Ajustado para 96 (h-24)
+                    height: tracks.length * getTrackHeightPx()
                   }}
                 />
               )}
@@ -1798,95 +2265,281 @@ const handleUpdateOrDeleteTimelineItem = (
             </div>
           </div>
 
-
           {/* Vertical Scrollbar */}
-          <div className="w-5 bg-gray-800 border-l border-gray-700 flex flex-col">
-            <div className="flex-1 px-1 py-3">
+          <div className="w-4 border-l flex flex-col" style={{ backgroundColor: '#2B2B2B', borderColor: '#3A3A3A' }}>
+            <div className="flex-1 py-3 px-1">
               <div
                 ref={verticalScrollbarRef}
-                className="relative w-full h-full bg-gray-700 rounded cursor-pointer"
+                className="relative w-full h-full rounded cursor-pointer"
+                style={{ backgroundColor: '#171717' }}
                 onMouseDown={handleVerticalScrollbarMouseDown}
               >
                 {/* Scrollbar Thumb */}
                 <div
-                  className="absolute left-0 w-full bg-blue-600 rounded hover:bg-blue-500"
+                  className="absolute left-0 w-full rounded"
                   style={{
+                    backgroundColor: '#5A5A5A',
                     top: `${getVerticalScrollPercentage() * (100 - getVerticalVisiblePercentage() * 100)}%`,
                     height: `${getVerticalVisiblePercentage() * 100}%`,
+                    minHeight: '20px'
                   }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7A7A7A'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
                 />
               </div>
             </div>
           </div>
+          </div>
+
+
         </div>
       </div>
 
+      {/* Mixer Dock (Bottom) */}
+      {mixerDockVisible && (
+        <MixerDock
+          tracks={tracks}
+          onTrackVolumeChange={handleTrackVolumeChange}
+          onTrackMuteToggle={handleTrackMuteToggle}
+          onTrackSoloToggle={handleTrackSoloToggle}
+          onClose={() => setMixerDockVisible(false)}
+        />
+      )}
 
-      {/* Custom Scrollbar with Zoom Controls */}
-      <div className="bg-gray-800 border-t border-gray-700 flex items-center h-5">
+      {/* Bottom Bar (Zoom + Scrollbar) */}
+      <div className="border-t flex items-center h-8" style={{ backgroundColor: '#2B2B2B', borderColor: '#3A3A3A' }}>
         {/* Zoom Controls - Aligned with sidebar */}
-        <div className={`${sidebarVisible ? 'w-64 border-r' : 'w-auto'} border-gray-700 flex items-center justify-center gap-2 px-3`}>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0 text-white hover:bg-gray-700"
-            onClick={handleZoomOutOnPlayhead} // Alterado
-            disabled={zoom <= 1}
-          >
-            <ZoomOut className="w-3.5 h-3.5" />
-          </Button>
-          <span className="text-xs text-gray-400 w-14 text-center tabular-nums">
+        <div 
+          className={`${sidebarVisible && mixerVisible ? 'w-64' : 'w-auto'} border-r flex items-center justify-center gap-2 px-3`}
+          style={{ borderColor: '#3A3A3A' }}
+        >
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded"
+                style={{ 
+                  backgroundColor: '#404040',
+                  color: '#F1F1F1',
+                  opacity: zoom <= 1 ? 0.5 : 1
+                }}
+                onMouseEnter={(e) => zoom > 1 && (e.currentTarget.style.backgroundColor = '#5A5A5A')}
+                onMouseLeave={(e) => zoom > 1 && (e.currentTarget.style.backgroundColor = '#404040')}
+                onClick={handleZoomOutOnPlayhead}
+                disabled={zoom <= 1}
+              >
+                <ZoomOut className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Zoom Out</TooltipContent>
+          </Tooltip>
+          <span className="text-xs tabular-nums w-14 text-center" style={{ color: '#9E9E9E' }}>
             {Math.round(zoom * 100)}%
           </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0 text-white hover:bg-gray-700"
-            onClick={handleZoomInOnPlayhead} // Alterado
-            disabled={zoom >= 8}
-          >
-            <ZoomIn className="w-3.5 h-3.5" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded"
+                style={{ 
+                  backgroundColor: '#404040',
+                  color: '#F1F1F1',
+                  opacity: zoom >= 8 ? 0.5 : 1
+                }}
+                onMouseEnter={(e) => zoom < 8 && (e.currentTarget.style.backgroundColor = '#5A5A5A')}
+                onMouseLeave={(e) => zoom < 8 && (e.currentTarget.style.backgroundColor = '#404040')}
+                onClick={handleZoomInOnPlayhead}
+                disabled={zoom >= 8}
+              >
+                <ZoomIn className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Zoom In</TooltipContent>
+          </Tooltip>
         </div>
 
-
-        {/* Custom Scrollbar */}
+        {/* Custom Horizontal Scrollbar */}
         <div className="flex-1 px-3 py-1">
           <div
             ref={scrollbarRef}
-            className="relative h-3 bg-gray-700 rounded cursor-pointer"
+            className="relative h-4 rounded cursor-pointer"
+            style={{ backgroundColor: '#171717' }}
             onMouseDown={handleScrollbarMouseDown}
           >
             {/* Scrollbar Thumb with Handles */}
             <div
-              className="absolute top-0 h-full bg-blue-600 rounded flex items-center justify-between"
+              className="absolute top-0 h-full rounded flex items-center justify-between"
               style={{
+                backgroundColor: '#5A5A5A',
                 left: `${getScrollPercentage() * (100 - getVisiblePercentage() * 100)}%`,
                 width: `${getVisiblePercentage() * 100}%`,
-                minWidth: '20px' // Garante largura mínima para as alças
+                minWidth: '20px'
               }}
             >
               {/* Left Handle */}
               <div
-                className="w-2.5 h-full bg-blue-400 hover:bg-blue-300 cursor-ew-resize rounded-l flex items-center justify-center"
+                className="w-2.5 h-full rounded-l flex items-center justify-center cursor-ew-resize"
+                style={{ backgroundColor: '#7A7A7A' }}
                 onMouseDown={handleLeftHandleMouseDown}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#9A9A9A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#7A7A7A'}
               >
-                <div className="w-0.5 h-1.5 bg-white rounded" />
+                <div className="w-0.5 h-2 rounded" style={{ backgroundColor: '#F1F1F1' }} />
               </div>
 
               {/* Right Handle */}
               <div
-                className="w-2.5 h-full bg-blue-400 hover:bg-blue-300 cursor-ew-resize rounded-r flex items-center justify-center"
+                className="w-2.5 h-full rounded-r flex items-center justify-center cursor-ew-resize"
+                style={{ backgroundColor: '#7A7A7A' }}
                 onMouseDown={handleRightHandleMouseDown}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#9A9A9A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#7A7A7A'}
               >
-                <div className="w-0.5 h-1.5 bg-white rounded" />
+                <div className="w-0.5 h-2 rounded" style={{ backgroundColor: '#F1F1F1' }} />
               </div>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Bottom Toolbar (UI Controls) - Fixed at bottom */}
+      <div className="border-t flex items-center justify-between h-10 px-3" style={{ backgroundColor: '#2B2B2B', borderColor: '#3A3A3A' }}>
+        {/* Left: Sidebar Toggle + View Settings */}
+        <div className="flex items-center gap-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded"
+                style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
+                onClick={() => setSidebarVisible(!sidebarVisible)}
+              >
+                {sidebarVisible ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{sidebarVisible ? 'Hide Sidebar' : 'Show Sidebar'}</TooltipContent>
+          </Tooltip>
 
+          <DropdownMenu>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuTrigger asChild>
+                  <div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded"
+                      style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
+                    >
+                      <Settings className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent>View Configuration</TooltipContent>
+            </Tooltip>
+            <DropdownMenuContent align="start" className="w-56" style={{ backgroundColor: '#2B2B2B', borderColor: '#3A3A3A' }}>
+              <div className="p-2 space-y-2">
+                <div className="text-sm px-2 py-1" style={{ color: '#9E9E9E' }}>View Settings</div>
+                <div className="text-xs px-2 py-1" style={{ color: '#7A7A7A' }}>
+                  Track height, ruler options, and display preferences
+                </div>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Center: Mix Presets, Mixer Dock */}
+        <div className="flex items-center gap-1">
+          <Popover open={mixPresetsPopoverOpen} onOpenChange={setMixPresetsPopoverOpen}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded"
+                      style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
+                    >
+                      <Save className="w-4 h-4" />
+                    </Button>
+                  </PopoverTrigger>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Mix Presets</TooltipContent>
+            </Tooltip>
+            <PopoverContent 
+              align="center" 
+              className="w-72" 
+              style={{ backgroundColor: '#2B2B2B', borderColor: '#3A3A3A' }}
+            >
+              <div className="space-y-3">
+                <div className="text-sm" style={{ color: '#F1F1F1' }}>Mix Presets</div>
+                <MixPresetsManager
+                  tracks={tracks}
+                  presets={mixPresets}
+                  onSavePreset={handleSaveMixPreset}
+                  onLoadPreset={handleLoadMixPreset}
+                  onDeletePreset={handleDeleteMixPreset}
+                />
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded"
+                style={{
+                  backgroundColor: mixerDockVisible ? '#3B82F6' : '#404040',
+                  color: '#F1F1F1'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = mixerDockVisible ? '#3B82F6' : '#5A5A5A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = mixerDockVisible ? '#3B82F6' : '#404040'}
+                onClick={() => setMixerDockVisible(!mixerDockVisible)}
+              >
+                <Sliders className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{mixerDockVisible ? 'Hide Mixer Dock' : 'Show Mixer Dock'}</TooltipContent>
+          </Tooltip>
+        </div>
+
+        {/* Right: Performance Mode */}
+        <div className="flex items-center">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded"
+                style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
+                onClick={onPerformanceMode}
+              >
+                <Maximize2 className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Performance Mode</TooltipContent>
+          </Tooltip>
+        </div>
+      </div>
+
+
+      {/* Dialogs */}
       <CreateProjectDialog
         open={createProjectOpen}
         onOpenChange={setCreateProjectOpen}
@@ -1898,13 +2551,12 @@ const handleUpdateOrDeleteTimelineItem = (
         onOpenChange={(isOpen) => {
             setTimelineEditorOpen(isOpen);
             if (!isOpen) {
-                setEditingChordMarker(null); // Limpa ao fechar
+                setEditingChordMarker(null);
             }
         }}
         type={editorType}
-        currentTime={editingChordMarker ? editingChordMarker.time : currentTime} // Usa tempo do acorde se editando
-        initialData={editingChordMarker} // Passa o acorde para edição
-        // Renomeia onAdd para onSubmit e passa a nova função
+        currentTime={editingChordMarker ? editingChordMarker.time : currentTime}
+        initialData={editingChordMarker}
         onSubmit={(action, data) => handleUpdateOrDeleteTimelineItem(action, data, editingChordMarker || undefined)}
       />
 
@@ -1916,7 +2568,13 @@ const handleUpdateOrDeleteTimelineItem = (
           customDiagram={selectedChord.customDiagram}
         />
       )}
-    </div>
+
+      <KeyboardShortcutsHelp
+        isOpen={showShortcutsHelp}
+        onClose={() => setShowShortcutsHelp(false)}
+      />
+      </div>
+    </TooltipProvider>
   );
 }
 

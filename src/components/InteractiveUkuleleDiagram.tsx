@@ -1,5 +1,8 @@
 import React from 'react';
+import { Play } from 'lucide-react';
 import { useLanguage } from '../lib/LanguageContext';
+import { playUkuleleChord } from '../lib/chordPlayback';
+import { Button } from './ui/button';
 
 interface InteractiveUkuleleDiagramProps {
   frets: number[];
@@ -38,11 +41,26 @@ export function InteractiveUkuleleDiagram({ frets, fingers, startFret = 1, onCha
     onChange(newFrets, newFingers);
   };
 
+  const handlePlayChord = () => {
+    playUkuleleChord(frets);
+  };
+
   return (
     <div className="flex flex-col items-center space-y-4">
-      <p className="text-sm text-gray-600">
-        {t.clickFretsToPlace}
-      </p>
+      <div className="flex items-center gap-3">
+        <p className="text-sm text-gray-600">
+          {t.clickFretsToPlace}
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handlePlayChord}
+          className="gap-2"
+        >
+          <Play className="w-4 h-4" />
+          Play
+        </Button>
+      </div>
       
       <svg width="200" height="320" viewBox="0 0 200 320" className="border rounded-lg bg-white">
         {/* Fretboard horizontal lines */}

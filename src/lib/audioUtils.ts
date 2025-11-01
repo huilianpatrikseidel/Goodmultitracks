@@ -20,7 +20,7 @@ const MAX_DB = 6; // +6dB headroom
  * 1.12 = +6 dB (max headroom, calculated as 10^(6/20))
  */
 export function gainToDb(gain: number): number {
-  if (gain <= 0) return -Infinity;
+  if (isNaN(gain) || !isFinite(gain) || gain <= 0) return -Infinity;
   return 20 * Math.log10(gain);
 }
 
@@ -66,6 +66,7 @@ export function dbToSlider(db: number): number {
  * Convert slider percentage to gain (what we store)
  */
 export function sliderToGain(sliderValue: number): number {
+  if (isNaN(sliderValue) || !isFinite(sliderValue)) return 1.0; // Return unity gain if invalid
   const db = sliderToDb(sliderValue);
   return dbToGain(db);
 }
@@ -74,6 +75,7 @@ export function sliderToGain(sliderValue: number): number {
  * Convert gain (what we store) to slider percentage
  */
 export function gainToSlider(gain: number): number {
+  if (isNaN(gain) || !isFinite(gain)) return dbToSlider(0); // Return 0dB slider position if invalid
   const db = gainToDb(gain);
   return dbToSlider(db);
 }

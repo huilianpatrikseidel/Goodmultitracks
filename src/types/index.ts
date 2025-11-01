@@ -1,3 +1,23 @@
+// Track tag system
+export type TrackTag =
+  | 'acoustic-guitar'
+  | 'bass'
+  | 'electric-guitar'
+  | 'keyboard-piano'
+  | 'percussion'
+  | 'cajon'
+  | 'drums'
+  | 'vocals-general'
+  | 'lead-vocal'
+  | 'backing-vocals'
+  | 'other-elements';
+
+export const TRACK_TAG_HIERARCHY = {
+  percussion: ['drums', 'cajon', 'percussion'],
+  harmony: ['bass', 'acoustic-guitar', 'electric-guitar', 'keyboard-piano'],
+  vocals: ['vocals-general', 'lead-vocal', 'backing-vocals'],
+} as const;
+
 export interface AudioTrack {
   id: string;
   name: string;
@@ -8,6 +28,8 @@ export interface AudioTrack {
   waveformData: number[];
   output?: number; // Audio output routing
   color?: string; // Track color for visual identification
+  tag?: TrackTag; // Mandatory tag for categorization
+  notes?: string; // Track-specific notes
 }
 
 export interface SectionMarker {
@@ -40,6 +62,14 @@ export interface TempoChange {
   time: number;
   tempo: number;
   timeSignature: string;
+  hidden?: boolean; // Hide from player view (only show in edit mode)
+  subdivision?: string; // For irregular time signatures (e.g., "2+3" for 5/8)
+  curve?: {
+    // For gradual tempo changes (rallentando)
+    type: 'linear' | 'exponential';
+    targetTempo: number;
+    targetTime: number;
+  };
 }
 
 // TimeSignatureChange não é mais explicitamente necessário se incluído em TempoChange
@@ -116,6 +146,7 @@ export interface Setlist {
   // sharedWith: string[]; // << REMOVIDO
   eventDate?: Date;
   notes?: string; // Notas gerais da setlist
+  pinned?: boolean; // Pin setlist to top
 }
 
 export interface User {
@@ -127,6 +158,23 @@ export interface User {
     defaultOutput?: number;
     midiDeviceId?: string;
     performanceMode?: boolean;
+    selectedInstruments?: TrackTag[]; // From first time setup
+    mainInstrument?: TrackTag; // Main instrument for track pinning
+    theme?: 'light' | 'dark' | 'system'; // Theme preference
+    metronomeSettings?: {
+      downbeatFreq?: number; // Hz for downbeat
+      beatFreq?: number; // Hz for other beats
+      subdivisionFreq?: number; // Hz for subdivisions
+      markSubdivisions?: boolean; // Show subdivisions
+    };
+    playerSettings?: {
+      trackHeight?: 'small' | 'medium' | 'large';
+      showTempoRuler?: boolean;
+      showChordRuler?: boolean;
+      showSectionRuler?: boolean;
+      showTimeSignatureRuler?: boolean;
+      rulerOrder?: string[]; // Order of rulers
+    };
   };
 }
 
