@@ -20,7 +20,7 @@ import {
   PopoverTrigger,
 } from './ui/popover';
 import { Label } from './ui/label';
-import { playMetronomeClick } from '../lib/metronome';
+import { playMetronomeClick, getMainBeats, parseSubdivision, getSubdivisionInfo } from '../lib/metronome';
 
 interface PerformanceModeProps {
   song: Song;
@@ -40,8 +40,12 @@ export function PerformanceMode({ song, onClose }: PerformanceModeProps) {
   const [loopStart, setLoopStart] = useState<number | null>(null);
   const [loopEnd, setLoopEnd] = useState<number | null>(null);
   const lastBeatRef = useRef<number>(0);
+  const [currentBeatInMeasure, setCurrentBeatInMeasure] = useState(1);
+  const [beatsPerMeasure, setBeatsPerMeasure] = useState(4);
+  const [showSubdivisions, setShowSubdivisions] = useState(false);
+  const [subdivisionPattern, setSubdivisionPattern] = useState<string | undefined>(undefined);
 
-  // Simulate playback with metronome
+  // Simulate playback with advanced metronome
   useEffect(() => {
     if (!isPlaying) return;
 
@@ -49,16 +53,41 @@ export function PerformanceMode({ song, onClose }: PerformanceModeProps) {
       setCurrentTime((prev) => {
         const newTime = prev + 0.1;
         
-        // Handle metronome clicks
+        // Advanced metronome logic with compound and irregular time support
         if (metronomeEnabled) {
-          const beatDuration = 60 / currentBPM;
+          const tempoInfo = getCurrentTempoInfo(newTime);
+          const beatDuration = 60 / tempoInfo.tempo;
           const currentBeat = Math.floor(newTime / beatDuration);
 
           if (currentBeat > lastBeatRef.current) {
-            const [beatsPerMeasure] = currentTimeSignature.split('/').map(Number);
-            const beatInMeasure = (currentBeat % beatsPerMeasure) + 1;
-            const isStrongBeat = beatInMeasure === 1;
+            const timeSignature = tempoInfo.timeSignature;
+            const subdivision = tempoInfo.subdivision;
             
+            // Update subdivision pattern for visualization
+            setSubdivisionPattern(subdivision);
+            
+            // Calculate beats per measure (considering compound time and subdivisions)
+            const mainBeats = getMainBeats(timeSignature, subdivision);
+            setBeatsPerMeasure(mainBeats);
+            
+            let isStrongBeat = false;
+            let beatNum = 1;
+            
+            if (subdivision) {
+              // Irregular time signature with subdivision pattern (e.g., "2+3" for 5/8)
+              const groups = parseSubdivision(subdivision);
+              const totalSubdivisions = groups.reduce((a, b) => a + b, 0);
+              const beatInCycle = (currentBeat % totalSubdivisions) + 1;
+              const subdivInfo = getSubdivisionInfo(beatInCycle, subdivision);
+              isStrongBeat = subdivInfo.isGroupStart;
+              beatNum = subdivInfo.groupIndex + 1;
+            } else {
+              // Standard or compound time signature
+              beatNum = (currentBeat % mainBeats) + 1;
+              isStrongBeat = beatNum === 1;
+            }
+            
+            setCurrentBeatInMeasure(beatNum);
             playMetronomeClick(isStrongBeat, metronomeVolume);
             lastBeatRef.current = currentBeat;
           }
@@ -80,7 +109,7 @@ export function PerformanceMode({ song, onClose }: PerformanceModeProps) {
     }, 100);
 
     return () => clearInterval(interval);
-  }, [isPlaying, song.duration, metronomeEnabled, metronomeVolume, currentBPM, currentTimeSignature, loopStart, loopEnd]);
+  }, [isPlaying, song.duration, metronomeEnabled, metronomeVolume, loopStart, loopEnd]);
 
   // Spacebar to play/pause
   useEffect(() => {
@@ -121,24 +150,56 @@ export function PerformanceMode({ song, onClose }: PerformanceModeProps) {
     setCurrentChord(current?.chord || '');
   }, [currentTime, song.chordMarkers]);
 
-  // Update current BPM and Time Signature
-  useEffect(() => {
+  // Get current tempo info (with support for tempo curves)
+  const getCurrentTempoInfo = (time: number) => {
     if (!song.tempoChanges || song.tempoChanges.length === 0) {
-      setCurrentBPM(song.tempo);
-      setCurrentTimeSignature('4/4');
-      return;
+      return {
+        tempo: song.tempo,
+        timeSignature: '4/4',
+        subdivision: undefined
+      };
     }
 
     const sortedTempoChanges = [...song.tempoChanges].sort((a, b) => a.time - b.time);
-    const current = sortedTempoChanges.reverse().find((t) => t.time <= currentTime);
+    let current = sortedTempoChanges[0];
     
-    if (current) {
-      setCurrentBPM(current.tempo);
-      setCurrentTimeSignature(current.timeSignature);
-    } else {
-      setCurrentBPM(song.tempo);
-      setCurrentTimeSignature('4/4');
+    for (const tc of sortedTempoChanges) {
+      if (tc.time <= time) {
+        current = tc;
+      } else {
+        break;
+      }
     }
+    
+    let tempo = current.tempo;
+    
+    // Check for tempo curve interpolation
+    if (current.curve && time >= current.time && time <= current.curve.targetTime) {
+      const startTempo = current.tempo;
+      const endTempo = current.curve.targetTempo;
+      const duration = current.curve.targetTime - current.time;
+      const progress = (time - current.time) / duration;
+      
+      if (current.curve.type === 'linear') {
+        tempo = startTempo + (endTempo - startTempo) * progress;
+      } else if (current.curve.type === 'exponential') {
+        const easedProgress = 1 - Math.pow(1 - progress, 2);
+        tempo = startTempo + (endTempo - startTempo) * easedProgress;
+      }
+    }
+    
+    return {
+      tempo,
+      timeSignature: current.timeSignature,
+      subdivision: current.subdivision
+    };
+  };
+
+  // Update current BPM and Time Signature
+  useEffect(() => {
+    const tempoInfo = getCurrentTempoInfo(currentTime);
+    setCurrentBPM(tempoInfo.tempo);
+    setCurrentTimeSignature(tempoInfo.timeSignature);
   }, [currentTime, song.tempoChanges, song.tempo]);
 
   const formatTime = (seconds: number) => {
@@ -224,7 +285,7 @@ export function PerformanceMode({ song, onClose }: PerformanceModeProps) {
         <div className="flex items-center gap-6 mb-8">
           <div className="text-center">
             <div className="text-gray-400 text-sm mb-1">BPM</div>
-            <div className="text-3xl">{currentBPM}</div>
+            <div className="text-3xl">{Math.round(currentBPM)}</div>
           </div>
           <div className="text-gray-600 text-4xl">|</div>
           <div className="text-center">
@@ -232,6 +293,40 @@ export function PerformanceMode({ song, onClose }: PerformanceModeProps) {
             <div className="text-3xl">{currentTimeSignature}</div>
           </div>
         </div>
+
+        {/* Metronome Beat Visualization */}
+        {metronomeEnabled && isPlaying && (
+          <div className="flex flex-col items-center gap-2 mb-8">
+            {/* Main beats */}
+            <div className="flex items-center gap-3">
+              {Array.from({ length: beatsPerMeasure }).map((_, index) => {
+                const beatNumber = index + 1;
+                const isActive = beatNumber === currentBeatInMeasure;
+                const isFirstBeat = beatNumber === 1;
+                
+                return (
+                  <div
+                    key={index}
+                    className={`w-4 h-4 rounded-full transition-all duration-100 ${
+                      isActive
+                        ? isFirstBeat
+                          ? 'bg-blue-500 scale-150 shadow-lg shadow-blue-500/50'
+                          : 'bg-gray-400 scale-125 shadow-md shadow-gray-400/50'
+                        : 'bg-gray-700'
+                    }`}
+                  />
+                );
+              })}
+            </div>
+            
+            {/* Subdivision pattern display */}
+            {showSubdivisions && subdivisionPattern && (
+              <div className="text-xs text-gray-400">
+                Pattern: {subdivisionPattern}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Time display */}
         <div className="text-4xl mb-8">
@@ -402,6 +497,16 @@ export function PerformanceMode({ song, onClose }: PerformanceModeProps) {
                     <div className="text-xs text-gray-400 text-right">
                       {Math.round(metronomeVolume * 100)}%
                     </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-700">
+                    <Label className="text-white text-sm">Show Subdivisions</Label>
+                    <Button
+                      variant={showSubdivisions ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setShowSubdivisions(!showSubdivisions)}
+                    >
+                      {showSubdivisions ? 'ON' : 'OFF'}
+                    </Button>
                   </div>
                 </div>
               </PopoverContent>

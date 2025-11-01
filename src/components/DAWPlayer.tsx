@@ -62,7 +62,7 @@ import {
   TooltipTrigger,
 } from './ui/tooltip';
 import { Label } from './ui/label';
-import { playMetronomeClick, resumeAudioContext } from '../lib/metronome';
+import { playMetronomeClick, resumeAudioContext, getMainBeats, parseSubdivision, getSubdivisionInfo } from '../lib/metronome';
 import { useLanguage } from '../lib/LanguageContext';
 
 interface DAWPlayerProps {
@@ -148,9 +148,16 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
   const [metronomeVolume, setMetronomeVolume] = useState(0.5); // Stored as linear gain
   const lastBeatRef = useRef<number>(0);
 
-  // << NOVOS ESTADOS PARA NOTAS DE TRACK >>
+  // Track notes state
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [selectedTrackForNotes, setSelectedTrackForNotes] = useState<AudioTrack | null>(null);
+
+  // Open notes dialog when track is selected
+  useEffect(() => {
+    if (selectedTrackForNotes) {
+      setNotesDialogOpen(true);
+    }
+  }, [selectedTrackForNotes]);
 
   // View settings with localStorage persistence
   const [trackHeight, setTrackHeight] = useState<'small' | 'medium' | 'large'>(() => {
@@ -246,30 +253,81 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
     }
   }, [isPlaying]);
 
-  // Simulate playback with metronome
+  // Simulate playback with advanced metronome and tempo curves
   useEffect(() => {
     if (!isPlaying || !song) return;
 
     const interval = setInterval(() => {
       setCurrentTime((prev) => {
+        // Get current tempo info (with tempo curve interpolation)
+        const getCurrentTempo = (time: number): number => {
+          const tempoChanges = song.tempoChanges || [{ time: 0, tempo: song.tempo, timeSignature: '4/4' }];
+          
+          // Find active tempo change
+          let activeChange = tempoChanges[0];
+          for (const tc of tempoChanges) {
+            if (tc.time <= time) {
+              activeChange = tc;
+            } else {
+              break;
+            }
+          }
+          
+          // Check if there's a tempo curve active
+          if (activeChange.curve && time >= activeChange.time && time <= activeChange.curve.targetTime) {
+            const startTempo = activeChange.tempo;
+            const endTempo = activeChange.curve.targetTempo;
+            const duration = activeChange.curve.targetTime - activeChange.time;
+            const progress = (time - activeChange.time) / duration;
+            
+            if (activeChange.curve.type === 'linear') {
+              // Linear interpolation
+              return startTempo + (endTempo - startTempo) * progress;
+            } else if (activeChange.curve.type === 'exponential') {
+              // Exponential interpolation (ease-out)
+              const easedProgress = 1 - Math.pow(1 - progress, 2);
+              return startTempo + (endTempo - startTempo) * easedProgress;
+            }
+          }
+          
+          return activeChange.tempo;
+        };
+        
+        const currentBaseTempo = getCurrentTempo(prev);
+        const actualTempo = currentBaseTempo * (tempo / 100);
         const newTime = prev + (0.1 * tempo / 100);
         const endPoint = loopEnabled && loopEnd !== null ? loopEnd : song.duration;
         const startPoint = loopEnabled && loopStart !== null ? loopStart : 0;
 
-        // Handle metronome clicks
+        // Advanced metronome logic
         if (metronomeEnabled) {
-          const actualTempo = song.tempo * (tempo / 100);
           const beatDuration = 60 / actualTempo;
-
-          // Calculate current beat
           const currentBeat = Math.floor(newTime / beatDuration);
 
           // Play click if we've crossed to a new beat
           if (currentBeat > lastBeatRef.current) {
-            const timeSignature = song.tempoChanges?.[0]?.timeSignature || "4/4";
-            const [beatsPerMeasure] = timeSignature.split('/').map(Number);
-            const beatInMeasure = (currentBeat % beatsPerMeasure) + 1;
-            const isStrongBeat = beatInMeasure === 1;
+            // Get current time signature and subdivision
+            const tempoInfo = getCurrentTempoInfo(newTime);
+            const timeSignature = tempoInfo.timeSignature || "4/4";
+            const subdivision = tempoInfo.subdivision;
+            
+            // Calculate beats per measure (considering compound time and subdivisions)
+            const mainBeats = getMainBeats(timeSignature, subdivision);
+            
+            let isStrongBeat = false;
+            
+            if (subdivision) {
+              // Irregular time signature with subdivision pattern (e.g., "2+3" for 5/8)
+              const groups = parseSubdivision(subdivision);
+              const totalSubdivisions = groups.reduce((a, b) => a + b, 0);
+              const beatInCycle = (currentBeat % totalSubdivisions) + 1;
+              const subdivInfo = getSubdivisionInfo(beatInCycle, subdivision);
+              isStrongBeat = subdivInfo.isGroupStart;
+            } else {
+              // Standard time signature
+              const beatInMeasure = (currentBeat % mainBeats) + 1;
+              isStrongBeat = beatInMeasure === 1;
+            }
 
             playMetronomeClick(isStrongBeat, metronomeVolume);
             lastBeatRef.current = currentBeat;
@@ -1905,7 +1963,6 @@ const handleUpdateOrDeleteTimelineItem = (
                           >
                             <Pencil className="w-3 h-3" />
                           </Button>
-                          {/* << BOTÃO DE NOTAS ADICIONADO >> */}
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
@@ -1917,7 +1974,7 @@ const handleUpdateOrDeleteTimelineItem = (
                                   color: (track.notes && track.notes.length > 0) ? '#3B82F6' : '#9E9E9E'
                                 }}
                               >
-                                <Notepad className="w-3 h-3" />
+                                <StickyNote className="w-3 h-3" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>Track Notes</TooltipContent>

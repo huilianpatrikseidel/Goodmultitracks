@@ -13,9 +13,11 @@
 - **Mandatory Tags** - `CreateProjectDialog.tsx` valida ativamente se todas as tracks possuem uma tag antes de permitir a criação do projeto.
 - **Track Pinning (Exclude from Presets)** - `DAWPlayer.tsx` implementa a lógica para "fixar" (pin) tracks, o que as exclui de serem salvas ou sobrescritas por presets.
 
+### ✅ Recentemente Implementado (100%)
+- **Track Pinning (Move to Top)** - Lógica ativa em `DAWPlayer.tsx` (linhas 1154-1168) que move o instrumento principal para o topo ao carregar presets.
+- **Track Notes** - `TrackNotesDialog.tsx` totalmente integrado em `DAWPlayer.tsx` com botão de notas ao lado de cada track e handler `handleSaveTrackNotes`.
+
 ### ❌ Não Implementado
-- **Track Pinning (Move to Top)** - A lógica para mover a "main instrument" (definida no setup) para o topo da lista ao carregar um preset existe em `DAWPlayer.tsx` mas está comentada.
-- **Track Notes** - O componente `TrackNotesDialog.tsx` existe, mas não está sendo importado ou utilizado no `DAWPlayer.tsx`.
 - **Notes Panel** - O componente `NotesPanel.tsx` existe, mas é focado em *notas da música* (song notes) e não está integrado à barra lateral do `DAWPlayer.tsx`.
 
 ---
@@ -29,10 +31,15 @@
 - **Advanced Time Signature UI** - Interface completa no `TimelineEditorDialog.tsx` com presets (4/4, 6/8, etc.), seleção de denominador (1-32) e preview visual.
 - **Irregular Time Signature UI** - `TimelineEditorDialog.tsx` possui um campo de input para "Subdivision Pattern" (ex: "2+3") para os tipos `tempo` e `timesig`.
 
-### ❌ Não Implementado
-- **Time Signature Logic (Advanced)** - A lógica de playback em `DAWPlayer.tsx` não utiliza as funções avançadas de `lib/metronome.ts` (como `isCompoundTime` ou `getSubdivisionInfo`). O metrônomo trata todos os compassos como simples (ex: 6/8 é tratado como 6 batidas).
-- **Compound Time Metronome** - A lógica de playback não agrupa batidas para compassos compostos (ex: 6/8 não soa como 2 batidas).
-- **Mark Subdivisions Checkbox** - Nenhuma UI existe no `SettingsPanel.tsx` ou `DAWPlayer.tsx` para habilitar subdivisões do metrônomo.
+### ✅ Totalmente Implementado (100%)
+- **Time Signature Logic (Advanced)** - `DAWPlayer.tsx` utiliza `getMainBeats()`, `parseSubdivision()` e `getSubdivisionInfo()` de `lib/metronome.ts` no loop de playback para suportar compassos compostos e irregulares.
+- **Compound Time Metronome** - Compassos compostos (6/8, 9/8, 12/8) soam corretamente com cliques agrupados (ex: 6/8 = 2 batidas principais).
+- **Irregular Time Metronome** - Subdivisões irregulares (ex: "2+3" para 5/8) funcionam com cliques nas subdivisões corretas.
+- **PerformanceMode Advanced Metronome** - `PerformanceMode.tsx` implementa a mesma lógica avançada com suporte para tempo curves.
+- **Metronome Visual Feedback** - `PerformanceMode.tsx` possui visualização em tempo real de batidas com indicadores animados.
+- **Mark Subdivisions Toggle** - `PerformanceMode.tsx` possui checkbox "Show Subdivisions" no popover do metrônomo para mostrar padrão de subdivisão.
+
+### ❌ Não Implementado (Baixa Prioridade)
 - **Metronome Sound Settings** - As frequências do metrônomo são fixas em `lib/metronome.ts` (1000Hz, 800Hz, 600Hz) e não podem ser configuradas pelo usuário.
 - **Advanced Ruler Visualization** - A régua de compassos (`measureBars`) no `DAWPlayer.tsx` baseia-se apenas no zoom (`measureSkip`), sem lógica visual para compassos compostos ou irregulares.
 
@@ -47,13 +54,13 @@
 - **Tempo Curve UI** - `TimelineEditorDialog.tsx` possui uma UI completa para curvas de tempo (linear/exponencial, target tempo/time) e um gráfico de preview visual.
 - **Advanced Transpose UI** - `PlaybackControls.tsx` possui um popover completo com "Transpose", "Capo Position" e um display de "Key Information" (Original, Playing, Display).
 
-### ⚠️ Parcialmente Implementado
-- **Tempo Curve (Rallentando)** - A UI e a estrutura de dados (`types/index.ts`) para curvas de tempo estão completas. No entanto, a lógica de playback em `DAWPlayer.tsx` *não* implementa a interpolação gradual de tempo; ela usa apenas o valor de tempo inicial.
+### ✅ Recentemente Implementado (100%)
+- **Tempo Curve (Rallentando)** - `DAWPlayer.tsx` agora implementa interpolação gradual de tempo (linear e exponencial) na função `getCurrentTempo()` dentro do loop de playback.
+- **Chord Ruler Response** - A régua de acordes no `DAWPlayer.tsx` (linha 2138) agora transpõe dinamicamente usando `transposeKey(chord.chord, keyShift)`.
 
 ### ❌ Não Implementado
 - **Time Warp Tool** - Nenhuma ferramenta de "Free Warp" para arrastar pontos de áudio e sincronizar o grid existe.
 - **Auto-hidden Tempo Tags** - Relacionado ao Time Warp, não implementado.
-- **Chord Ruler Response** - A régua de acordes no `DAWPlayer.tsx` exibe os acordes como estão salvos (`chord.chord`) e não reage dinamicamente ao "Transpose" ou "Capo" selecionados em `PlaybackControls.tsx`.
 
 ---
 
@@ -95,19 +102,28 @@
 
 ---
 
-## Resumo Geral (Revisado)
+## Resumo Geral (Atualizado - Novembro 2025)
 
-### ✅ Totalmente Implementado (75%)
+### ✅ Totalmente Implementado (93%)
 - Tag hierarchy e definições
 - First Time Setup (UI e Integração)
 - Track tag selector
 - Mix Presets System (UI e Lógica)
 - Mandatory Tags (Validação na criação)
+- **Track Pinning (Move to Top)** - ✅ IMPLEMENTADO
+- **Track Notes Integration** - ✅ IMPLEMENTADO
 - Basic Metronome (com controle de volume)
+- **Advanced Metronome Logic (DAWPlayer)** - ✅ IMPLEMENTADO (Compound & Irregular Time)
+- **Advanced Metronome Logic (PerformanceMode)** - ✅ IMPLEMENTADO (Compound & Irregular Time + Tempo Curves)
+- **Metronome Visual Feedback** - ✅ IMPLEMENTADO (PerformanceMode com animação)
+- **Show Subdivisions Toggle** - ✅ IMPLEMENTADO (PerformanceMode popover)
 - Advanced Time Signature UI (com Presets e UI Irregular)
 - Basic Tempo & Key Control
 - Advanced Transpose UI (com Capo)
+- **Chord Ruler Response to Transpose/Capo** - ✅ IMPLEMENTADO
 - Hide Tempo Markers (no modo player)
+- **Tempo Curve Playback Logic (DAWPlayer)** - ✅ IMPLEMENTADO (Linear & Exponential)
+- **Tempo Curve Playback Logic (PerformanceMode)** - ✅ IMPLEMENTADO (Linear & Exponential)
 - Tempo Curve (UI e Gráfico)
 - Keyboard Shortcuts (com diálogo de ajuda)
 - Show/Hide Rulers
@@ -125,14 +141,9 @@
 - Player Settings (UI)
 - Theme Switching (UI e Lógica Completa)
 
-### ⚠️ Parcialmente Implementado (5%)
-- **Tempo Curve (Rallentando)** - UI e dados implementados, mas lógica de playback ausente.
-
-### ❌ Não Implementado (20%)
-- **Track Pinning (Move to Top)** - Lógica existe mas está comentada.
-- **Track Notes** - UI (`TrackNotesDialog.tsx`) não está integrada.
-- **Notes Panel (Track Notes)** - Painel de notas não está na sidebar do player.
-- **Advanced Metronome Logic** - Lógica de playback para compassos compostos/irregulares.
-- **Metronome Sound Settings** - UI para configurar frequências do metrônomo.
-- **Time Warp Tool** - Ferramenta de "Free Warp" não existe.
-- **Chord Ruler Response** - Régua de acordes não atualiza com Transpose/Capo.
+### ❌ Não Implementado - Baixa Prioridade (7%)
+- **Notes Panel (Song Notes)** - Painel de notas da música não está na sidebar do player.
+- **Metronome Sound Settings** - UI para configurar frequências customizadas do metrônomo.
+- **Advanced Ruler Visualization** - Visualização diferenciada para compassos compostos/irregulares.
+- **Time Warp Tool** - Ferramenta de "Free Warp" para sincronização de grid.
+- **Auto-hidden Tempo Tags** - Relacionado ao Time Warp.
