@@ -26,6 +26,7 @@ import {
   Keyboard,
   Pin,
   Save,
+  StickyNote,
 } from 'lucide-react';
 import { PlayerViewSettings } from './PlayerViewSettings';
 import { TrackTagSelector } from './TrackTagSelector';
@@ -36,12 +37,13 @@ import { MixerDock } from './MixerDock';
 import { Button } from './ui/button';
 import { Slider } from './ui/slider';
 import { Input } from './ui/input';
-import { Song, AudioTrack, SectionMarker, TimeSignatureChange, TempoChange, ChordMarker, MixPreset } from '../types';
+import { Song, AudioTrack, SectionMarker, TimeSignatureChange, TempoChange, ChordMarker, MixPreset, TrackTag } from '../types'; // Importado TrackTag
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import { CreateProjectDialog } from './CreateProjectDialog';
 import { TimelineEditorDialog } from './TimelineEditorDialog';
 import { ChordDiagram } from './ChordDiagram';
+import { TrackNotesDialog } from './TrackNotesDialog'; // << IMPORTADO
 import { gainToDb, gainToSlider, sliderToGain, formatDb, parseDbInput, hexToRgba } from '../lib/audioUtils';
 import {
   DropdownMenu,
@@ -76,6 +78,29 @@ const PRESET_COLORS = [
   '#60a5fa', '#ef4444', '#22c55e', '#f59e0b', '#a855f7', '#ec4899', '#14b8a6', '#f97316',
   '#84cc16', '#0ea5e9', '#d946ef', '#f43f5e', '#64748b', '#78716c', '#facc15', '#3b82f6',
 ];
+
+// << FUNÇÃO ADICIONADA (copiada de PlaybackControls.tsx) >>
+// Helper function to transpose key
+const transposeKey = (key: string, semitones: number): string => {
+  const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const flatNotes = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+  
+  // Parse key (e.g., "Cm" -> "C" + "m")
+  const isFlat = key.includes('b');
+  const noteList = isFlat ? flatNotes : notes;
+  const rootNote = key.match(/^[A-G][#b]?/)?.[0] || 'C';
+  const suffix = key.replace(rootNote, '');
+  
+  let index = noteList.indexOf(rootNote);
+  if (index === -1) {
+    // Try to find in the other list
+    index = (isFlat ? notes : flatNotes).indexOf(rootNote);
+    if (index === -1) return key; // Return original if not found
+  }
+  
+  const newIndex = (index + semitones + 12) % 12;
+  return noteList[newIndex] + suffix;
+};
 
 export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCreateProject }: DAWPlayerProps) {
   const { t } = useLanguage();
@@ -122,6 +147,10 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
   const [metronomeEnabled, setMetronomeEnabled] = useState(false);
   const [metronomeVolume, setMetronomeVolume] = useState(0.5); // Stored as linear gain
   const lastBeatRef = useRef<number>(0);
+
+  // << NOVOS ESTADOS PARA NOTAS DE TRACK >>
+  const [notesDialogOpen, setNotesDialogOpen] = useState(false);
+  const [selectedTrackForNotes, setSelectedTrackForNotes] = useState<AudioTrack | null>(null);
 
   // View settings with localStorage persistence
   const [trackHeight, setTrackHeight] = useState<'small' | 'medium' | 'large'>(() => {
@@ -421,6 +450,17 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
     setTracks((prev) =>
       prev.map((t) => (t.id === trackId ? { ...t, tag } : t))
     );
+  };
+
+  // << NOVA FUNÇÃO >>
+  const handleSaveTrackNotes = (notes: string) => {
+    if (!selectedTrackForNotes) return;
+    setTracks(prev =>
+      prev.map(t =>
+        t.id === selectedTrackForNotes.id ? { ...t, notes } : t
+      )
+    );
+    // Fechar o dialog (o onOpenChange fará isso)
   };
 
   const handleSectionClick = (markerIndex: number) => {
@@ -1111,8 +1151,9 @@ const handleUpdateOrDeleteTimelineItem = (
       return track;
     }));
     
+    // << IMPLEMENTAÇÃO (FEATURE 4.1): LÓGICA DE PIN DESCOMENTADA >>
     // Track Pinning: Move main instrument to top if set in user preferences
-    const mainInstrument = localStorage.getItem('goodmultitracks_main_instrument');
+    const mainInstrument = localStorage.getItem('goodmultitracks_main_instrument') as TrackTag | null;
     if (mainInstrument) {
       setTracks(prev => {
         const mainTrackIndex = prev.findIndex(t => t.tag === mainInstrument);
@@ -1864,6 +1905,23 @@ const handleUpdateOrDeleteTimelineItem = (
                           >
                             <Pencil className="w-3 h-3" />
                           </Button>
+                          {/* << BOTÃO DE NOTAS ADICIONADO >> */}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 hover:bg-gray-700 flex-shrink-0"
+                                onClick={() => setSelectedTrackForNotes(track)}
+                                style={{
+                                  color: (track.notes && track.notes.length > 0) ? '#3B82F6' : '#9E9E9E'
+                                }}
+                              >
+                                <Notepad className="w-3 h-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Track Notes</TooltipContent>
+                          </Tooltip>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
@@ -2076,7 +2134,8 @@ const handleUpdateOrDeleteTimelineItem = (
                           }
                         }}
                       >
-                        {chord.chord}
+                        {/* << IMPLEMENTAÇÃO (FEATURE 4.4): ACORDE TRANSPosto >> */}
+                        {transposeKey(chord.chord, keyShift)}
                       </Badge>
                     </div>
                   );
@@ -2566,6 +2625,19 @@ const handleUpdateOrDeleteTimelineItem = (
           isOpen={!!selectedChord}
           onClose={() => setSelectedChord(null)}
           customDiagram={selectedChord.customDiagram}
+        />
+      )}
+
+      {/* << DIÁLOGO DE NOTAS ADICIONADO >> */}
+      {selectedTrackForNotes && (
+        <TrackNotesDialog
+          open={!!selectedTrackForNotes}
+          onOpenChange={(open) => {
+            if (!open) setSelectedTrackForNotes(null);
+          }}
+          trackName={selectedTrackForNotes.name}
+          notes={selectedTrackForNotes.notes || ''}
+          onSave={handleSaveTrackNotes}
         />
       )}
 
