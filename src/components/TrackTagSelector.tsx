@@ -35,12 +35,6 @@ const TAG_LABELS: Record<TrackTag, string> = {
   'other-elements': 'Other Elements',
 };
 
-const CATEGORY_LABELS = {
-  percussion: 'Percussion',
-  harmony: 'Harmony',
-  vocals: 'Vocals',
-};
-
 export function TrackTagSelector({ currentTag, onTagChange, disabled }: TrackTagSelectorProps) {
   return (
     <DropdownMenu>
@@ -69,63 +63,25 @@ export function TrackTagSelector({ currentTag, onTagChange, disabled }: TrackTag
         className="w-56"
         style={{ backgroundColor: '#2B2B2B', borderColor: '#3A3A3A' }}
       >
-        {/* Percussion */}
-        <DropdownMenuLabel style={{ color: '#9E9E9E' }}>{CATEGORY_LABELS.percussion}</DropdownMenuLabel>
-        {TRACK_TAG_HIERARCHY.percussion.map((tag) => (
-          <Button
-            key={tag}
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start px-2 py-1.5 h-auto"
-            style={{
-              backgroundColor: currentTag === tag ? '#3B82F6' : 'transparent',
               color: currentTag === tag ? '#F1F1F1' : '#D1D1D1',
-            }}
-            onClick={() => onTagChange(tag)}
-          >
-            {TAG_LABELS[tag]}
-          </Button>
-        ))}
-
-        <DropdownMenuSeparator style={{ backgroundColor: '#3A3A3A' }} />
-
-        {/* Harmony */}
-        <DropdownMenuLabel style={{ color: '#9E9E9E' }}>{CATEGORY_LABELS.harmony}</DropdownMenuLabel>
-        {TRACK_TAG_HIERARCHY.harmony.map((tag) => (
-          <Button
-            key={tag}
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start px-2 py-1.5 h-auto"
-            style={{
-              backgroundColor: currentTag === tag ? '#3B82F6' : 'transparent',
-              color: currentTag === tag ? '#F1F1F1' : '#D1D1D1',
-            }}
-            onClick={() => onTagChange(tag)}
-          >
-            {TAG_LABELS[tag]}
-          </Button>
-        ))}
-
-        <DropdownMenuSeparator style={{ backgroundColor: '#3A3A3A' }} />
-
-        {/* Vocals */}
-        <DropdownMenuLabel style={{ color: '#9E9E9E' }}>{CATEGORY_LABELS.vocals}</DropdownMenuLabel>
-        {TRACK_TAG_HIERARCHY.vocals.map((tag) => (
-          <Button
-            key={tag}
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start px-2 py-1.5 h-auto"
-            style={{
-              backgroundColor: currentTag === tag ? '#3B82F6' : 'transparent',
-              color: currentTag === tag ? '#F1F1F1' : '#D1D1D1',
-            }}
-            onClick={() => onTagChange(tag)}
-          >
-            {TAG_LABELS[tag]}
-          </Button>
-        ))}
+        {Object.entries(TRACK_TAG_HIERARCHY)
+          .filter(([category, tags]) => tags.length > 0 && !['click', 'guide', 'orchestral', 'loops', 'piano'].includes(category))
+          .map(([category, tags], index, arr) => (
+            <React.Fragment key={category}>
+              <DropdownMenuLabel style={{ color: '#9E9E9E' }} className="capitalize">{category.replace('-', ' ')}</DropdownMenuLabel>
+              {(tags as readonly TrackTag[]).map(tag => (
+                <Button
+                  key={tag}
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start px-2 py-1.5 h-auto"
+                  style={{ backgroundColor: currentTag === tag ? '#3B82F6' : 'transparent', color: currentTag === tag ? '#F1F1F1' : '#D1D1D1' }}
+                  onClick={() => onTagChange(tag)}
+                >{TAG_LABELS[tag]}</Button>
+              ))}
+              {index < arr.length - 1 && <DropdownMenuSeparator style={{ backgroundColor: '#3A3A3A' }} />}
+            </React.Fragment>
+          ))}
 
         <DropdownMenuSeparator style={{ backgroundColor: '#3A3A3A' }} />
 

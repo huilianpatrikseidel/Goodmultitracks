@@ -1,22 +1,22 @@
-// Track tag system
-export type TrackTag =
-  | 'acoustic-guitar'
-  | 'bass'
-  | 'electric-guitar'
-  | 'keyboard-piano'
-  | 'percussion'
-  | 'cajon'
-  | 'drums'
-  | 'vocals-general'
-  | 'lead-vocal'
-  | 'backing-vocals'
-  | 'other-elements';
-
+// << DEFINIÇÃO ATUALIZADA E TIPO DINÂMICO >>
 export const TRACK_TAG_HIERARCHY = {
-  percussion: ['drums', 'cajon', 'percussion'],
-  harmony: ['bass', 'acoustic-guitar', 'electric-guitar', 'keyboard-piano'],
+  drums: ['drums'],
+  percussion: ['percussion', 'cajon'],
+  bass: ['bass'],
+  guitar: ['acoustic-guitar', 'electric-guitar'],
+  keys: ['keys', 'keyboard-piano'], // Corrigido para incluir a tag usada nos mocks
   vocals: ['vocals-general', 'lead-vocal', 'backing-vocals'],
+  orchestral: [], // Adicionado para evitar erro de 'undefined'
+  loops: [], // Adicionado para evitar erro de 'undefined'
+  click: [], // Adicionado para corresponder ao tipo AudioTrack e evitar erro
+  guide: [], // Adicionado para corresponder ao tipo AudioTrack e evitar erro
+  piano: [], // Adicionado para corresponder às categorias usadas na UI
+  other: ['other-elements'],
 } as const;
+
+// Gera o tipo TrackTag dinamicamente a partir do objeto TRACK_TAG_HIERARCHY
+type AllTagsArray = typeof TRACK_TAG_HIERARCHY[keyof typeof TRACK_TAG_HIERARCHY];
+export type TrackTag = AllTagsArray[number];
 
 export interface AudioTrack {
   id: string;

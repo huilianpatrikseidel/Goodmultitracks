@@ -422,24 +422,16 @@ export function CreateProjectDialog({
                               <SelectValue placeholder="Select tag" />
                             </SelectTrigger>
                             <SelectContent>
-                              <div className="px-2 py-1.5 text-xs font-semibold text-gray-500">Percussion</div>
-                              {TRACK_TAG_HIERARCHY.percussion.map((tag) => (
-                                <SelectItem key={tag} value={tag}>
-                                  {TAG_LABELS[tag]}
-                                </SelectItem>
-                              ))}
-                              <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 mt-2">Harmony</div>
-                              {TRACK_TAG_HIERARCHY.harmony.map((tag) => (
-                                <SelectItem key={tag} value={tag}>
-                                  {TAG_LABELS[tag]}
-                                </SelectItem>
-                              ))}
-                              <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 mt-2">Vocals</div>
-                              {TRACK_TAG_HIERARCHY.vocals.map((tag) => (
-                                <SelectItem key={tag} value={tag}>
-                                  {TAG_LABELS[tag]}
-                                </SelectItem>
-                              ))}
+                              {Object.entries(TRACK_TAG_HIERARCHY)
+                                .filter(([category, tags]) => tags.length > 0 && !['click', 'guide', 'other', 'orchestral', 'loops', 'piano'].includes(category))
+                                .map(([category, tags]) => (
+                                  <React.Fragment key={category}>
+                                    <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 capitalize mt-2">{category.replace('-', ' ')}</div>
+                                    {(tags as readonly TrackTag[]).map(tag => (
+                                      <SelectItem key={tag} value={tag}>{TAG_LABELS[tag]}</SelectItem>
+                                    ))}
+                                  </React.Fragment>
+                                ))}
                             </SelectContent>
                           </Select>
                         </TableCell>

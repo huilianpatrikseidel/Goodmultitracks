@@ -1,6 +1,6 @@
 import { WarpMarker } from '../types';
 
-// Pure helper: map a grid time to a source (audio) time using warp markers.
+// Pure helper: map a grid time (musical) to a source time (audio) using warp markers.
 export function getWarpedTime(currentGridTime: number, warpMarkers: WarpMarker[], warpModeEnabled: boolean): number {
   if (!warpModeEnabled || warpMarkers.length < 2) {
     return currentGridTime;
@@ -30,7 +30,7 @@ export function getWarpedTime(currentGridTime: number, warpMarkers: WarpMarker[]
 
     const gridDiff = secondMarker.gridTime - firstMarker.gridTime;
     const sourceDiff = secondMarker.sourceTime - firstMarker.sourceTime;
-    const rate = sourceDiff / gridDiff;
+    const rate = gridDiff === 0 ? 1 : sourceDiff / gridDiff;
 
     return firstMarker.sourceTime - ((firstMarker.gridTime - currentGridTime) * rate);
   }
@@ -44,7 +44,7 @@ export function getWarpedTime(currentGridTime: number, warpMarkers: WarpMarker[]
 
     const gridDiff = lastMarker.gridTime - secondLastMarker.gridTime;
     const sourceDiff = lastMarker.sourceTime - secondLastMarker.sourceTime;
-    const rate = sourceDiff / gridDiff;
+    const rate = gridDiff === 0 ? 1 : sourceDiff / gridDiff;
 
     return lastMarker.sourceTime + ((currentGridTime - lastMarker.gridTime) * rate);
   }
@@ -176,27 +176,14 @@ export function generateDynamicTempos(
     const sourceDiff = marker2.sourceTime - marker1.sourceTime;
 
     if (gridDiff === 0 || sourceDiff === 0) {
-      continue; // Skip invalid markers
+      continue; // Skip invalid markers, tempo is infinite or zero
     }
 
-    // Calculate the required BPM to make the source audio fit the grid distance
-    // Formula: newBPM = originalBPM * (gridDuration / sourceDuration)
-    // 
-    // Example:
-    // - originalBPM = 120
-    // - source audio between markers = 2 seconds (1 beat at 120 BPM)
-    // - desired grid distance = 4 seconds (2 beats)
-    // - newBPM = 120 * (4 / 2) = 240 BPM
-    // This makes audio play slower, stretching 1 beat into 2 beats
-    //
-    // Another example:
-    // - originalBPM = 120
-    // - source audio = 4 seconds (2 beats)
-    // - desired grid = 2 seconds (1 beat)
-    // - newBPM = 120 * (2 / 4) = 60 BPM
-    // This makes audio play faster, compressing 2 beats into 1 beat
+    // Corrected Formula: newBPM = originalBPM * (sourceDuration / gridDuration)
+    // If source is shorter (e.g., 1s) than grid (e.g., 2s), audio must play slower.
+    // The ratio (1/2) correctly reduces the BPM.
     
-    const calculatedBPM = originalBPM * (gridDiff / sourceDiff);
+    const calculatedBPM = originalBPM * (sourceDiff / gridDiff);
 
     // Clamp BPM to reasonable range (20-360 BPM, matching Cubase limits)
     const clampedBPM = Math.max(20, Math.min(360, calculatedBPM));
@@ -223,120 +210,70 @@ export function generateDynamicTempos(
 }
 
 /**
- * Convert absolute audio time to grid time using dynamic tempo changes.
- * Used in Warp Grid mode to map real audio position to musical position.
- * 
- * @param currentAudioTime Absolute time in seconds (real audio position)
- * @param tempoChanges Array of tempo changes (can include dynamically generated ones)
- * @returns Grid time (musical position in seconds)
+ * Convert absolute audio time to grid time using a dynamic tempo map.
+ * This is the core of "Warp Grid" mode playback, where the audio timeline is the master,
+ * and the musical grid time is derived from it.
+ *
+ * @param currentAudioTime The current, linear time of the audio source in seconds.
+ * @param tempoChanges An array of tempo changes defining the tempo map.
+ * @param baseBPM The song's original BPM, used as a reference for conversion.
+ * @returns The calculated grid time (musical time) in seconds.
  */
 export function audioTimeToGridTime(
   currentAudioTime: number,
-  tempoChanges: Array<{ time: number; tempo: number }>
+  tempoChanges: Array<{ time: number; tempo: number }>,
+  baseBPM: number = 120
 ): number {
   if (!tempoChanges || tempoChanges.length === 0) {
     return currentAudioTime;
   }
 
-  const sorted = [...tempoChanges].sort((a, b) => a.time - b.time);
+  // Ensure tempo changes are sorted by time
+  const sortedTempos = [...tempoChanges].sort((a, b) => a.time - b.time);
+
   let gridTime = 0;
+  let lastGridTime = 0;
   let lastAudioTime = 0;
 
-  for (let i = 0; i < sorted.length; i++) {
-    const tempoChange = sorted[i];
-    const nextTempoChange = sorted[i + 1];
-    
-    // Audio time range for this tempo section
-    const audioEndTime = nextTempoChange ? nextTempoChange.time : currentAudioTime + 1000;
+  for (let i = 0; i < sortedTempos.length; i++) {
+    const currentTempoChange = sortedTempos[i];
+    const nextTempoChange = sortedTempos[i + 1];
 
-    if (currentAudioTime >= lastAudioTime && currentAudioTime < audioEndTime) {
-      // We're in this tempo section
-      const audioDuration = currentAudioTime - lastAudioTime;
-      const bpm = tempoChange.tempo;
-      
-      // grid = audio * (tempo / 120) because audio time warps based on tempo
-      // If tempo = 240 BPM (double), audio moves half as fast, so grid expands
-      // If tempo = 60 BPM (half), audio moves twice as fast, so grid contracts
-      const gridDuration = audioDuration * (bpm / 120);
-      
-      gridTime += gridDuration;
-      return gridTime;
+    // The grid time where this tempo section starts
+    const gridStartTime = currentTempoChange.time;
+
+    // If the audio time is before this tempo section even starts, we can stop.
+    if (currentAudioTime < lastAudioTime) break;
+
+    // Calculate the duration of the previous tempo section in grid time
+    const gridSectionDuration = gridStartTime - lastGridTime;
+    if (gridSectionDuration > 0) {
+      const prevTempo = (sortedTempos[i - 1]?.tempo) || baseBPM;
+      const tempoRatio = prevTempo / baseBPM;
+      // Audio duration = Grid duration / tempo ratio
+      const audioSectionDuration = gridSectionDuration / tempoRatio;
+      lastAudioTime += audioSectionDuration;
+      gridTime += gridSectionDuration;
     }
 
-    if (nextTempoChange && currentAudioTime >= audioEndTime) {
-      // Add this whole section to gridTime
-      const audioSectionDuration = audioEndTime - lastAudioTime;
-      const bpm = tempoChange.tempo;
-      const gridDuration = audioSectionDuration * (bpm / 120);
-      
-      gridTime += gridDuration;
-      lastAudioTime = audioEndTime;
+    // Check if the target audio time is within the audio segment corresponding to this tempo section
+    if (currentAudioTime >= lastAudioTime) {
+      const audioTimeIntoSection = currentAudioTime - lastAudioTime;
+      const currentTempo = currentTempoChange.tempo;
+      const tempoRatio = currentTempo / baseBPM;
+      // Grid duration = Audio duration * tempo ratio
+      const gridTimeIntoSection = audioTimeIntoSection * tempoRatio;
+      return gridTime + gridTimeIntoSection;
     }
+
+    lastGridTime = gridStartTime;
   }
 
-  // If we get here, use the last tempo
-  const audioRemaining = currentAudioTime - lastAudioTime;
-  const lastTempo = sorted[sorted.length - 1].tempo;
-  gridTime += audioRemaining * (lastTempo / 120);
+  // If we're past all defined tempo changes, extrapolate using the last tempo
+  const lastTempo = sortedTempos[sortedTempos.length - 1];
+  const audioTimePastLastMarker = currentAudioTime - lastAudioTime;
+  const tempoRatio = lastTempo.tempo / baseBPM;
+  const gridTimePastLastMarker = audioTimePastLastMarker * tempoRatio;
 
-  return gridTime;
+  return gridTime + gridTimePastLastMarker;
 }
-
-/**
- * Convert grid time to absolute audio time using dynamic tempo changes.
- * Used in Warp Grid mode to map musical position to real audio position.
- * 
- * @param gridTime Grid time (musical position in seconds)
- * @param tempoChanges Array of tempo changes (can include dynamically generated ones)
- * @returns currentAudioTime Absolute time in seconds (real audio position)
- */
-export function gridTimeToAudioTime(
-  gridTime: number,
-  tempoChanges: Array<{ time: number; tempo: number }>
-): number {
-  if (!tempoChanges || tempoChanges.length === 0) {
-    return gridTime;
-  }
-
-  const sorted = [...tempoChanges].sort((a, b) => a.time - b.time);
-  let audioTime = 0;
-  let lastGridTime = 0;
-
-  for (let i = 0; i < sorted.length; i++) {
-    const tempoChange = sorted[i];
-    const nextTempoChange = sorted[i + 1];
-
-    // Grid time range for this tempo section
-    const gridEndTime = nextTempoChange ? nextTempoChange.time : gridTime + 10000;
-
-    if (gridTime >= lastGridTime && gridTime < gridEndTime) {
-      // We're in this tempo section
-      const gridDuration = gridTime - lastGridTime;
-      const bpm = tempoChange.tempo;
-      
-      // audio = grid / (tempo / 120)
-      const audioDuration = gridDuration / (bpm / 120);
-      
-      audioTime += audioDuration;
-      return audioTime;
-    }
-
-    if (nextTempoChange && gridTime >= gridEndTime) {
-      // Add this whole section to audioTime
-      const gridSectionDuration = gridEndTime - lastGridTime;
-      const bpm = tempoChange.tempo;
-      const audioDuration = gridSectionDuration / (bpm / 120);
-      
-      audioTime += audioDuration;
-      lastGridTime = gridEndTime;
-    }
-  }
-
-  // If we get here, use the last tempo
-  const gridRemaining = gridTime - lastGridTime;
-  const lastTempo = sorted[sorted.length - 1].tempo;
-  audioTime += gridRemaining / (lastTempo / 120);
-
-  return audioTime;
-}
-

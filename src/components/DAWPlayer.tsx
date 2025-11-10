@@ -40,7 +40,7 @@ import { NotesPanel } from './NotesPanel';
 import { Button } from './ui/button';
 import { Slider } from './ui/slider';
 import { Input } from './ui/input';
-import { getWarpedTime as utilsGetWarpedTime, parseTimeInput, calculateLocalBPM, getAdjacentMarkers, generateDynamicTempos, audioTimeToGridTime, gridTimeToAudioTime } from '../lib/warpUtils';
+import { getWarpedTime as utilsGetWarpedTime, parseTimeInput, calculateLocalBPM, getAdjacentMarkers, generateDynamicTempos, audioTimeToGridTime } from '../lib/warpUtils';
 
 import { Badge } from './ui/badge';
 import { Song, AudioTrack, SectionMarker, TempoChange, ChordMarker, MixPreset, TrackTag, WarpMarker } from '../types';
@@ -300,30 +300,49 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
     return utilsGetWarpedTime(currentGridTime, warpMarkers, warpModeEnabled);
   };
 
-  // Generate dynamic tempos from warp markers (Warp Grid mode implementation)
+  // Generate dynamic tempos from warp markers and update the song's tempo map
+  // This implements "Warp Grid" mode.
   useEffect(() => {
-    if (warpModeEnabled && warpMarkers.length >= 2 && song) {
+    if (!song || !onSongUpdate) return;
+
+    const originalTempoChanges = song.tempoChanges?.filter(tc => !tc.hidden) || [];
+
+    if (warpModeEnabled && warpMarkers.length >= 2) {
       const baseBPM = song.tempo || 120;
-      const generated = generateDynamicTempos(warpMarkers, baseBPM);
-      setDynamicTempos(generated);
+      const generatedTempos = generateDynamicTempos(warpMarkers, baseBPM);
+
+      // Mark generated tempos as hidden
+      const hiddenGeneratedTempos = generatedTempos.map(t => ({ ...t, hidden: true }));
+
+      // Combine original (non-hidden) tempos with new hidden ones
+      const newTempoMap = [...originalTempoChanges, ...hiddenGeneratedTempos].sort((a, b) => a.time - b.time);
+
+      // Update song state if changed
+      if (JSON.stringify(newTempoMap) !== JSON.stringify(song.tempoChanges)) {
+        onSongUpdate({ ...song, tempoChanges: newTempoMap });
+      }
+      setDynamicTempos(newTempoMap);
     } else {
-      setDynamicTempos([]);
+      // When warp is disabled or not enough markers, revert to original tempos
+      if (JSON.stringify(originalTempoChanges) !== JSON.stringify(song.tempoChanges)) {
+        onSongUpdate({ ...song, tempoChanges: originalTempoChanges });
+      }
+      setDynamicTempos(originalTempoChanges);
     }
-  }, [warpModeEnabled, warpMarkers, song]);
+  }, [warpModeEnabled, warpMarkers, song, onSongUpdate]);
 
   // Simulate playback with advanced metronome and tempo curves
   useEffect(() => {
     if (!isPlaying || !song) return;
 
     const interval = setInterval(() => {
-      // Warp Grid Mode: 
-      // - currentTime advances linearly (absolute audio time)
-      // - gridTime is calculated from currentTime using dynamic tempos
+      // Warp Grid Mode: currentTime (audio) advances linearly.
+      // gridTime is calculated from currentTime based on the (potentially dynamic) tempo map.
       
       setCurrentTime((prevCurrentTime) => {
         // Get current tempo info (with tempo curve interpolation)
         const getCurrentTempo = (time: number): number => {
-          const tempoChanges = song.tempoChanges || [{ time: 0, tempo: song.tempo, timeSignature: '4/4' }];
+          const tempoChanges = dynamicTempos.length > 0 ? dynamicTempos : (song.tempoChanges || [{ time: 0, tempo: song.tempo, timeSignature: '4/4' }]);
           
           // Find active tempo change
           let activeChange = tempoChanges[0];
@@ -358,14 +377,12 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
         const currentBaseTempo = getCurrentTempo(prevCurrentTime);
         const actualTempo = currentBaseTempo * (tempo / 100);
         
-        // WARP GRID MODE: Advance currentTime linearly
+        // Advance currentTime (audio time) linearly
         const newCurrentTime = prevCurrentTime + (0.1 * tempo / 100);
-        
-        // Calculate gridTime from currentTime using dynamic tempos
-        const allTempos = dynamicTempos.length > 0 
-          ? dynamicTempos 
-          : song.tempoChanges || [{ time: 0, tempo: song.tempo }];
-        const newGridTime = audioTimeToGridTime(newCurrentTime, allTempos);
+
+        // Calculate gridTime from the new audio time using the dynamic tempo map
+        const allTempos = dynamicTempos.length > 0 ? dynamicTempos : (song.tempoChanges || [{ time: 0, tempo: song.tempo }]);
+        const newGridTime = audioTimeToGridTime(newCurrentTime, allTempos, song.tempo);
         setGridTime(newGridTime);
 
         const endPoint = loopEnabled && loopEnd !== null ? loopEnd : song.duration;
@@ -409,10 +426,13 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
         if (newCurrentTime >= endPoint) {
           if (loopEnabled) {
             lastBeatRef.current = 0; // Reset beat counter on loop
+            const newGridTimeOnLoop = audioTimeToGridTime(startPoint, allTempos, song.tempo);
+            setGridTime(newGridTimeOnLoop);
             return startPoint;
           }
           setIsPlaying(false);
           lastBeatRef.current = 0;
+          setGridTime(0);
           return 0;
         }
         return newCurrentTime;

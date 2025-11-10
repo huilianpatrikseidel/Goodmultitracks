@@ -1,4 +1,4 @@
-import { Song, Setlist, User, AudioTrack, SectionMarker, ChordData, TempoChange, ChordMarker, SetlistItem } from '../types'; // Adicionado SetlistItem
+import { Song, Setlist, User, AudioTrack, SectionMarker, ChordData, TempoChange, ChordMarker, SetlistItem, TrackTag } from '../types'; // Adicionado SetlistItem e TrackTag
 
 // Generate mock waveform data
 const generateWaveform = (samples: number = 200): number[] => {
@@ -7,19 +7,26 @@ const generateWaveform = (samples: number = 200): number[] => {
 
 // Mock audio tracks - Função reutilizada
 const createMockTracks = (count: number = 8, includeClickGuide: boolean = true): AudioTrack[] => {
-    const baseTracks = [
+    // Definindo um tipo para os objetos base para garantir a consistência
+    type BaseTrackInfo = {
+        idSuffix: string;
+        name: string;
+        type: AudioTrack['type'];
+        color: string;
+        tag?: TrackTag;
+        output?: number;
+    };
+
+    const baseTracks: ReadonlyArray<BaseTrackInfo> = [
       { idSuffix: 'drums', name: 'Drums', type: 'drums', color: '#60a5fa', tag: 'drums' as const },
       { idSuffix: 'bass', name: 'Bass', type: 'bass', color: '#ef4444', tag: 'bass' as const },
       { idSuffix: 'eg1', name: 'Electric Gtr 1', type: 'guitar', color: '#22c55e', tag: 'electric-guitar' as const },
       { idSuffix: 'keys', name: 'Keys', type: 'keys', color: '#f59e0b', tag: 'keyboard-piano' as const },
       { idSuffix: 'vox', name: 'Lead Vocals', type: 'vocals', color: '#a855f7', tag: 'lead-vocal' as const },
       { idSuffix: 'bgv', name: 'Backing Vocals', type: 'vocals', color: '#ec4899', tag: 'backing-vocals' as const },
-    ] as const;
+    ];
 
-    const additionalTracks = includeClickGuide ? [
-      { idSuffix: 'click', name: 'Click Track', type: 'click', color: '#14b8a6', output: 2 },
-      { idSuffix: 'guide', name: 'Guide Cue', type: 'guide', color: '#f97316', output: 2 },
-    ] as const : [];
+    const additionalTracks: ReadonlyArray<BaseTrackInfo> = includeClickGuide ? [ { idSuffix: 'click', name: 'Click Track', type: 'click', color: '#14b8a6', output: 2 }, { idSuffix: 'guide', name: 'Guide Cue', type: 'guide', color: '#f97316', output: 2 }, ] : [];
 
     const allBaseTracks = [...baseTracks, ...additionalTracks];
     const tracksToCreate = Math.min(count, allBaseTracks.length);
@@ -34,7 +41,7 @@ const createMockTracks = (count: number = 8, includeClickGuide: boolean = true):
       waveformData: generateWaveform(),
       output: base.output || 1,
       color: base.color,
-      tag: 'tag' in base ? base.tag : undefined,
+      tag: base.tag,
       notes: '',
     }));
 };
@@ -43,14 +50,14 @@ const createMockTracks = (count: number = 8, includeClickGuide: boolean = true):
 const createMockMarkers = (duration: number): SectionMarker[] => {
     const scaleFactor = duration > 0 ? duration / 225 : 1;
     return [
-      { id: `m1-${Date.now().toString(36)}`, time: 0 * scaleFactor, label: 'Intro', type: 'intro' },
-      { id: `m2-${Date.now().toString(36)}`, time: 15 * scaleFactor, label: 'Verse 1', type: 'verse' },
-      { id: `m3-${Date.now().toString(36)}`, time: 45 * scaleFactor, label: 'Chorus', type: 'chorus' },
-      { id: `m4-${Date.now().toString(36)}`, time: 75 * scaleFactor, label: 'Verse 2', type: 'verse' },
-      { id: `m5-${Date.now().toString(36)}`, time: 105 * scaleFactor, label: 'Chorus', type: 'chorus' },
-      { id: `m6-${Date.now().toString(36)}`, time: 135 * scaleFactor, label: 'Bridge', type: 'bridge' },
-      { id: `m7-${Date.now().toString(36)}`, time: 165 * scaleFactor, label: 'Chorus', type: 'chorus' },
-      { id: `m8-${Date.now().toString(36)}`, time: 195 * scaleFactor, label: 'Outro', type: 'outro' },
+      { id: `m1-${Date.now().toString(36)}`, time: 0 * scaleFactor, label: 'Intro', type: 'intro' as const },
+      { id: `m2-${Date.now().toString(36)}`, time: 15 * scaleFactor, label: 'Verse 1', type: 'verse' as const },
+      { id: `m3-${Date.now().toString(36)}`, time: 45 * scaleFactor, label: 'Chorus', type: 'chorus' as const },
+      { id: `m4-${Date.now().toString(36)}`, time: 75 * scaleFactor, label: 'Verse 2', type: 'verse' as const },
+      { id: `m5-${Date.now().toString(36)}`, time: 105 * scaleFactor, label: 'Chorus', type: 'chorus' as const },
+      { id: `m6-${Date.now().toString(36)}`, time: 135 * scaleFactor, label: 'Bridge', type: 'bridge' as const },
+      { id: `m7-${Date.now().toString(36)}`, time: 165 * scaleFactor, label: 'Chorus', type: 'chorus' as const },
+      { id: `m8-${Date.now().toString(36)}`, time: 195 * scaleFactor, label: 'Outro', type: 'outro' as const },
     ].filter(m => m.time < duration);
 };
 
@@ -195,9 +202,39 @@ export const mockSetlists: Setlist[] = [
 
 // Mock users
 export const mockUsers: User[] = [
-  { id: 'user-1', name: 'John Musician', email: 'john@example.com', role: 'musician', preferences: { defaultOutput: 1, performanceMode: false, }, },
-  { id: 'user-2', name: 'Sarah Leader', email: 'sarah@example.com', role: 'leader', preferences: { defaultOutput: 1, performanceMode: true, }, },
-  { id: 'admin-1', name: 'Admin User', email: 'admin@example.com', role: 'admin', preferences: { defaultOutput: 1, performanceMode: false, }, },
+  {
+    id: 'user-1',
+    name: 'John Musician',
+    email: 'john@example.com',
+    role: 'musician',
+    preferences: {
+      defaultOutput: 1,
+      performanceMode: false,
+      theme: 'system',
+      selectedInstruments: ['electric-guitar', 'acoustic-guitar'],
+      mainInstrument: 'electric-guitar',
+    },
+  },
+  {
+    id: 'user-2',
+    name: 'Sarah Leader',
+    email: 'sarah@example.com',
+    role: 'leader',
+    preferences: {
+      defaultOutput: 1,
+      performanceMode: true,
+      theme: 'dark',
+      selectedInstruments: ['lead-vocal', 'keyboard-piano'],
+      mainInstrument: 'lead-vocal',
+    },
+  },
+  {
+    id: 'admin-1',
+    name: 'Admin User',
+    email: 'admin@example.com',
+    role: 'admin',
+    preferences: { defaultOutput: 1, performanceMode: false, theme: 'light' },
+  },
 ];
 
 export const currentUser = mockUsers[0];
