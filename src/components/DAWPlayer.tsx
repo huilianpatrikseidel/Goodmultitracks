@@ -27,6 +27,7 @@ import {
   Pin,
   Save,
   StickyNote,
+  Wand2,
 } from 'lucide-react';
 import { PlayerViewSettings } from './PlayerViewSettings';
 import { TrackTagSelector } from './TrackTagSelector';
@@ -106,6 +107,7 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
   const { t } = useLanguage();
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [gridTime, setGridTime] = useState(0);
   const [tempo, setTempo] = useState(100);
   const [keyShift, setKeyShift] = useState(0);
   const [loopEnabled, setLoopEnabled] = useState(false);
@@ -124,6 +126,8 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
   const [dragStartTime, setDragStartTime] = useState<number | null>(null);
   const [hasDragged, setHasDragged] = useState(false);
   const [dragStartX, setDragStartX] = useState<number | null>(null);
+  const [isDraggingWarpMarker, setIsDraggingWarpMarker] = useState(false);
+  const [draggedWarpMarkerId, setDraggedWarpMarkerId] = useState<string | null>(null);
   const [snapEnabled, setSnapEnabled] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [mixerVisible, setMixerVisible] = useState(true);
@@ -138,6 +142,8 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
   const [selectedChord, setSelectedChord] = useState<{ chord: string; customDiagram?: any } | null>(null);
   const [editingChordMarker, setEditingChordMarker] = useState<ChordMarker | null>(null);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
+  const [warpModeEnabled, setWarpModeEnabled] = useState(false);
+  const [warpMarkers, setWarpMarkers] = useState<WarpMarker[]>(song?.warpMarkers || []);
   
   // Mix presets state
   const [mixPresets, setMixPresets] = useState<MixPreset[]>([]);
@@ -253,12 +259,76 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
     }
   }, [isPlaying]);
 
+  const getWarpedTime = (currentGridTime: number): number => {
+    if (!warpModeEnabled || warpMarkers.length < 2) {
+      return currentGridTime;
+    }
+
+    const sortedMarkers = [...warpMarkers].sort((a, b) => a.gridTime - b.gridTime);
+
+    // Find the two markers that bracket the current grid time
+    let prevMarker: WarpMarker | null = null;
+    let nextMarker: WarpMarker | null = null;
+
+    for (const marker of sortedMarkers) {
+      if (marker.gridTime <= currentGridTime) {
+        prevMarker = marker;
+      } else {
+        nextMarker = marker;
+        break;
+      }
+    }
+
+    // Case 1: Before the first marker
+    if (!prevMarker && nextMarker) {
+      // Extrapolate backwards from the first two markers
+      const firstMarker = sortedMarkers[0];
+      const secondMarker = sortedMarkers[1];
+      if (!secondMarker) return currentGridTime; // Should not happen with length check
+
+      const gridDiff = secondMarker.gridTime - firstMarker.gridTime;
+      const sourceDiff = secondMarker.sourceTime - firstMarker.sourceTime;
+      const rate = sourceDiff / gridDiff;
+
+      return firstMarker.sourceTime - ((firstMarker.gridTime - currentGridTime) * rate);
+    }
+
+    // Case 2: After the last marker
+    if (prevMarker && !nextMarker) {
+      // Extrapolate forwards from the last two markers
+      const lastMarker = sortedMarkers[sortedMarkers.length - 1];
+      const secondLastMarker = sortedMarkers[sortedMarkers.length - 2];
+      if (!secondLastMarker) return currentGridTime; // Should not happen with length check
+
+      const gridDiff = lastMarker.gridTime - secondLastMarker.gridTime;
+      const sourceDiff = lastMarker.sourceTime - secondLastMarker.sourceTime;
+      const rate = sourceDiff / gridDiff;
+
+      return lastMarker.sourceTime + ((currentGridTime - lastMarker.gridTime) * rate);
+    }
+
+    // Case 3: Between two markers
+    if (prevMarker && nextMarker) {
+      const gridDiff = nextMarker.gridTime - prevMarker.gridTime;
+      if (gridDiff === 0) return prevMarker.sourceTime; // Avoid division by zero
+
+      const sourceDiff = nextMarker.sourceTime - prevMarker.sourceTime;
+      const progress = (currentGridTime - prevMarker.gridTime) / gridDiff;
+      
+      return prevMarker.sourceTime + (progress * sourceDiff);
+    }
+
+    // Default case (e.g., only one marker)
+    return currentGridTime;
+  };
+
   // Simulate playback with advanced metronome and tempo curves
   useEffect(() => {
     if (!isPlaying || !song) return;
 
     const interval = setInterval(() => {
-      setCurrentTime((prev) => {
+      // NEW: Use gridTime for the "ideal" timeline progression
+      setGridTime((prevGridTime) => {
         // Get current tempo info (with tempo curve interpolation)
         const getCurrentTempo = (time: number): number => {
           const tempoChanges = song.tempoChanges || [{ time: 0, tempo: song.tempo, timeSignature: '4/4' }];
@@ -293,21 +363,26 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
           return activeChange.tempo;
         };
         
-        const currentBaseTempo = getCurrentTempo(prev);
+        const currentBaseTempo = getCurrentTempo(prevGridTime);
         const actualTempo = currentBaseTempo * (tempo / 100);
-        const newTime = prev + (0.1 * tempo / 100);
+        const newGridTime = prevGridTime + (0.1 * tempo / 100);
+
+        // NEW: Calculate the warped time for audio playback
+        const newCurrentTime = getWarpedTime(newGridTime);
+        setCurrentTime(newCurrentTime);
+
         const endPoint = loopEnabled && loopEnd !== null ? loopEnd : song.duration;
         const startPoint = loopEnabled && loopStart !== null ? loopStart : 0;
 
-        // Advanced metronome logic
+        // Advanced metronome logic (still based on grid time)
         if (metronomeEnabled) {
           const beatDuration = 60 / actualTempo;
-          const currentBeat = Math.floor(newTime / beatDuration);
+          const currentBeat = Math.floor(newGridTime / beatDuration);
 
           // Play click if we've crossed to a new beat
           if (currentBeat > lastBeatRef.current) {
             // Get current time signature and subdivision
-            const tempoInfo = getCurrentTempoInfo(newTime);
+            const tempoInfo = getCurrentTempoInfo(newGridTime);
             const timeSignature = tempoInfo.timeSignature || "4/4";
             const subdivision = tempoInfo.subdivision;
             
@@ -334,7 +409,7 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
           }
         }
 
-        if (newTime >= endPoint) {
+        if (newGridTime >= endPoint) {
           if (loopEnabled) {
             lastBeatRef.current = 0; // Reset beat counter on loop
             return startPoint;
@@ -343,12 +418,13 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
           lastBeatRef.current = 0;
           return 0;
         }
-        return newTime;
+        return newGridTime;
       });
     }, 100);
 
     return () => clearInterval(interval);
-  }, [isPlaying, tempo, song, loopEnabled, loopStart, loopEnd, metronomeEnabled, metronomeVolume]);
+  }, [isPlaying, tempo, song, loopEnabled, loopStart, loopEnd, metronomeEnabled, metronomeVolume, warpModeEnabled, warpMarkers]);
+
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -371,14 +447,16 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
         // Home: Go to start
         if (e.code === 'Home') {
           e.preventDefault();
-          setCurrentTime(0);
+          setGridTime(0);
+          setCurrentTime(getWarpedTime(0));
           return;
         }
         
         // End: Go to end
         if (e.code === 'End' && song) {
           e.preventDefault();
-          setCurrentTime(song.duration);
+          setGridTime(song.duration);
+          setCurrentTime(getWarpedTime(song.duration));
           return;
         }
         
@@ -399,6 +477,7 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
         // R: Reset to start
         if (e.code === 'KeyR' && !e.ctrlKey && !e.metaKey) {
           e.preventDefault();
+          setGridTime(0);
           setCurrentTime(0);
           return;
         }
@@ -427,14 +506,22 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
         // Left Arrow: Jump backward (5 seconds)
         if (e.code === 'ArrowLeft' && !e.shiftKey) {
           e.preventDefault();
-          setCurrentTime((prev) => Math.max(0, prev - 5));
+          setGridTime((prev) => {
+            const newGridTime = Math.max(0, prev - 5);
+            setCurrentTime(getWarpedTime(newGridTime));
+            return newGridTime;
+          });
           return;
         }
         
         // Right Arrow: Jump forward (5 seconds)
         if (e.code === 'ArrowRight' && !e.shiftKey) {
           e.preventDefault();
-          setCurrentTime((prev) => song ? Math.min(song.duration, prev + 5) : prev);
+          setGridTime((prev) => {
+            const newGridTime = song ? Math.min(song.duration, prev + 5) : prev;
+            setCurrentTime(getWarpedTime(newGridTime));
+            return newGridTime;
+          });
           return;
         }
         
@@ -442,8 +529,11 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
         if (e.code === 'ArrowLeft' && e.shiftKey && song) {
           e.preventDefault();
           const sorted = [...song.markers].sort((a, b) => a.time - b.time);
-          const prevMarker = sorted.reverse().find((m) => m.time < currentTime - 1);
-          if (prevMarker) setCurrentTime(prevMarker.time);
+          const prevMarker = sorted.reverse().find((m) => m.time < gridTime - 1);
+          if (prevMarker) {
+            setGridTime(prevMarker.time);
+            setCurrentTime(getWarpedTime(prevMarker.time));
+          }
           return;
         }
         
@@ -451,8 +541,11 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
         if (e.code === 'ArrowRight' && e.shiftKey && song) {
           e.preventDefault();
           const sorted = [...song.markers].sort((a, b) => a.time - b.time);
-          const nextMarker = sorted.find((m) => m.time > currentTime);
-          if (nextMarker) setCurrentTime(nextMarker.time);
+          const nextMarker = sorted.find((m) => m.time > gridTime);
+          if (nextMarker) {
+            setGridTime(nextMarker.time);
+            setCurrentTime(getWarpedTime(nextMarker.time));
+          }
           return;
         }
       }
@@ -460,7 +553,7 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [song, currentTime]);
+  }, [song, gridTime, getWarpedTime]);
 
   const handleTrackVolumeChange = (trackId: string, volume: number) => {
     // Ensure volume is a valid number to prevent crashes
@@ -530,6 +623,8 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
     const sectionStart = marker.time;
     const sectionEnd = nextMarker ? nextMarker.time : song.duration;
 
+    setGridTime(sectionStart);
+    setCurrentTime(getWarpedTime(sectionStart));
     setLoopStart(sectionStart);
     setLoopEnd(sectionEnd);
     setLoopEnabled(true);
@@ -631,10 +726,42 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
     if (!song) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    const scrollLeft = e.currentTarget.scrollLeft || 0;
+    const scrollLeft = timelineScrollRef.current?.scrollLeft || 0;
     const totalWidth = (containerWidth * zoom);
     const percentage = (x + scrollLeft) / totalWidth;
     const time = percentage * song.duration;
+
+    if (warpModeEnabled) {
+      const markerRadiusPx = 8; // Clickable radius around the handle
+      let markerClicked = null;
+
+      for (const marker of warpMarkers) {
+        const gridPositionPx = (marker.gridTime / song.duration) * totalWidth;
+        const distance = Math.abs((x + scrollLeft) - gridPositionPx);
+        if (distance < markerRadiusPx) {
+          markerClicked = marker;
+          break;
+        }
+      }
+
+      if (markerClicked) {
+        // Start dragging existing marker
+        setIsDraggingWarpMarker(true);
+        setDraggedWarpMarkerId(markerClicked.id);
+      } else {
+        // Create a new marker and start dragging it
+        const newMarker: WarpMarker = {
+          id: `warp-${Date.now()}`,
+          sourceTime: time,
+          gridTime: time,
+        };
+        setWarpMarkers(prev => [...prev, newMarker]);
+        setIsDraggingWarpMarker(true);
+        setDraggedWarpMarkerId(newMarker.id);
+      }
+      return; // Skip loop creation logic
+    }
+
 
     setIsDragging(true);
     setDragStartTime(time);
@@ -643,7 +770,24 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
   };
 
   const handleWaveformMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDragging || dragStartTime === null || dragStartX === null || !song) return;
+    if (!song) return;
+
+    if (isDraggingWarpMarker && draggedWarpMarkerId) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const scrollLeft = timelineScrollRef.current?.scrollLeft || 0;
+      const totalWidth = (containerWidth * zoom);
+      const percentage = Math.max(0, Math.min(1, (x + scrollLeft) / totalWidth));
+      const rawTime = percentage * song.duration;
+      const newGridTime = snapToMeasure(rawTime);
+
+      setWarpMarkers(prev => prev.map(m => 
+        m.id === draggedWarpMarkerId ? { ...m, gridTime: newGridTime } : m
+      ));
+      return; // Skip loop creation logic
+    }
+
+    if (!isDragging || dragStartTime === null || dragStartX === null) return;
 
     // Only consider it a drag if moved more than 5 pixels
     if (Math.abs(e.clientX - dragStartX) > 5) {
@@ -669,11 +813,21 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
   };
 
   const handleWaveformMouseUp = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isDraggingWarpMarker) {
+      setIsDraggingWarpMarker(false);
+      setDraggedWarpMarkerId(null);
+      // Persist changes
+      if (song && onSongUpdate) {
+        onSongUpdate({ ...song, warpMarkers });
+      }
+      return;
+    }
+
     if (!hasDragged && dragStartTime !== null && song) {
       // This was a click, not a drag
       const rect = e.currentTarget.getBoundingClientRect();
       const x = e.clientX - rect.left;
-      const scrollLeft = e.currentTarget.scrollLeft || 0;
+      const scrollLeft = timelineScrollRef.current?.scrollLeft || 0;
       const totalWidth = (containerWidth * zoom);
       const percentage = (x + scrollLeft) / totalWidth;
       const clickTime = percentage * song.duration;
@@ -688,7 +842,9 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
       }
 
       // Seek to clicked position
-      setCurrentTime(Math.max(0, Math.min(snappedClickTime, song.duration)));
+      const newGridTime = Math.max(0, Math.min(snappedClickTime, song.duration));
+      setGridTime(newGridTime);
+      setCurrentTime(getWarpedTime(newGridTime));
     }
 
     setIsDragging(false);
@@ -1157,7 +1313,9 @@ const handleUpdateOrDeleteTimelineItem = (
     const percentage = x / timelineWidth;
     const rawTime = percentage * song.duration;
     const snappedTime = snapToMeasure(rawTime);
-    setCurrentTime(Math.max(0, Math.min(snappedTime, song.duration)));
+    const newGridTime = Math.max(0, Math.min(snappedTime, song.duration));
+    setGridTime(newGridTime);
+    setCurrentTime(getWarpedTime(newGridTime));
   };
 
 
@@ -1534,6 +1692,7 @@ const handleUpdateOrDeleteTimelineItem = (
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
                   onClick={() => {
                     setIsPlaying(false);
+                    setGridTime(0);
                     setCurrentTime(0);
                   }}
                 >
@@ -1787,29 +1946,57 @@ const handleUpdateOrDeleteTimelineItem = (
           </Tooltip>
 
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 rounded"
-                style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
-                onClick={() => openTimelineEditor('timesig')}
-              >
-                <Grid3x3 className="w-4 h-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Add Time Signature</TooltipContent>
-          </Tooltip>
-
-          <Separator orientation="vertical" className="h-6" style={{ backgroundColor: '#3A3A3A' }} />
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-9 w-9 rounded"
+                              style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
+                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
+                              onClick={() => openTimelineEditor('timesig')}
+                            >
+                              <Grid3x3 className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Add Time Signature</TooltipContent>
+                        </Tooltip>
+            
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-9 w-9 rounded"
+                              style={{
+                                backgroundColor: warpModeEnabled ? '#3B82F6' : '#404040',
+                                color: '#F1F1F1'
+                              }}
+                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = warpModeEnabled ? '#3B82F6' : '#5A5A5A'}
+                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = warpModeEnabled ? '#3B82F6' : '#404040'}
+                                                onClick={() => {
+                                                  const newMode = !warpModeEnabled;
+                                                  setWarpModeEnabled(newMode);
+                                                  if (newMode && warpMarkers.length === 0 && song) {
+                                                    const initialMarkers: WarpMarker[] = [
+                                                      { id: 'warp-start', sourceTime: 0, gridTime: 0 },
+                                                      { id: 'warp-end', sourceTime: song.duration, gridTime: song.duration },
+                                                    ];
+                                                    setWarpMarkers(initialMarkers);
+                                                  }
+                                                }}
+                                              >
+                                                <Wand2 className="w-4 h-4" />
+                                              </Button>                          </TooltipTrigger>
+                          <TooltipContent>Time Warp Tool</TooltipContent>
+                        </Tooltip>
+            
+                        <Separator orientation="vertical" className="h-6" style={{ backgroundColor: '#3A3A3A' }} />
+            
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"                size="icon"
                 className="h-9 w-9 rounded"
                 style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
@@ -2090,6 +2277,35 @@ const handleUpdateOrDeleteTimelineItem = (
             onMouseMove={handleWaveformMouseMove}
             onMouseUp={handleWaveformMouseUp}
             onMouseLeave={handleWaveformMouseUp}
+            onContextMenu={(e) => {
+              if (!warpModeEnabled || !song) return;
+
+              const rect = e.currentTarget.getBoundingClientRect();
+              const x = e.clientX - rect.left;
+              const scrollLeft = timelineScrollRef.current?.scrollLeft || 0;
+              const totalWidth = (containerWidth * zoom);
+              
+              const markerRadiusPx = 8;
+              let markerClicked = null;
+
+              for (const marker of warpMarkers) {
+                const gridPositionPx = (marker.gridTime / song.duration) * totalWidth;
+                const distance = Math.abs((x + scrollLeft) - gridPositionPx);
+                if (distance < markerRadiusPx) {
+                  markerClicked = marker;
+                  break;
+                }
+              }
+
+              if (markerClicked) {
+                e.preventDefault();
+                const newMarkers = warpMarkers.filter(m => m.id !== markerClicked!.id);
+                setWarpMarkers(newMarkers);
+                if (onSongUpdate) {
+                  onSongUpdate({ ...song, warpMarkers: newMarkers });
+                }
+              }
+            }}
           >
             <div style={{ width: timelineWidth }} className="relative">
               {/* Time Row */}
@@ -2141,23 +2357,32 @@ const handleUpdateOrDeleteTimelineItem = (
               {/* Tempo/Time Signature Row */}
               {showTempoRuler && (
                 <div className="h-7 border-b relative" style={{ backgroundColor: '#171717', borderColor: '#3A3A3A' }}>
-                  {tempoChanges.map((change, i) => {
-                    const position = (change.time / song.duration) * timelineWidth;
-                    return (
-                      <div
-                        key={i}
-                        className="absolute top-0 bottom-0"
-                        style={{ left: position }}
-                      >
-                        <Badge
-                          variant="secondary"
-                          className="absolute top-0.5 left-0 text-xs bg-purple-600 text-white"
+                  {(warpModeEnabled && warpMarkers.length > 1) ? (
+                    <Badge
+                      variant="secondary"
+                      className="absolute top-0.5 left-2 text-xs bg-yellow-600 text-white"
+                    >
+                      Time Warp Active
+                    </Badge>
+                  ) : (
+                    tempoChanges.map((change, i) => {
+                      const position = (change.time / song.duration) * timelineWidth;
+                      return (
+                        <div
+                          key={i}
+                          className="absolute top-0 bottom-0"
+                          style={{ left: position }}
                         >
-                          {change.tempo} BPM · {change.timeSignature}
-                        </Badge>
-                      </div>
-                    );
-                  })}
+                          <Badge
+                            variant="secondary"
+                            className="absolute top-0.5 left-0 text-xs bg-purple-600 text-white"
+                          >
+                            {change.tempo} BPM · {change.timeSignature}
+                          </Badge>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               )}
 
@@ -2264,6 +2489,44 @@ const handleUpdateOrDeleteTimelineItem = (
                   />
                 </>
               )}
+
+              {/* Warp Markers */}
+              {warpModeEnabled && warpMarkers.map(marker => {
+                const gridPosition = (marker.gridTime / song.duration) * timelineWidth;
+                const sourcePosition = (marker.sourceTime / song.duration) * timelineWidth;
+                return (
+                  <React.Fragment key={marker.id}>
+                    {/* Line connecting source to grid */}
+                    <div
+                      className="absolute top-0 h-full border-l border-dashed"
+                      style={{
+                        left: Math.min(gridPosition, sourcePosition),
+                        width: Math.abs(gridPosition - sourcePosition),
+                        borderColor: 'rgba(250, 204, 21, 0.7)',
+                        height: '100%',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        borderTopWidth: '1px',
+                        borderBottomWidth: '0',
+                        borderLeftWidth: '0',
+                        borderRightWidth: '0',
+                      }}
+                    />
+                    {/* Source Marker (thin line) */}
+                    <div
+                      className="absolute top-0 bottom-0 w-0.5 bg-yellow-300 opacity-50 pointer-events-none"
+                      style={{ left: sourcePosition }}
+                    />
+                    {/* Grid Marker (draggable) */}
+                    <div
+                      className="absolute top-0 bottom-0 w-0.5 bg-yellow-500 cursor-ew-resize z-20"
+                      style={{ left: gridPosition }}
+                    >
+                      <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-yellow-500 border-2 border-white" />
+                    </div>
+                  </React.Fragment>
+                );
+              })}
 
               {/* Playhead */}
               <div

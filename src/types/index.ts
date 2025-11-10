@@ -72,6 +72,12 @@ export interface TempoChange {
   };
 }
 
+export interface WarpMarker {
+  id: string;
+  sourceTime: number; // The actual time in the audio file
+  gridTime: number;   // The desired time on the musical grid
+}
+
 // TimeSignatureChange não é mais explicitamente necessário se incluído em TempoChange
 // export interface TimeSignatureChange {
 //   time: number;
@@ -124,6 +130,7 @@ export interface Song {
   tags: string[];
   tempoChanges?: TempoChange[];
   chordMarkers?: ChordMarker[];
+  warpMarkers?: WarpMarker[];
   permissions?: {
     canEdit: boolean;
     canShare: boolean; // Pode ser removido se não houver compartilhamento
