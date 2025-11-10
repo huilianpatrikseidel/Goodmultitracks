@@ -28,6 +28,7 @@ import {
   Save,
   StickyNote,
   Wand2,
+  X,
 } from 'lucide-react';
 import { PlayerViewSettings } from './PlayerViewSettings';
 import { TrackTagSelector } from './TrackTagSelector';
@@ -35,6 +36,7 @@ import { PlaybackControls } from './PlaybackControls';
 import { KeyboardShortcutsHelp } from './KeyboardShortcutsHelp';
 import { MixPresetsManager } from './MixPresetsManager';
 import { MixerDock } from './MixerDock';
+import { NotesPanel } from './NotesPanel';
 import { Button } from './ui/button';
 import { Slider } from './ui/slider';
 import { Input } from './ui/input';
@@ -148,6 +150,9 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
   // Mix presets state
   const [mixPresets, setMixPresets] = useState<MixPreset[]>([]);
   const [pinnedTracks, setPinnedTracks] = useState<Set<string>>(new Set());
+
+  // Notes panel state
+  const [notesPanelVisible, setNotesPanelVisible] = useState(false);
 
   // Metronome state
   const [metronomeEnabled, setMetronomeEnabled] = useState(false);
@@ -694,6 +699,30 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
         next.add(trackId);
       }
       return next;
+    });
+  };
+
+  // Song Notes Handlers
+  const handleAddSongNote = (content: string, isPrivate: boolean, time?: number) => {
+    if (!song) return;
+    const newNote = {
+      id: `note-${Date.now()}`,
+      userId: 'current-user', // In a real app, this would come from auth
+      content,
+      time,
+      isPrivate,
+    };
+    onSongUpdate({
+      ...song,
+      notes: [...(song.notes || []), newNote],
+    });
+  };
+
+  const handleDeleteSongNote = (noteId: string) => {
+    if (!song) return;
+    onSongUpdate({
+      ...song,
+      notes: (song.notes || []).filter(n => n.id !== noteId),
     });
   };
 
@@ -1260,14 +1289,14 @@ const handleUpdateOrDeleteTimelineItem = (
   const measureSkip = getMeasureSkip();
   const showBeats = zoom >= 6; // Show beats at 600%+
 
-  const measureBars: { time: number; measure: number | null; beat: number; isBeat: boolean }[] = []; // Tipo explícito
+  const measureBars: { time: number; measure: number | null; beat: number; isBeat: boolean; isCompound?: boolean; isIrregular?: boolean }[] = []; // Tipo explícito
   let currentMeasureTime = 0;
   let measureCount = 0;
 
   while (currentMeasureTime < song.duration && measureCount < 1000) { // Limite adicionado
     const currentTempo = tempoChanges.slice().reverse().find(tc => tc.time <= currentMeasureTime) || tempoChanges[0];
 
-    const [numerator] = (currentTempo.timeSignature || '4/4').split('/').map(Number);
+    const [numerator, denominator] = (currentTempo.timeSignature || '4/4').split('/').map(Number);
     const beatsPerMeasure = numerator || 4;
     const secondsPerBeat = 60 / (currentTempo.tempo || song.tempo || 120);
     const measureDuration = beatsPerMeasure * secondsPerBeat;
@@ -1276,6 +1305,11 @@ const handleUpdateOrDeleteTimelineItem = (
        console.error("Invalid measure duration for bars:", measureDuration, currentTempo);
        break;
      }
+
+    // Check if compound time (6/8, 9/8, 12/8)
+    const isCompound = denominator === 8 && [6, 9, 12].includes(numerator);
+    // Check if irregular (has subdivision pattern)
+    const isIrregular = !!currentTempo.subdivision;
 
     if (showBeats) {
       // Show individual beats at very high zoom
@@ -1287,6 +1321,8 @@ const handleUpdateOrDeleteTimelineItem = (
             measure: beat === 0 ? measureCount + 1 : null,
             beat: beat + 1,
             isBeat: beat > 0,
+            isCompound,
+            isIrregular,
           });
         }
       }
@@ -1298,6 +1334,8 @@ const handleUpdateOrDeleteTimelineItem = (
         measure: shouldShow ? measureCount + 1 : null,
         beat: 1,
         isBeat: false,
+        isCompound,
+        isIrregular,
       });
     }
 
@@ -1712,7 +1750,7 @@ const handleUpdateOrDeleteTimelineItem = (
                     backgroundColor: isPlaying ? '#4ADE80' : '#404040',
                     color: '#F1F1F1'
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isPlaying ? '#22c55e' : '#5A5A5A'}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isPlaying ? '#22C55E' : '#5A5A5A'}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = isPlaying ? '#4ADE80' : '#404040'}
                   onClick={() => setIsPlaying(!isPlaying)}
                 >
@@ -1736,7 +1774,7 @@ const handleUpdateOrDeleteTimelineItem = (
                     backgroundColor: loopEnabled ? '#3B82F6' : '#404040',
                     color: '#F1F1F1'
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = loopEnabled ? '#3B82F6' : '#5A5A5A'}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = loopEnabled ? '#2563EB' : '#5A5A5A'}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = loopEnabled ? '#3B82F6' : '#404040'}
                   onClick={() => setLoopEnabled(!loopEnabled)}
                 >
@@ -1782,7 +1820,7 @@ const handleUpdateOrDeleteTimelineItem = (
                     backgroundColor: metronomeEnabled ? '#3B82F6' : '#404040',
                     color: '#F1F1F1'
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = metronomeEnabled ? '#3B82F6' : '#5A5A5A'}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = metronomeEnabled ? '#2563EB' : '#5A5A5A'}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = metronomeEnabled ? '#3B82F6' : '#404040'}
                   onClick={() => setMetronomeEnabled(!metronomeEnabled)}
                 >
@@ -1801,7 +1839,7 @@ const handleUpdateOrDeleteTimelineItem = (
                     backgroundColor: metronomeEnabled ? '#3B82F6' : '#404040',
                     color: '#F1F1F1'
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = metronomeEnabled ? '#3B82F6' : '#5A5A5A'}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = metronomeEnabled ? '#2563EB' : '#5A5A5A'}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = metronomeEnabled ? '#3B82F6' : '#404040'}
                 >
                   <ChevronDown className="w-3 h-3" />
@@ -1862,7 +1900,7 @@ const handleUpdateOrDeleteTimelineItem = (
                   backgroundColor: snapEnabled ? '#3B82F6' : '#404040',
                   color: '#F1F1F1'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = snapEnabled ? '#3B82F6' : '#5A5A5A'}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = snapEnabled ? '#2563EB' : '#5A5A5A'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = snapEnabled ? '#3B82F6' : '#404040'}
                 onClick={() => setSnapEnabled(!snapEnabled)}
               >
@@ -1946,68 +1984,85 @@ const handleUpdateOrDeleteTimelineItem = (
           </Tooltip>
 
           <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-9 w-9 rounded"
-                              style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
-                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
-                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
-                              onClick={() => openTimelineEditor('timesig')}
-                            >
-                              <Grid3x3 className="w-4 h-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Add Time Signature</TooltipContent>
-                        </Tooltip>
-            
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-9 w-9 rounded"
-                              style={{
-                                backgroundColor: warpModeEnabled ? '#3B82F6' : '#404040',
-                                color: '#F1F1F1'
-                              }}
-                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = warpModeEnabled ? '#3B82F6' : '#5A5A5A'}
-                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = warpModeEnabled ? '#3B82F6' : '#404040'}
-                                                onClick={() => {
-                                                  const newMode = !warpModeEnabled;
-                                                  setWarpModeEnabled(newMode);
-                                                  if (newMode && warpMarkers.length === 0 && song) {
-                                                    const initialMarkers: WarpMarker[] = [
-                                                      { id: 'warp-start', sourceTime: 0, gridTime: 0 },
-                                                      { id: 'warp-end', sourceTime: song.duration, gridTime: song.duration },
-                                                    ];
-                                                    setWarpMarkers(initialMarkers);
-                                                  }
-                                                }}
-                                              >
-                                                <Wand2 className="w-4 h-4" />
-                                              </Button>                          </TooltipTrigger>
-                          <TooltipContent>Time Warp Tool</TooltipContent>
-                        </Tooltip>
-            
-                        <Separator orientation="vertical" className="h-6" style={{ backgroundColor: '#3A3A3A' }} />
-            
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"                size="icon"
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
                 className="h-9 w-9 rounded"
                 style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
-                onClick={handleExportProject}
+                onClick={() => openTimelineEditor('timesig')}
               >
-                <Download className="w-4 h-4" />
+                <Grid3x3 className="w-4 h-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Export Project</TooltipContent>
+            <TooltipContent>Add Time Signature</TooltipContent>
           </Tooltip>
+            
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 rounded"
+                style={{
+                  backgroundColor: warpModeEnabled ? '#3B82F6' : '#404040',
+                  color: '#F1F1F1'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = warpModeEnabled ? '#2563EB' : '#5A5A5A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = warpModeEnabled ? '#3B82F6' : '#404040'}
+                onClick={() => {
+                  const newMode = !warpModeEnabled;
+                  setWarpModeEnabled(newMode);
+                  if (newMode && warpMarkers.length === 0 && song) {
+                    const initialMarkers: WarpMarker[] = [
+                      { id: 'warp-start', sourceTime: 0, gridTime: 0 },
+                      { id: 'warp-end', sourceTime: song.duration, gridTime: song.duration },
+                    ];
+                    setWarpMarkers(initialMarkers);
+                  }
+                }}
+              >
+                <Wand2 className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Time Warp Tool</TooltipContent>
+          </Tooltip>
+            
+                        <Separator orientation="vertical" className="h-6" style={{ backgroundColor: '#3A3A3A' }} />
+            
+                                  <Tooltip>
+            
+                                    <TooltipTrigger asChild>
+            
+                                      <Button
+            
+                                        variant="ghost"
+            
+                                        size="icon"
+            
+                                        className="h-9 w-9 rounded"
+            
+                                        style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
+            
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+            
+                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
+            
+                                        onClick={handleExportProject}
+            
+                                      >
+            
+                                        <Download className="w-4 h-4" />
+            
+                                      </Button>
+            
+                                    </TooltipTrigger>
+            
+                                    <TooltipContent>Export Project</TooltipContent>
+            
+                                  </Tooltip>
 
           {song.source !== 'project' && (
             <Tooltip>
@@ -2333,14 +2388,33 @@ const handleUpdateOrDeleteTimelineItem = (
                   // Skip rendering if no label to show (unless it's a beat marker)
                   if (!bar.measure && !bar.isBeat) return null;
 
+                  // Determine border color based on time signature type
+                  let borderColor = '#3A3A3A'; // Default
+                  let backgroundColor = 'transparent';
+                  
+                  if (bar.isCompound) {
+                    borderColor = '#8B5CF6'; // Purple for compound time
+                    backgroundColor = 'rgba(139, 92, 246, 0.05)';
+                  } else if (bar.isIrregular) {
+                    borderColor = '#F59E0B'; // Amber for irregular time
+                    backgroundColor = 'rgba(245, 158, 11, 0.05)';
+                  } else if (bar.isBeat) {
+                    borderColor = '#2B2B2B'; // Darker for beats
+                  }
+
                   return (
                     <div
                       key={i}
-                      className="absolute top-0 bottom-0 border-l"
-                      style={{ left: position, borderColor: bar.isBeat ? '#2B2B2B' : '#3A3A3A' }}
+                      className="absolute top-0 bottom-0 border-l transition-colors"
+                      style={{ 
+                        left: position, 
+                        borderColor,
+                        backgroundColor,
+                      }}
+                      title={bar.isCompound ? 'Compound Time' : bar.isIrregular ? 'Irregular Time' : undefined}
                     >
                       {bar.measure && (
-                        <span className="absolute top-0.5 left-1 text-xs" style={{ color: '#9E9E9E' }}>
+                        <span className="absolute top-0.5 left-1 text-xs font-semibold" style={{ color: bar.isCompound ? '#8B5CF6' : bar.isIrregular ? '#F59E0B' : '#9E9E9E' }}>
                           {bar.measure}
                         </span>
                       )}
@@ -2685,6 +2759,48 @@ const handleUpdateOrDeleteTimelineItem = (
         />
       )}
 
+      {/* Notes Panel (Bottom) */}
+      {notesPanelVisible && song && (
+        <div 
+          className="w-full flex flex-col border-t"
+          style={{ 
+            backgroundColor: '#1E1E1E',
+            borderColor: '#3A3A3A',
+            height: '240px',
+          }}
+        >
+          {/* Header */}
+          <div 
+            className="h-10 border-b flex items-center justify-between px-3"
+            style={{ 
+              backgroundColor: '#2B2B2B',
+              borderColor: '#3A3A3A',
+            }}
+          >
+            <h3 className="text-sm font-semibold" style={{ color: '#F1F1F1' }}>Song Notes</h3>
+            <button
+              onClick={() => setNotesPanelVisible(false)}
+              className="p-1 hover:bg-gray-700 rounded"
+            >
+              <X className="w-4 h-4" style={{ color: '#F1F1F1' }} />
+            </button>
+          </div>
+
+          {/* Content */}
+          <div 
+            className="flex-1 overflow-y-auto px-3 py-3"
+            style={{ backgroundColor: '#1E1E1E' }}
+          >
+            <NotesPanel
+              notes={song.notes || []}
+              currentUser={{ id: 'current-user', name: 'You' }}
+              onAddNote={handleAddSongNote}
+              onDeleteNote={handleDeleteSongNote}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Bottom Bar (Zoom + Scrollbar) */}
       <div className="border-t flex items-center h-8" style={{ backgroundColor: '#2B2B2B', borderColor: '#3A3A3A' }}>
         {/* Zoom Controls - Aligned with sidebar */}
@@ -2894,6 +3010,26 @@ const handleUpdateOrDeleteTimelineItem = (
             </TooltipTrigger>
             <TooltipContent>{mixerDockVisible ? 'Hide Mixer Dock' : 'Show Mixer Dock'}</TooltipContent>
           </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded"
+                style={{
+                  backgroundColor: notesPanelVisible ? '#3B82F6' : '#404040',
+                  color: '#F1F1F1'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = notesPanelVisible ? '#3B82F6' : '#5A5A5A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = notesPanelVisible ? '#3B82F6' : '#404040'}
+                onClick={() => setNotesPanelVisible(!notesPanelVisible)}
+              >
+                <StickyNote className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{notesPanelVisible ? 'Hide Notes Panel' : 'Show Notes Panel'}</TooltipContent>
+          </Tooltip>
         </div>
 
         {/* Right: Performance Mode */}
@@ -2903,7 +3039,7 @@ const handleUpdateOrDeleteTimelineItem = (
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 rounded"
+                className="h-9 w-9 rounded"
                 style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}

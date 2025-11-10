@@ -4,9 +4,97 @@ import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Checkbox } from './ui/checkbox';
+import { Input } from './ui/input';
+import { Button } from './ui/button';
 import { useLanguage } from '../lib/LanguageContext';
 import { Language } from '../lib/translations';
 import { useTheme } from '../lib/ThemeContext';
+import { getMetronomeFrequencies, setMetronomeFrequencies, resetMetronomeFrequencies } from '../lib/metronome';
+
+// Metronome Sound Settings Component
+function MetronomeSoundSettings() {
+  const [frequencies, setFrequencies] = React.useState(getMetronomeFrequencies());
+
+  const handleFrequencyChange = (type: 'strongBeat' | 'normalBeat' | 'subdivision', value: string) => {
+    const numValue = parseInt(value, 10);
+    if (!isNaN(numValue) && numValue >= 100 && numValue <= 2000) {
+      const updated = { ...frequencies, [type]: numValue };
+      setFrequencies(updated);
+      setMetronomeFrequencies(updated);
+    }
+  };
+
+  const handleReset = () => {
+    resetMetronomeFrequencies();
+    setFrequencies(getMetronomeFrequencies());
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-3">
+        <div className="space-y-1.5">
+          <Label htmlFor="strong-beat-freq" className="text-sm">
+            Strong Beat Frequency (Hz)
+          </Label>
+          <Input
+            id="strong-beat-freq"
+            type="number"
+            min="100"
+            max="2000"
+            value={frequencies.strongBeat}
+            onChange={(e) => handleFrequencyChange('strongBeat', e.target.value)}
+            className="w-full"
+          />
+          <p className="text-xs text-gray-500">Default: 1000 Hz</p>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="normal-beat-freq" className="text-sm">
+            Normal Beat Frequency (Hz)
+          </Label>
+          <Input
+            id="normal-beat-freq"
+            type="number"
+            min="100"
+            max="2000"
+            value={frequencies.normalBeat}
+            onChange={(e) => handleFrequencyChange('normalBeat', e.target.value)}
+            className="w-full"
+          />
+          <p className="text-xs text-gray-500">Default: 800 Hz</p>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="subdivision-freq" className="text-sm">
+            Subdivision Frequency (Hz)
+          </Label>
+          <Input
+            id="subdivision-freq"
+            type="number"
+            min="100"
+            max="2000"
+            value={frequencies.subdivision}
+            onChange={(e) => handleFrequencyChange('subdivision', e.target.value)}
+            className="w-full"
+          />
+          <p className="text-xs text-gray-500">Default: 600 Hz</p>
+        </div>
+      </div>
+
+      <Button
+        variant="outline"
+        onClick={handleReset}
+        className="w-full"
+      >
+        Reset to Defaults
+      </Button>
+
+      <p className="text-xs text-gray-500">
+        Customize the frequencies used for different metronome clicks. Changes apply immediately.
+      </p>
+    </div>
+  );
+}
 
 export function SettingsPanel() {
   const { t, language, setLanguage } = useLanguage();
@@ -95,6 +183,19 @@ export function SettingsPanel() {
               Direcione o metrônomo e guias para uma saída separada (se disponível).
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Metronome Sound Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Music className="w-5 h-5" />
+            Metronome Sound
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-4">
+          <MetronomeSoundSettings />
         </CardContent>
       </Card>
 

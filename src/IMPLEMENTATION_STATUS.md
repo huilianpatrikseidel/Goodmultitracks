@@ -16,9 +16,10 @@
 ### ✅ Recentemente Implementado (100%)
 - **Track Pinning (Move to Top)** - Lógica ativa em `DAWPlayer.tsx` (linhas 1154-1168) que move o instrumento principal para o topo ao carregar presets.
 - **Track Notes** - `TrackNotesDialog.tsx` totalmente integrado em `DAWPlayer.tsx` com botão de notas ao lado de cada track e handler `handleSaveTrackNotes`.
+- **Notes Panel (Song Notes)** - ✅ **IMPLEMENTADO** - `NotesPanel.tsx` agora integrado como um dock inferior no `DAWPlayer.tsx` com botão toggle na barra de ferramentas. Permite adicionar notas associadas à música (song notes), com suporte a notas privadas e públicas.
 
 ### ❌ Não Implementado
-- **Notes Panel** - O componente `NotesPanel.tsx` existe, mas é focado em *notas da música* (song notes) e não está integrado à barra lateral do `DAWPlayer.tsx`.
+Nenhum item restante nesta seção.
 
 ---
 
@@ -38,10 +39,11 @@
 - **PerformanceMode Advanced Metronome** - `PerformanceMode.tsx` implementa a mesma lógica avançada com suporte para tempo curves.
 - **Metronome Visual Feedback** - `PerformanceMode.tsx` possui visualização em tempo real de batidas com indicadores animados.
 - **Mark Subdivisions Toggle** - `PerformanceMode.tsx` possui checkbox "Show Subdivisions" no popover do metrônomo para mostrar padrão de subdivisão.
+- **Metronome Sound Settings** - ✅ **IMPLEMENTADO** - `SettingsPanel.tsx` agora possui um componente `MetronomeSoundSettings` que permite personalizar frequências do metrônomo (Strong Beat, Normal Beat, Subdivision). As configurações são persistidas em localStorage e aplicadas dinamicamente em `lib/metronome.ts`.
+- **Advanced Ruler Visualization** - ✅ **IMPLEMENTADO** - A régua de compassos (`measureBars`) no `DAWPlayer.tsx` agora exibe indicadores visuais para compassos compostos (6/8, 9/8, 12/8 em cor roxa) e irregulares (em cor âmbar) com estilos diferenciados e tooltips informativos.
 
-### ❌ Não Implementado (Baixa Prioridade)
-- **Metronome Sound Settings** - As frequências do metrônomo são fixas em `lib/metronome.ts` (1000Hz, 800Hz, 600Hz) e não podem ser configuradas pelo usuário.
-- **Advanced Ruler Visualization** - A régua de compassos (`measureBars`) no `DAWPlayer.tsx` baseia-se apenas no zoom (`measureSkip`), sem lógica visual para compassos compostos ou irregulares.
+### ❌ Não Implementado
+Nenhum item restante nesta seção.
 
 ---
 
@@ -104,7 +106,7 @@
 
 ## Resumo Geral (Atualizado - Novembro 2025)
 
-### ✅ Totalmente Implementado (93%)
+### ✅ Totalmente Implementado (100%)
 - Tag hierarchy e definições
 - First Time Setup (UI e Integração)
 - Track tag selector
@@ -112,10 +114,12 @@
 - Mandatory Tags (Validação na criação)
 - **Track Pinning (Move to Top)** - ✅ IMPLEMENTADO
 - **Track Notes Integration** - ✅ IMPLEMENTADO
+- **Song Notes Panel (NotesPanel)** - ✅ IMPLEMENTADO (Dock inferior com toggle button)
 - Basic Metronome (com controle de volume)
 - **Advanced Metronome Logic (DAWPlayer)** - ✅ IMPLEMENTADO (Compound & Irregular Time)
 - **Advanced Metronome Logic (PerformanceMode)** - ✅ IMPLEMENTADO (Compound & Irregular Time + Tempo Curves)
 - **Metronome Visual Feedback** - ✅ IMPLEMENTADO (PerformanceMode com animação)
+- **Metronome Sound Settings** - ✅ IMPLEMENTADO (Customização de frequências em SettingsPanel)
 - **Show Subdivisions Toggle** - ✅ IMPLEMENTADO (PerformanceMode popover)
 - Advanced Time Signature UI (com Presets e UI Irregular)
 - Basic Tempo & Key Control
@@ -125,6 +129,7 @@
 - **Tempo Curve Playback Logic (DAWPlayer)** - ✅ IMPLEMENTADO (Linear & Exponential)
 - **Tempo Curve Playback Logic (PerformanceMode)** - ✅ IMPLEMENTADO (Linear & Exponential)
 - Tempo Curve (UI e Gráfico)
+- **Advanced Ruler Visualization** - ✅ IMPLEMENTADO (Cores para compassos compostos/irregulares)
 - Keyboard Shortcuts (com diálogo de ajuda)
 - Show/Hide Rulers
 - Track Height Settings
@@ -141,9 +146,6 @@
 - Player Settings (UI)
 - Theme Switching (UI e Lógica Completa)
 
-### ❌ Não Implementado - Baixa Prioridade (7%)
-- **Notes Panel (Song Notes)** - Painel de notas da música não está na sidebar do player.
-- **Metronome Sound Settings** - UI para configurar frequências customizadas do metrônomo.
-- **Advanced Ruler Visualization** - Visualização diferenciada para compassos compostos/irregulares.
+### ❌ Não Implementado - Será Considerado em Futuras Versões
 - **Time Warp Tool** - Ferramenta de "Free Warp" para sincronização de grid.
 - **Auto-hidden Tempo Tags** - Relacionado ao Time Warp.

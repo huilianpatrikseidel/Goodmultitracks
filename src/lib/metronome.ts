@@ -3,6 +3,15 @@
  * Creates audio clicks for strong beats and weak beats
  */
 
+// Default frequencies
+const DEFAULT_FREQUENCIES = {
+  strongBeat: 1000,
+  normalBeat: 800,
+  subdivision: 600,
+};
+
+const STORAGE_KEY = 'metronome_frequencies';
+
 let audioContext: AudioContext | null = null;
 
 function getAudioContext(): AudioContext {
@@ -10,6 +19,43 @@ function getAudioContext(): AudioContext {
     audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
   }
   return audioContext;
+}
+
+/**
+ * Get metronome frequencies from localStorage or return defaults
+ */
+export function getMetronomeFrequencies() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.warn('Failed to load metronome frequencies from localStorage');
+  }
+  return DEFAULT_FREQUENCIES;
+}
+
+/**
+ * Save metronome frequencies to localStorage
+ */
+export function setMetronomeFrequencies(frequencies: typeof DEFAULT_FREQUENCIES) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(frequencies));
+  } catch (e) {
+    console.warn('Failed to save metronome frequencies to localStorage');
+  }
+}
+
+/**
+ * Reset metronome frequencies to defaults
+ */
+export function resetMetronomeFrequencies() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (e) {
+    console.warn('Failed to reset metronome frequencies');
+  }
 }
 
 /**
@@ -32,16 +78,19 @@ export function playMetronomeClick(
   const oscillator = ctx.createOscillator();
   const gainNode = ctx.createGain();
   
-  // Default frequencies: Strong beat (1000Hz), Beat (800Hz), Subdivision (600Hz)
+  // Get frequencies from settings or use defaults
+  const frequencies = getMetronomeFrequencies();
+  
+  // Determine frequency
   let frequency: number;
   if (customFreq) {
     frequency = customFreq;
   } else if (isSubdivision) {
-    frequency = 600;
+    frequency = frequencies.subdivision;
   } else if (isStrongBeat) {
-    frequency = 1000;
+    frequency = frequencies.strongBeat;
   } else {
-    frequency = 800;
+    frequency = frequencies.normalBeat;
   }
   
   oscillator.frequency.setValueAtTime(frequency, currentTime);
