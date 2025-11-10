@@ -60,9 +60,9 @@ Nenhum item restante nesta seção.
 - **Tempo Curve (Rallentando)** - `DAWPlayer.tsx` agora implementa interpolação gradual de tempo (linear e exponencial) na função `getCurrentTempo()` dentro do loop de playback.
 - **Chord Ruler Response** - A régua de acordes no `DAWPlayer.tsx` (linha 2138) agora transpõe dinamicamente usando `transposeKey(chord.chord, keyShift)`.
 
-### ❌ Não Implementado
-- **Time Warp Tool** - Nenhuma ferramenta de "Free Warp" para arrastar pontos de áudio e sincronizar o grid existe.
-- **Auto-hidden Tempo Tags** - Relacionado ao Time Warp, não implementado.
+### ✅ Implementado (Parcial)
+- **Time Warp Tool** - Ferramenta "Time Warp" adicionada com UI para criar/editar Warp Markers e integração com o player. Suporta adicionar, editar e remover marcadores; a reprodução usa interpolação entre marcadores para mapear gridTime -> sourceTime.
+- **Auto-hidden Tempo Tags** - Ainda não implementado (relacionado ao Time Warp).
 
 ---
 
@@ -146,6 +146,8 @@ Nenhum item restante nesta seção.
 - Player Settings (UI)
 - Theme Switching (UI e Lógica Completa)
 
-### ❌ Não Implementado - Será Considerado em Futuras Versões
-- **Time Warp Tool** - Ferramenta de "Free Warp" para sincronização de grid.
-- **Auto-hidden Tempo Tags** - Relacionado ao Time Warp.
+### ✅ Implementado (Parcial) - Time Warp
+- **Time Warp Tool** - Implementado: adicionada janela "Time Warp Tool" para gerenciar Warp Markers (add/edit/delete). O player aplica warp durante a reprodução usando interpolação linear/extrapolação entre marcadores.
+- **Unit tests** - Adicionados testes unitários para a função de mapeamento (interpolação/extrapolação) em `src/lib/warpUtils.test.ts`.
+- **UX improvements** - Pequenos refinamentos implementados: ESC fecha o editor inline, foco automático no campo "Source" ao abrir, e os campos aceitam formato `mm:ss` além de segundos decimais.
+- **Auto-hidden Tempo Tags** - Ainda não implementado.

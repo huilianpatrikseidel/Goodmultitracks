@@ -40,14 +40,17 @@ import { NotesPanel } from './NotesPanel';
 import { Button } from './ui/button';
 import { Slider } from './ui/slider';
 import { Input } from './ui/input';
-import { Song, AudioTrack, SectionMarker, TimeSignatureChange, TempoChange, ChordMarker, MixPreset, TrackTag } from '../types'; // Importado TrackTag
+import { getWarpedTime as utilsGetWarpedTime, parseTimeInput } from '../lib/warpUtils';
+
 import { Badge } from './ui/badge';
+import { Song, AudioTrack, SectionMarker, TempoChange, ChordMarker, MixPreset, TrackTag, WarpMarker } from '../types';
 import { Separator } from './ui/separator';
 import { CreateProjectDialog } from './CreateProjectDialog';
 import { TimelineEditorDialog } from './TimelineEditorDialog';
 import { ChordDiagram } from './ChordDiagram';
 import { TrackNotesDialog } from './TrackNotesDialog'; // << IMPORTADO
 import { gainToDb, gainToSlider, sliderToGain, formatDb, parseDbInput, hexToRgba } from '../lib/audioUtils';
+import { TimeWarpTool } from './TimeWarpTool';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -146,6 +149,36 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const [warpModeEnabled, setWarpModeEnabled] = useState(false);
   const [warpMarkers, setWarpMarkers] = useState<WarpMarker[]>(song?.warpMarkers || []);
+    const [timeWarpToolOpen, setTimeWarpToolOpen] = useState(false);
+    const [hoveredWarpMarkerId, setHoveredWarpMarkerId] = useState<string | null>(null);
+    const [editingWarpMarkerId, setEditingWarpMarkerId] = useState<string | null>(null);
+    const [editingSourceInput, setEditingSourceInput] = useState('');
+    const [editingGridInput, setEditingGridInput] = useState('');
+
+    // Autofocus and ESC-to-cancel for inline warp editor
+    useEffect(() => {
+      if (!editingWarpMarkerId) return;
+
+      const handler = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          setEditingWarpMarkerId(null);
+        }
+      };
+
+      window.addEventListener('keydown', handler);
+
+      // Focus source input if present
+      setTimeout(() => {
+        try {
+          const el = document.getElementById(`warp-src-${editingWarpMarkerId}`) as HTMLInputElement | null;
+          if (el) el.focus();
+        } catch (err) {
+          // ignore
+        }
+      }, 0);
+
+      return () => window.removeEventListener('keydown', handler);
+    }, [editingWarpMarkerId]);
   
   // Mix presets state
   const [mixPresets, setMixPresets] = useState<MixPreset[]>([]);
@@ -265,66 +298,7 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
   }, [isPlaying]);
 
   const getWarpedTime = (currentGridTime: number): number => {
-    if (!warpModeEnabled || warpMarkers.length < 2) {
-      return currentGridTime;
-    }
-
-    const sortedMarkers = [...warpMarkers].sort((a, b) => a.gridTime - b.gridTime);
-
-    // Find the two markers that bracket the current grid time
-    let prevMarker: WarpMarker | null = null;
-    let nextMarker: WarpMarker | null = null;
-
-    for (const marker of sortedMarkers) {
-      if (marker.gridTime <= currentGridTime) {
-        prevMarker = marker;
-      } else {
-        nextMarker = marker;
-        break;
-      }
-    }
-
-    // Case 1: Before the first marker
-    if (!prevMarker && nextMarker) {
-      // Extrapolate backwards from the first two markers
-      const firstMarker = sortedMarkers[0];
-      const secondMarker = sortedMarkers[1];
-      if (!secondMarker) return currentGridTime; // Should not happen with length check
-
-      const gridDiff = secondMarker.gridTime - firstMarker.gridTime;
-      const sourceDiff = secondMarker.sourceTime - firstMarker.sourceTime;
-      const rate = sourceDiff / gridDiff;
-
-      return firstMarker.sourceTime - ((firstMarker.gridTime - currentGridTime) * rate);
-    }
-
-    // Case 2: After the last marker
-    if (prevMarker && !nextMarker) {
-      // Extrapolate forwards from the last two markers
-      const lastMarker = sortedMarkers[sortedMarkers.length - 1];
-      const secondLastMarker = sortedMarkers[sortedMarkers.length - 2];
-      if (!secondLastMarker) return currentGridTime; // Should not happen with length check
-
-      const gridDiff = lastMarker.gridTime - secondLastMarker.gridTime;
-      const sourceDiff = lastMarker.sourceTime - secondLastMarker.sourceTime;
-      const rate = sourceDiff / gridDiff;
-
-      return lastMarker.sourceTime + ((currentGridTime - lastMarker.gridTime) * rate);
-    }
-
-    // Case 3: Between two markers
-    if (prevMarker && nextMarker) {
-      const gridDiff = nextMarker.gridTime - prevMarker.gridTime;
-      if (gridDiff === 0) return prevMarker.sourceTime; // Avoid division by zero
-
-      const sourceDiff = nextMarker.sourceTime - prevMarker.sourceTime;
-      const progress = (currentGridTime - prevMarker.gridTime) / gridDiff;
-      
-      return prevMarker.sourceTime + (progress * sourceDiff);
-    }
-
-    // Default case (e.g., only one marker)
-    return currentGridTime;
+    return utilsGetWarpedTime(currentGridTime, warpMarkers, warpModeEnabled);
   };
 
   // Simulate playback with advanced metronome and tempo curves
@@ -778,11 +752,12 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
         setIsDraggingWarpMarker(true);
         setDraggedWarpMarkerId(markerClicked.id);
       } else {
-        // Create a new marker and start dragging it
+        // Create a new marker and start dragging it (snap grid time to measure)
+        const snapped = snapToMeasure(time);
         const newMarker: WarpMarker = {
           id: `warp-${Date.now()}`,
           sourceTime: time,
-          gridTime: time,
+          gridTime: snapped,
         };
         setWarpMarkers(prev => [...prev, newMarker]);
         setIsDraggingWarpMarker(true);
@@ -2029,6 +2004,23 @@ const handleUpdateOrDeleteTimelineItem = (
             </TooltipTrigger>
             <TooltipContent>Time Warp Tool</TooltipContent>
           </Tooltip>
+          
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 rounded"
+                  style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
+                  onClick={() => setTimeWarpToolOpen(true)}
+                >
+                  <Edit className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Open Time Warp Tool</TooltipContent>
+            </Tooltip>
             
                         <Separator orientation="vertical" className="h-6" style={{ backgroundColor: '#3A3A3A' }} />
             
@@ -2564,40 +2556,104 @@ const handleUpdateOrDeleteTimelineItem = (
                 </>
               )}
 
-              {/* Warp Markers */}
-              {warpModeEnabled && warpMarkers.map(marker => {
+              {/* Warp Markers - always rendered (subtle when warpMode disabled) */}
+              {warpMarkers.map(marker => {
                 const gridPosition = (marker.gridTime / song.duration) * timelineWidth;
                 const sourcePosition = (marker.sourceTime / song.duration) * timelineWidth;
+                const showFull = warpModeEnabled;
                 return (
                   <React.Fragment key={marker.id}>
-                    {/* Line connecting source to grid */}
+                    {/* Line connecting source to grid (visible only when warp mode active) */}
+                    {showFull && Math.abs(gridPosition - sourcePosition) > 2 && (
+                      <div
+                        className="absolute top-0 h-full border-l border-dashed pointer-events-none"
+                        style={{
+                          left: Math.min(gridPosition, sourcePosition),
+                          width: Math.abs(gridPosition - sourcePosition),
+                          borderColor: 'rgba(250, 204, 21, 0.7)',
+                          height: '100%',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          borderTopWidth: '1px',
+                        }}
+                      />
+                    )}
+
+                    {/* Source Marker (thin line) - subtle when inactive */}
                     <div
-                      className="absolute top-0 h-full border-l border-dashed"
-                      style={{
-                        left: Math.min(gridPosition, sourcePosition),
-                        width: Math.abs(gridPosition - sourcePosition),
-                        borderColor: 'rgba(250, 204, 21, 0.7)',
-                        height: '100%',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        borderTopWidth: '1px',
-                        borderBottomWidth: '0',
-                        borderLeftWidth: '0',
-                        borderRightWidth: '0',
-                      }}
-                    />
-                    {/* Source Marker (thin line) */}
-                    <div
-                      className="absolute top-0 bottom-0 w-0.5 bg-yellow-300 opacity-50 pointer-events-none"
+                      className={`absolute top-0 bottom-0 w-0.5 ${showFull ? 'bg-yellow-300 opacity-50' : 'bg-yellow-600 opacity-20'} pointer-events-none`}
                       style={{ left: sourcePosition }}
                     />
-                    {/* Grid Marker (draggable) */}
-                    <div
-                      className="absolute top-0 bottom-0 w-0.5 bg-yellow-500 cursor-ew-resize z-20"
-                      style={{ left: gridPosition }}
-                    >
-                      <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-yellow-500 border-2 border-white" />
-                    </div>
+
+                          {/* Grid Marker (handle) - clickable to open tool when inactive, draggable when active */}
+                          <div
+                            className={`absolute top-0 bottom-0 w-0.5 ${showFull ? 'bg-yellow-500 cursor-ew-resize z-20' : 'bg-yellow-500/30 z-10'}`}
+                            style={{ left: gridPosition }}
+                            onClick={(e) => {
+                              // If warp mode not active, open Time Warp Tool for quick edit
+                              if (!warpModeEnabled) {
+                                e.stopPropagation();
+                                setTimeWarpToolOpen(true);
+                              }
+                            }}
+                            onMouseEnter={() => setHoveredWarpMarkerId(marker.id)}
+                            onMouseLeave={() => setHoveredWarpMarkerId(prev => (prev === marker.id ? null : prev))}
+                            onDoubleClick={(e) => {
+                              e.stopPropagation();
+                              // Open inline editor popup
+                              setEditingWarpMarkerId(marker.id);
+                              setEditingSourceInput(marker.sourceTime.toFixed(2));
+                              setEditingGridInput(marker.gridTime.toFixed(2));
+                            }}
+                          >
+                            <div className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full ${showFull ? 'bg-yellow-500 border-2 border-white' : 'bg-yellow-500/60 border-2 border-white/30'}`} />
+
+                            {/* Shift label above handle */}
+                            <div className={`absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-mono px-1 py-0.5 rounded ${showFull ? 'bg-yellow-600 text-white' : 'bg-yellow-600/40 text-white/80'}`}>
+                              {((marker.gridTime - marker.sourceTime) >= 0 ? '+' : '') + (marker.gridTime - marker.sourceTime).toFixed(2) + 's'}
+                            </div>
+                            {/* Inline editor popup on double-click */}
+                            {editingWarpMarkerId === marker.id && (
+                              <div style={{ position: 'absolute', left: Math.min(Math.max(gridPosition, 16), Math.max(16, timelineWidth - 220)), top: -56, transform: 'translateX(-50%)', zIndex: 70 }}>
+                                <div className="bg-white shadow rounded p-2 text-xs text-black w-56">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <label className="w-16">Source</label>
+                                    <Input id={`warp-src-${marker.id}`} value={editingSourceInput} onChange={(e) => setEditingSourceInput(e.target.value)} />
+                                  </div>
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <label className="w-16">Grid</label>
+                                    <Input id={`warp-grid-${marker.id}`} value={editingGridInput} onChange={(e) => setEditingGridInput(e.target.value)} />
+                                  </div>
+                                  <div className="flex justify-end gap-2">
+                                    <Button variant="outline" size="sm" onClick={() => { setEditingWarpMarkerId(null); }}>Cancel</Button>
+                                    <Button size="sm" onClick={() => {
+                                      const srcParsed = parseTimeInput(editingSourceInput);
+                                      const grdParsed = parseTimeInput(editingGridInput);
+                                      if (srcParsed === null || grdParsed === null || !song) {
+                                        return;
+                                      }
+                                      const newMarkers = warpMarkers.map(m => m.id === marker.id ? { ...m, sourceTime: srcParsed, gridTime: grdParsed } : m);
+                                      setWarpMarkers(newMarkers);
+                                      if (song && onSongUpdate) {
+                                        onSongUpdate({ ...song, warpMarkers: newMarkers });
+                                      }
+                                      setEditingWarpMarkerId(null);
+                                    }}>Save</Button>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          {/* Hover Tooltip (rendered near the handle when hovered) */}
+                          {hoveredWarpMarkerId === marker.id && (
+                            <div style={{ position: 'absolute', left: Math.min(Math.max(gridPosition, 16), Math.max(16, timelineWidth - 120)), top: 8, transform: 'translateX(-50%)', zIndex: 60 }}>
+                              <div className="bg-black/80 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
+                                <div>Grid: {formatTime(marker.gridTime)}</div>
+                                <div>Source: {formatTime(marker.sourceTime)}</div>
+                                <div>Shift: {((marker.gridTime - marker.sourceTime) >= 0 ? '+' : '') + (marker.gridTime - marker.sourceTime).toFixed(2)}s</div>
+                              </div>
+                            </div>
+                          )}
                   </React.Fragment>
                 );
               })}
@@ -3096,6 +3152,19 @@ const handleUpdateOrDeleteTimelineItem = (
           onSave={handleSaveTrackNotes}
         />
       )}
+
+      {/* Time Warp Tool Dialog */}
+      <TimeWarpTool
+        song={song}
+        isOpen={timeWarpToolOpen}
+        onClose={() => setTimeWarpToolOpen(false)}
+        onSave={(markers) => {
+          setWarpMarkers(markers);
+          if (song && onSongUpdate) {
+            onSongUpdate({ ...song, warpMarkers: markers });
+          }
+        }}
+      />
 
       <KeyboardShortcutsHelp
         isOpen={showShortcutsHelp}
