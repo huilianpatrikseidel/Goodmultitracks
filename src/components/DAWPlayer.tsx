@@ -40,7 +40,7 @@ import { NotesPanel } from './NotesPanel';
 import { Button } from './ui/button';
 import { Slider } from './ui/slider';
 import { Input } from './ui/input';
-import { getWarpedTime as utilsGetWarpedTime, parseTimeInput } from '../lib/warpUtils';
+import { getWarpedTime as utilsGetWarpedTime, parseTimeInput, calculateLocalBPM, getAdjacentMarkers, generateDynamicTempos, audioTimeToGridTime, gridTimeToAudioTime } from '../lib/warpUtils';
 
 import { Badge } from './ui/badge';
 import { Song, AudioTrack, SectionMarker, TempoChange, ChordMarker, MixPreset, TrackTag, WarpMarker } from '../types';
@@ -50,7 +50,6 @@ import { TimelineEditorDialog } from './TimelineEditorDialog';
 import { ChordDiagram } from './ChordDiagram';
 import { TrackNotesDialog } from './TrackNotesDialog'; // << IMPORTADO
 import { gainToDb, gainToSlider, sliderToGain, formatDb, parseDbInput, hexToRgba } from '../lib/audioUtils';
-import { TimeWarpTool } from './TimeWarpTool';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -149,8 +148,8 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const [warpModeEnabled, setWarpModeEnabled] = useState(false);
   const [warpMarkers, setWarpMarkers] = useState<WarpMarker[]>(song?.warpMarkers || []);
-    const [timeWarpToolOpen, setTimeWarpToolOpen] = useState(false);
-    const [hoveredWarpMarkerId, setHoveredWarpMarkerId] = useState<string | null>(null);
+  const [dynamicTempos, setDynamicTempos] = useState<Array<{ time: number; tempo: number }>>([]);
+  const [hoveredWarpMarkerId, setHoveredWarpMarkerId] = useState<string | null>(null);
     const [editingWarpMarkerId, setEditingWarpMarkerId] = useState<string | null>(null);
     const [editingSourceInput, setEditingSourceInput] = useState('');
     const [editingGridInput, setEditingGridInput] = useState('');
@@ -301,13 +300,27 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
     return utilsGetWarpedTime(currentGridTime, warpMarkers, warpModeEnabled);
   };
 
+  // Generate dynamic tempos from warp markers (Warp Grid mode implementation)
+  useEffect(() => {
+    if (warpModeEnabled && warpMarkers.length >= 2 && song) {
+      const baseBPM = song.tempo || 120;
+      const generated = generateDynamicTempos(warpMarkers, baseBPM);
+      setDynamicTempos(generated);
+    } else {
+      setDynamicTempos([]);
+    }
+  }, [warpModeEnabled, warpMarkers, song]);
+
   // Simulate playback with advanced metronome and tempo curves
   useEffect(() => {
     if (!isPlaying || !song) return;
 
     const interval = setInterval(() => {
-      // NEW: Use gridTime for the "ideal" timeline progression
-      setGridTime((prevGridTime) => {
+      // Warp Grid Mode: 
+      // - currentTime advances linearly (absolute audio time)
+      // - gridTime is calculated from currentTime using dynamic tempos
+      
+      setCurrentTime((prevCurrentTime) => {
         // Get current tempo info (with tempo curve interpolation)
         const getCurrentTempo = (time: number): number => {
           const tempoChanges = song.tempoChanges || [{ time: 0, tempo: song.tempo, timeSignature: '4/4' }];
@@ -342,13 +355,18 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
           return activeChange.tempo;
         };
         
-        const currentBaseTempo = getCurrentTempo(prevGridTime);
+        const currentBaseTempo = getCurrentTempo(prevCurrentTime);
         const actualTempo = currentBaseTempo * (tempo / 100);
-        const newGridTime = prevGridTime + (0.1 * tempo / 100);
-
-        // NEW: Calculate the warped time for audio playback
-        const newCurrentTime = getWarpedTime(newGridTime);
-        setCurrentTime(newCurrentTime);
+        
+        // WARP GRID MODE: Advance currentTime linearly
+        const newCurrentTime = prevCurrentTime + (0.1 * tempo / 100);
+        
+        // Calculate gridTime from currentTime using dynamic tempos
+        const allTempos = dynamicTempos.length > 0 
+          ? dynamicTempos 
+          : song.tempoChanges || [{ time: 0, tempo: song.tempo }];
+        const newGridTime = audioTimeToGridTime(newCurrentTime, allTempos);
+        setGridTime(newGridTime);
 
         const endPoint = loopEnabled && loopEnd !== null ? loopEnd : song.duration;
         const startPoint = loopEnabled && loopStart !== null ? loopStart : 0;
@@ -388,7 +406,7 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
           }
         }
 
-        if (newGridTime >= endPoint) {
+        if (newCurrentTime >= endPoint) {
           if (loopEnabled) {
             lastBeatRef.current = 0; // Reset beat counter on loop
             return startPoint;
@@ -397,12 +415,12 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
           lastBeatRef.current = 0;
           return 0;
         }
-        return newGridTime;
+        return newCurrentTime;
       });
     }, 100);
 
     return () => clearInterval(interval);
-  }, [isPlaying, tempo, song, loopEnabled, loopStart, loopEnd, metronomeEnabled, metronomeVolume, warpModeEnabled, warpMarkers]);
+  }, [isPlaying, tempo, song, loopEnabled, loopStart, loopEnd, metronomeEnabled, metronomeVolume, dynamicTempos]);
 
 
   // Keyboard shortcuts
@@ -2005,26 +2023,7 @@ const handleUpdateOrDeleteTimelineItem = (
             <TooltipContent>Time Warp Tool</TooltipContent>
           </Tooltip>
           
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 rounded"
-                  style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
-                  onClick={() => setTimeWarpToolOpen(true)}
-                >
-                  <Edit className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Open Time Warp Tool</TooltipContent>
-            </Tooltip>
-            
-                        <Separator orientation="vertical" className="h-6" style={{ backgroundColor: '#3A3A3A' }} />
-            
-                                  <Tooltip>
+            <Separator orientation="vertical" className="h-6" style={{ backgroundColor: '#3A3A3A' }} />                                  <Tooltip>
             
                                     <TooltipTrigger asChild>
             
@@ -2589,13 +2588,6 @@ const handleUpdateOrDeleteTimelineItem = (
                           <div
                             className={`absolute top-0 bottom-0 w-0.5 ${showFull ? 'bg-yellow-500 cursor-ew-resize z-20' : 'bg-yellow-500/30 z-10'}`}
                             style={{ left: gridPosition }}
-                            onClick={(e) => {
-                              // If warp mode not active, open Time Warp Tool for quick edit
-                              if (!warpModeEnabled) {
-                                e.stopPropagation();
-                                setTimeWarpToolOpen(true);
-                              }
-                            }}
                             onMouseEnter={() => setHoveredWarpMarkerId(marker.id)}
                             onMouseLeave={() => setHoveredWarpMarkerId(prev => (prev === marker.id ? null : prev))}
                             onDoubleClick={(e) => {
@@ -2647,10 +2639,23 @@ const handleUpdateOrDeleteTimelineItem = (
                           {/* Hover Tooltip (rendered near the handle when hovered) */}
                           {hoveredWarpMarkerId === marker.id && (
                             <div style={{ position: 'absolute', left: Math.min(Math.max(gridPosition, 16), Math.max(16, timelineWidth - 120)), top: 8, transform: 'translateX(-50%)', zIndex: 60 }}>
-                              <div className="bg-black/80 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
+                              <div className="bg-black/80 text-white text-xs rounded px-2 py-1 whitespace-nowrap space-y-1">
                                 <div>Grid: {formatTime(marker.gridTime)}</div>
                                 <div>Source: {formatTime(marker.sourceTime)}</div>
                                 <div>Shift: {((marker.gridTime - marker.sourceTime) >= 0 ? '+' : '') + (marker.gridTime - marker.sourceTime).toFixed(2)}s</div>
+                                {/* Show local BPM if multiple markers exist */}
+                                {warpMarkers.length > 1 && (() => {
+                                  const { prev, next } = getAdjacentMarkers(marker.gridTime, warpMarkers);
+                                  if (next) {
+                                    const localBPM = calculateLocalBPM(marker, next, song.tempo);
+                                    return <div className="border-t border-gray-600 pt-1 mt-1">To next: {localBPM.toFixed(1)} BPM</div>;
+                                  }
+                                  if (prev) {
+                                    const localBPM = calculateLocalBPM(prev, marker, song.tempo);
+                                    return <div className="border-t border-gray-600 pt-1 mt-1">From prev: {localBPM.toFixed(1)} BPM</div>;
+                                  }
+                                  return null;
+                                })()}
                               </div>
                             </div>
                           )}
@@ -3152,19 +3157,6 @@ const handleUpdateOrDeleteTimelineItem = (
           onSave={handleSaveTrackNotes}
         />
       )}
-
-      {/* Time Warp Tool Dialog */}
-      <TimeWarpTool
-        song={song}
-        isOpen={timeWarpToolOpen}
-        onClose={() => setTimeWarpToolOpen(false)}
-        onSave={(markers) => {
-          setWarpMarkers(markers);
-          if (song && onSongUpdate) {
-            onSongUpdate({ ...song, warpMarkers: markers });
-          }
-        }}
-      />
 
       <KeyboardShortcutsHelp
         isOpen={showShortcutsHelp}
