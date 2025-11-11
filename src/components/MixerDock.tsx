@@ -29,6 +29,11 @@ export function MixerDock({
 }: MixerDockProps) {
   const isAnySolo = tracks.some((t) => t.solo);
 
+  // << NOVO ESTADO >>: Estado local para os faders
+  const [faderState, setFaderState] = useState<Record<string, { value: number; isDragging: boolean }>>(() => 
+    Object.fromEntries(tracks.map(t => [t.id, { value: gainToSlider(t.volume), isDragging: false }]))
+  );
+
   const handleVolumeDoubleClick = (trackId: string) => {
     onTrackVolumeChange(trackId, 1.0);
   };
@@ -69,6 +74,19 @@ export function MixerDock({
             const isMutedBySolo = isAnySolo && !track.solo;
             const effectiveMuted = track.muted || isMutedBySolo;
             const dbValue = gainToDb(track.volume);
+            
+            // << NOVA LÓGICA >>: Sincroniza o estado local se não estiver arrastando
+            React.useEffect(() => {
+              setFaderState(prevState => {
+                const newState = { ...prevState };
+                tracks.forEach(track => {
+                  if (!newState[track.id]?.isDragging) {
+                    newState[track.id] = { ...newState[track.id], value: gainToSlider(track.volume) };
+                  }
+                });
+                return newState;
+              });
+            }, [tracks]);
 
             return (
               <div 
@@ -92,17 +110,20 @@ export function MixerDock({
                       <TooltipTrigger asChild>
                         <div 
                           className="h-full flex items-center"
+                          onPointerDown={() => setFaderState(prev => ({ ...prev, [track.id]: { ...prev[track.id], isDragging: true } }))}
+                          onPointerUp={() => {
+                            setFaderState(prev => {
+                              const trackState = prev[track.id];
+                              if (trackState) {
+                                onTrackVolumeChange(track.id, sliderToGain(trackState.value));
+                              }
+                              return { ...prev, [track.id]: { ...trackState, isDragging: false } };
+                            });
+                          }}
                           onDoubleClick={() => handleVolumeDoubleClick(track.id)}
                         >
                           <Slider
                             orientation="vertical"
-                            value={[gainToSlider(track.volume)]}
-                            onValueChange={(value) => {
-                              const newVolume = sliderToGain(value[0]);
-                              onTrackVolumeChange(track.id, newVolume);
-                            }}
-                            min={0}
-                            max={100}
                             step={1}
                             className="h-32"
                             disabled={effectiveMuted}
@@ -110,11 +131,11 @@ export function MixerDock({
                         </div>
                       </TooltipTrigger>
                       <TooltipContent side="top">
-                        {formatDb(dbValue)} • Double-click to reset
+                        {/* << ATUALIZADO >>: Mostra o valor do estado local durante o arraste */}
+                        {faderState[track.id]?.isDragging ? formatDb(sliderToDb(faderState[track.id].value)) : formatDb(dbValue)} • Double-click to reset
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                </div>
 
                 {/* Volume Display */}
                 <div 
@@ -124,12 +145,12 @@ export function MixerDock({
                     minWidth: '45px',
                   }}
                 >
-                  {formatDb(dbValue)}
+                  {/* << ATUALIZADO >>: Mostra o valor do estado local durante o arraste */}
+                  {faderState[track.id]?.isDragging ? formatDb(sliderToDb(faderState[track.id].value)) : formatDb(dbValue)}
                 </div>
 
                 {/* Mute/Solo Buttons */}
-                <div className="flex gap-1">
-                  <Button
+                <Button
                     variant="ghost"
                     size="sm"
                     className="h-7 w-8 text-xs p-0"

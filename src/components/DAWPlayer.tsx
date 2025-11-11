@@ -47,7 +47,7 @@ import { Badge } from './ui/badge';
 import { Song, AudioTrack, SectionMarker, TempoChange, ChordMarker, MixPreset, TrackTag, WarpMarker } from '../types';
 import { Separator } from './ui/separator';
 import { CreateProjectDialog } from './CreateProjectDialog';
-import { TimelineEditorDialog } from './TimelineEditorDialog';
+import { MarkerEditorDialog } from './MarkerEditorDialog';
 import { ChordDiagram } from './ChordDiagram';
 import { TrackNotesDialog } from './TrackNotesDialog'; // << IMPORTADO
 import { gainToDb, gainToSlider, sliderToGain, formatDb, parseDbInput, hexToRgba } from '../lib/audioUtils';
@@ -145,12 +145,12 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
   const [tempo, setTempo] = useState(100);
   const [keyShift, setKeyShift] = useState(0);
   const [loopEnabled, setLoopEnabled] = useState(false);
-  const [tracks, setTracks] = useState<AudioTrack[]>(song?.tracks || []);
   const [zoom, setZoom] = useState(1);
   const [editMode, setEditMode] = useState(song?.source === 'project');
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
-  const [timelineEditorOpen, setTimelineEditorOpen] = useState(false);
-  const [editorType, setEditorType] = useState<'tempo' | 'timesig' | 'section' | 'chord'>('section');
+  const [markerEditorOpen, setMarkerEditorOpen] = useState(false);
+  const [editorType, setEditorType] = useState<'tempo_timesig' | 'section' | 'chord'>('section');
+  const [editingMarker, setEditingMarker] = useState<TempoChange | SectionMarker | ChordMarker | null>(null);
   const [containerWidth, setContainerWidth] = useState(1000);
   const [editingTrackId, setEditingTrackId] = useState<string | null>(null);
   const [trackNameInput, setTrackNameInput] = useState('');
@@ -180,6 +180,10 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
   const [isDraggingTempoMarker, setIsDraggingTempoMarker] = useState(false);
   const [draggedTempoMarkerTime, setDraggedTempoMarkerTime] = useState<number | null>(null);
   
+  const [editingTempoMarker, setEditingTempoMarker] = useState<TempoChange | null>(null);
+  // << NOVO ESTADO >>: Para controlar os sliders de volume da sidebar
+  const [sidebarSliderState, setSidebarSliderState] = useState<Record<string, { value: number; isDragging: boolean }>>({});
+
   // Mix presets state
   const [mixPresets, setMixPresets] = useState<MixPreset[]>([]);
   const [pinnedTracks, setPinnedTracks] = useState<Set<string>>(new Set());
@@ -257,22 +261,22 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
   const scrollbarRef = useRef<HTMLDivElement>(null);
   const verticalScrollbarRef = useRef<HTMLDivElement>(null);
 
+  // << NOVO EFEITO >>: Sincroniza o estado do slider da sidebar com as props da track
   useEffect(() => {
     if (song) {
-      setTracks(song.tracks);
-      // Auto-enable edit mode for projects, disable for imported songs
-      setEditMode(song.source === 'project');
+      setSidebarSliderState(prevState => {
+        const newState = { ...prevState };
+        song.tracks.forEach(track => {
+          // Apenas atualiza se não estiver arrastando
+          if (!newState[track.id]?.isDragging) {
+            newState[track.id] = { ...newState[track.id], value: gainToSlider(track.volume) };
+          }
+        });
+        return newState;
+      });
     }
-  }, [song]);
+  }, [song?.tracks]);
 
-  // Sync tracks back to song when they change
-  useEffect(() => {
-    if (song && onSongUpdate && JSON.stringify(tracks) !== JSON.stringify(song.tracks)) {
-      onSongUpdate({ ...song, tracks });
-    }
-  }, [tracks, song, onSongUpdate]);
-
-  // Save view settings to localStorage
   useEffect(() => {
     localStorage.setItem('goodmultitracks_track_height', trackHeight);
   }, [trackHeight]);
@@ -595,62 +599,52 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [song, gridTime, getWarpedTime]);
 
+  // << LÓGICA DE MANIPULAÇÃO DE TRACKS ATUALIZADA >>
+  // Agora, em vez de usar `setTracks`, chamamos `onSongUpdate` diretamente.
   const handleTrackVolumeChange = (trackId: string, volume: number) => {
-    // Ensure volume is a valid number to prevent crashes
-    const safeVolume = isNaN(volume) || !isFinite(volume) ? 1.0 : Math.max(0, Math.min(10, volume));
-    setTracks((prev) =>
-      prev.map((t) => (t.id === trackId ? { ...t, volume: safeVolume } : t))
-    );
+    if (!song || !onSongUpdate) return;
+    const safeVolume = isNaN(volume) || !isFinite(volume) ? 1.0 : Math.max(0, Math.min(10, volume)); // Garante valor seguro
+    const newTracks = song.tracks.map((t) => (t.id === trackId ? { ...t, volume: safeVolume } : t));
+    onSongUpdate({ ...song, tracks: newTracks });
   };
 
   const handleTrackMuteToggle = (trackId: string) => {
-    setTracks((prev) =>
-      prev.map((t) => {
-        if (t.id === trackId) {
-          return { ...t, muted: !t.muted };
-        }
-        return t;
-      })
-    );
+    if (!song || !onSongUpdate) return;
+    const newTracks = song.tracks.map((t) => (t.id === trackId ? { ...t, muted: !t.muted } : t));
+    onSongUpdate({ ...song, tracks: newTracks });
   };
 
   const handleTrackSoloToggle = (trackId: string) => {
-    setTracks((prev) =>
-      prev.map((t) => {
-        if (t.id === trackId) {
-          return { ...t, solo: !t.solo };
-        }
-        return t;
-      })
-    );
+    if (!song || !onSongUpdate) return;
+    const newTracks = song.tracks.map((t) => (t.id === trackId ? { ...t, solo: !t.solo } : t));
+    onSongUpdate({ ...song, tracks: newTracks });
   };
 
   const handleTrackNameChange = (trackId: string, newName: string) => {
-    setTracks((prev) =>
-      prev.map((t) => (t.id === trackId ? { ...t, name: newName } : t))
-    );
+    if (!song || !onSongUpdate) return;
+    const newTracks = song.tracks.map((t) => (t.id === trackId ? { ...t, name: newName } : t));
+    onSongUpdate({ ...song, tracks: newTracks });
   };
 
   const handleTrackColorChange = (trackId: string, color: string) => {
-    setTracks((prev) =>
-      prev.map((t) => (t.id === trackId ? { ...t, color } : t))
-    );
+    if (!song || !onSongUpdate) return;
+    const newTracks = song.tracks.map((t) => (t.id === trackId ? { ...t, color } : t));
+    onSongUpdate({ ...song, tracks: newTracks });
   };
 
   const handleTrackTagChange = (trackId: string, tag: any) => {
-    setTracks((prev) =>
-      prev.map((t) => (t.id === trackId ? { ...t, tag } : t))
-    );
+    if (!song || !onSongUpdate) return;
+    const newTracks = song.tracks.map((t) => (t.id === trackId ? { ...t, tag } : t));
+    onSongUpdate({ ...song, tracks: newTracks });
   };
 
   // << NOVA FUNÇÃO >>
   const handleSaveTrackNotes = (notes: string) => {
-    if (!selectedTrackForNotes) return;
-    setTracks(prev =>
-      prev.map(t =>
-        t.id === selectedTrackForNotes.id ? { ...t, notes } : t
-      )
+    if (!selectedTrackForNotes || !song || !onSongUpdate) return;
+    const newTracks = song.tracks.map(t =>
+      t.id === selectedTrackForNotes.id ? { ...t, notes } : t
     );
+    onSongUpdate({ ...song, tracks: newTracks });
     // Fechar o dialog (o onOpenChange fará isso)
   };
 
@@ -688,7 +682,7 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
     const newPreset: MixPreset = {
       id: `preset-${Date.now()}`,
       name,
-      tracks: tracks
+      tracks: (song?.tracks || [])
         .filter(t => !pinnedTracks.has(t.id)) // Only save non-pinned tracks
         .map(t => ({
           trackId: t.id,
@@ -703,22 +697,24 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
     const preset = mixPresets.find(p => p.id === presetId);
     if (!preset) return;
 
-    setTracks(prev =>
-      prev.map(track => {
+    if (!song || !onSongUpdate) return;
+    const newTracks = song.tracks.map(track => {
         // Skip pinned tracks
         if (pinnedTracks.has(track.id)) return track;
 
         const presetTrack = preset.tracks.find(pt => pt.trackId === track.id);
         if (presetTrack) {
-          return {
-            ...track,
-            volume: presetTrack.volume,
-            muted: presetTrack.muted,
-          };
+            return {
+                ...track,
+                volume: presetTrack.volume,
+                muted: presetTrack.muted,
+            };
         }
         return track;
-      })
-    );
+    });
+
+    // Chamar onSongUpdate com as novas tracks
+    onSongUpdate({ ...song, tracks: newTracks });
   };
 
   const handleDeleteMixPreset = (presetId: string) => {
@@ -960,55 +956,64 @@ ${chordMarkers.map(chord => `    <chord>
       .replace(/'/g, '&apos;');
   };
 
-  const openTimelineEditor = (type: 'tempo' | 'timesig' | 'section' | 'chord') => {
+  const openMarkerEditor = (type: 'tempo_timesig' | 'section' | 'chord', data: TempoChange | SectionMarker | ChordMarker | null = null) => {
     setEditorType(type);
-    setTimelineEditorOpen(true);
+    setEditingMarker(data);
+    setMarkerEditorOpen(true);
   };
 
-  const handleAddTimelineItem = (itemData: any) => {
+  const handleTimelineItemSubmit = (action: 'add' | 'update' | 'delete', data: any) => {
     if (!song || !onSongUpdate) return;
 
     let updatedSong = { ...song };
 
-    switch (editorType) {
-      case 'tempo':
-        updatedSong.tempoChanges = [...(song.tempoChanges || []), {
-          time: itemData.time,
-          tempo: itemData.tempo,
-          timeSignature: song.tempoChanges?.find(tc => tc.time <= itemData.time)?.timeSignature || '4/4', // Mantém TS existente
-        }].sort((a, b) => a.time - b.time);
-        break;
-      case 'timesig':
-         // Atualiza ou adiciona a mudança de TS, mantendo o tempo existente
-        const existingTempoIndex = updatedSong.tempoChanges?.findIndex(tc => tc.time === itemData.time) ?? -1;
-        if (existingTempoIndex !== -1 && updatedSong.tempoChanges) {
-          updatedSong.tempoChanges[existingTempoIndex].timeSignature = itemData.timeSignature;
-        } else {
-          updatedSong.tempoChanges = [...(updatedSong.tempoChanges || []), {
-            time: itemData.time,
-            tempo: getCurrentTempoInfo(itemData.time).tempo, // Pega o tempo atual naquele ponto
-            timeSignature: itemData.timeSignature,
-          }].sort((a, b) => a.time - b.time);
+    const itemType = editingMarker ? ('tempo' in editingMarker ? 'tempo_timesig' : 'chord' in editingMarker ? 'chord' : 'section') : editorType;
+
+    switch (itemType) {
+      case 'tempo_timesig':
+        const tempoChanges = updatedSong.tempoChanges || [];
+        if (action === 'add') {
+            updatedSong.tempoChanges = [...tempoChanges, data].sort((a, b) => a.time - b.time);
+        } else if (action === 'update' && editingMarker) {
+            updatedSong.tempoChanges = tempoChanges.map(tc => tc.time === editingMarker.time ? { ...tc, ...data } : tc);
+        } else if (action === 'delete' && editingMarker) {
+            updatedSong.tempoChanges = tempoChanges.filter(tc => tc.time !== editingMarker.time);
         }
         break;
       case 'section':
-        updatedSong.markers = [...song.markers, {
-          id: `marker-${Date.now()}`,
-          time: itemData.time,
-          label: itemData.label,
-          type: itemData.type || 'custom',
-        }].sort((a, b) => a.time - b.time);
+        if (action === 'update' && editingMarker) {
+            updatedSong.markers = (updatedSong.markers || [])
+                .map(marker => marker.id === (editingMarker as SectionMarker).id ? { ...marker, ...data } : marker)
+                .sort((a, b) => a.time - b.time);
+        } else if (action === 'delete' && editingMarker) {
+            updatedSong.markers = (updatedSong.markers || [])
+                .filter(marker => marker.id !== (editingMarker as SectionMarker).id)
+                .sort((a, b) => a.time - b.time);
+        } else if (action === 'add') {
+            updatedSong.markers = [...(updatedSong.markers || []), {
+                id: `marker-${Date.now()}`,
+                ...data
+            }].sort((a, b) => a.time - b.time);
+        }
         break;
       case 'chord':
-        updatedSong.chordMarkers = [...(song.chordMarkers || []), {
-          time: itemData.time,
-          chord: itemData.chord,
-          customDiagram: itemData.customDiagram,
-        }].sort((a, b) => a.time - b.time);
+        if (action === 'update' && editingMarker) {
+            updatedSong.chordMarkers = (updatedSong.chordMarkers || [])
+                .map(marker => marker.time === editingMarker.time ? { ...marker, ...data } : marker)
+                .sort((a, b) => a.time - b.time);
+        } else if (action === 'delete' && editingMarker) {
+            updatedSong.chordMarkers = (updatedSong.chordMarkers || [])
+                .filter(marker => marker.time !== editingMarker.time)
+                .sort((a, b) => a.time - b.time);
+        } else if (action === 'add') {
+            updatedSong.chordMarkers = [...(updatedSong.chordMarkers || []), data].sort((a, b) => a.time - b.time);
+        }
         break;
     }
 
     onSongUpdate(updatedSong);
+    setMarkerEditorOpen(false);
+    setEditingMarker(null);
   };
 
   if (!song) {
@@ -1052,42 +1057,50 @@ ${chordMarkers.map(chord => `    <chord>
     );
   }
 
-const handleUpdateOrDeleteTimelineItem = (
-    action: 'update' | 'delete',
-    itemData: any,
-    originalItem?: ChordMarker | SectionMarker | TempoChange
-) => {
-    if (!song || !onSongUpdate) return;
 
-    let updatedSong = { ...song };
-    const itemType = editorType;
-
-    switch (itemType) {
-        case 'chord':
-            if (action === 'update' && originalItem) {
-                updatedSong.chordMarkers = (updatedSong.chordMarkers || [])
-                    .map(marker => marker.time === originalItem.time ? { ...itemData } : marker)
-                    .sort((a, b) => a.time - b.time);
-            } else if (action === 'delete' && originalItem) {
-                 updatedSong.chordMarkers = (updatedSong.chordMarkers || [])
-                    .filter(marker => marker.time !== originalItem.time)
-                    .sort((a, b) => a.time - b.time);
-            } else if (action === 'add') {
-                 updatedSong.chordMarkers = [...(updatedSong.chordMarkers || []), {
-                     time: itemData.time,
-                     chord: itemData.chord,
-                     customDiagram: itemData.customDiagram,
-                 }].sort((a, b) => a.time - b.time);
-            }
-            break;
-    }
-
-    onSongUpdate(updatedSong);
-    setEditingChordMarker(null);
-    setTimelineEditorOpen(false);
-};
   
-  const isAnySolo = tracks.some((t) => t.solo);
+  if (!song) {
+    return (
+      <div className="flex flex-col h-full bg-gray-900 text-white">
+        <div className="bg-gray-800 border-b border-gray-700 p-3 flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-white hover:bg-gray-700"
+            onClick={onBack}
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <h2>Player</h2>
+          <div className="w-8" />
+        </div>
+
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <Music2 className="w-16 h-16 mx-auto text-gray-600" />
+            <div>
+              <h3 className="mb-2">No Project Loaded</h3>
+              <p className="text-sm text-gray-400 mb-4">
+                Create a new project to start editing
+              </p>
+              <Button onClick={() => setCreateProjectOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Project
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <CreateProjectDialog
+          open={createProjectOpen}
+          onOpenChange={setCreateProjectOpen}
+          onCreateProject={handleCreateProjectSubmit}
+        />
+      </div>
+    );
+  }
+  const currentTracks = song?.tracks || [];
+  const isAnySolo = currentTracks.some((t) => t.solo);
 
   // Calculate track height based on setting
   const getTrackHeight = () => {
@@ -1337,42 +1350,41 @@ const handleUpdateOrDeleteTimelineItem = (
 
 
   const resetMix = () => {
-    setTracks((prev) =>
-      prev.map((t) => ({
+    if (!song || !onSongUpdate) return;
+    const newTracks = song.tracks.map((t) => ({
         ...t,
         volume: 1.0, // Reset to 0dB (unity gain)
         muted: false,
         solo: false,
-      }))
-    );
+      }));
+    onSongUpdate({ ...song, tracks: newTracks });
   };
 
   // Mix Presets Management
   const handleSavePreset = (name: string) => {
     if (!song || !onSongUpdate) return;
-    
+
     const newPreset = {
       id: `preset-${Date.now()}`,
       name,
-      tracks: tracks.map(t => ({
+      tracks: (song.tracks || []).map(t => ({
         trackId: t.id,
         volume: t.volume,
         muted: t.muted,
       })),
     };
-    
+
     const updatedPresets = [...(song.mixPresets || []), newPreset];
     onSongUpdate({ ...song, mixPresets: updatedPresets });
   };
 
   const handleLoadPreset = (presetId: string) => {
-    if (!song) return;
-    
-    const preset = song.mixPresets?.find(p => p.id === presetId);
+    if (!song || !onSongUpdate) return;
+
+    const preset = mixPresets.find(p => p.id === presetId);
     if (!preset) return;
-    
-    // Apply preset settings
-    setTracks(prev => prev.map(track => {
+
+    let newTracks = song.tracks.map(track => {
       const presetTrack = preset.tracks.find(pt => pt.trackId === track.id);
       if (presetTrack) {
         return {
@@ -1382,23 +1394,19 @@ const handleUpdateOrDeleteTimelineItem = (
         };
       }
       return track;
-    }));
-    
+    });
+
     // << IMPLEMENTAÇÃO (FEATURE 4.1): LÓGICA DE PIN DESCOMENTADA >>
     // Track Pinning: Move main instrument to top if set in user preferences
     const mainInstrument = localStorage.getItem('goodmultitracks_main_instrument') as TrackTag | null;
     if (mainInstrument) {
-      setTracks(prev => {
-        const mainTrackIndex = prev.findIndex(t => t.tag === mainInstrument);
-        if (mainTrackIndex > 0) {
-          const newTracks = [...prev];
-          const [mainTrack] = newTracks.splice(mainTrackIndex, 1);
-          newTracks.unshift(mainTrack);
-          return newTracks;
-        }
-        return prev;
-      });
+      const mainTrackIndex = newTracks.findIndex(t => t.tag === mainInstrument);
+      if (mainTrackIndex > 0) {
+        const [mainTrack] = newTracks.splice(mainTrackIndex, 1);
+        newTracks.unshift(mainTrack);
+      }
     }
+    onSongUpdate({ ...song, tracks: newTracks });
   };
 
   const handleDeletePreset = (presetId: string) => {
@@ -1408,7 +1416,7 @@ const handleUpdateOrDeleteTimelineItem = (
     onSongUpdate({ ...song, mixPresets: updatedPresets });
   };
 
-  const chordProgression = song.chordMarkers || []; // Usar chordMarkers
+  const chordProgression = song.chordMarkers || [];
 
   // Zoom centered on a specific time point
   const zoomCentered = (newZoom: number, focusTime: number) => {
@@ -1914,7 +1922,7 @@ const handleUpdateOrDeleteTimelineItem = (
                 style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
-                onClick={() => openTimelineEditor('section')}
+                onClick={() => openMarkerEditor('section')}
               >
                 <Plus className="w-4 h-4" />
               </Button>
@@ -1931,7 +1939,7 @@ const handleUpdateOrDeleteTimelineItem = (
                 style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
-                onClick={() => openTimelineEditor('chord')}
+                onClick={() => openMarkerEditor('chord')}
               >
                 <Music2 className="w-4 h-4" />
               </Button>
@@ -1948,29 +1956,12 @@ const handleUpdateOrDeleteTimelineItem = (
                 style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
-                onClick={() => openTimelineEditor('tempo')}
+                onClick={() => openMarkerEditor('tempo_timesig')}
               >
                 <Clock className="w-4 h-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Add Tempo Change</TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 rounded"
-                style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
-                onClick={() => openTimelineEditor('timesig')}
-              >
-                <Grid3x3 className="w-4 h-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Add Time Signature</TooltipContent>
+            <TooltipContent>Add Tempo/Time Signature</TooltipContent>
           </Tooltip>
             
           <Tooltip>
@@ -2082,8 +2073,7 @@ const handleUpdateOrDeleteTimelineItem = (
               ref={trackLabelsScrollRef}
               className="flex-1 overflow-y-hidden"
               style={{ backgroundColor: '#2B2B2B', overflowY: 'hidden' }}
-            >
-              {tracks.map((track) => (
+            >{currentTracks.map((track) => (
                 <div
                   key={track.id}
                   className={`${getTrackHeight()} border-b flex`}
@@ -2243,19 +2233,40 @@ const handleUpdateOrDeleteTimelineItem = (
                               className="h-7 px-2 text-xs flex-shrink-0 hover:bg-gray-700"
                               style={{ color: '#F1F1F1' }}
                             >
-                              {formatDb(gainToDb(track.volume || 1.0))}
-                            </Button>
+                              {sidebarSliderState[track.id]?.isDragging
+                                ? formatDb(gainToDb(sliderToGain(sidebarSliderState[track.id].value)))
+                                : formatDb(gainToDb(track.volume || 1.0))
+                              }
+                            </Button> 
                           </DropdownMenuTrigger>
                           <DropdownMenuContent className="w-48 p-3" style={{ backgroundColor: '#2B2B2B', borderColor: '#3A3A3A' }}>
                             <div className="flex items-center gap-2">
                               <Input
                                 type="text"
-                                value={formatDb(gainToDb(track.volume || 1.0))}
+                                defaultValue={formatDb(gainToDb(track.volume || 1.0))}
                                 onChange={(e) => {
+                                  // Este input não precisa de estado local complexo pois a mudança é em on-blur
+                                }}
+                                onBlur={(e) => {
                                   const parsed = parseDbInput(e.target.value);
                                   if (parsed !== null && isFinite(parsed)) {
                                     handleTrackVolumeChange(track.id, parsed);
+                                  } else {
+                                    // Reseta para o valor atual se a entrada for inválida
+                                    e.target.value = formatDb(gainToDb(track.volume || 1.0));
                                   }
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                                }}
+                                onClick={(e) => (e.target as HTMLInputElement).select()}
+                                onFocus={(e) => e.target.select()}
+                                onChange={(e) => {
+                                  // A lógica agora está no onBlur e onKeyDown
+                                  /* const parsed = parseDbInput(e.target.value);
+                                  if (parsed !== null && isFinite(parsed)) {
+                                    handleTrackVolumeChange(track.id, parsed);
+                                  } */
                                 }}
                                 className="h-8 text-center bg-gray-700 text-white border-gray-600"
                               />
@@ -2263,16 +2274,31 @@ const handleUpdateOrDeleteTimelineItem = (
                             </div>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                        <Slider
-                          value={[gainToSlider(track.volume || 1.0)]}
-                          onValueChange={([value]) => handleTrackVolumeChange(track.id, sliderToGain(value))}
-                          max={100}
-                          step={0.1}
+                        {/* << SLIDER ATUALIZADO >> */}
+                        <div
                           className="flex-1 min-w-0"
-                          onDoubleClick={() => {
-                            handleTrackVolumeChange(track.id, 1.0);
+                          onPointerDown={() => {
+                            setSidebarSliderState(prev => ({ ...prev, [track.id]: { ...prev[track.id], isDragging: true } }));
                           }}
-                        />
+                          onPointerUp={() => {
+                            setSidebarSliderState(prev => {
+                              const trackState = prev[track.id];
+                              if (trackState) {
+                                handleTrackVolumeChange(track.id, sliderToGain(trackState.value));
+                              }
+                              return { ...prev, [track.id]: { ...trackState, isDragging: false } };
+                            });
+                          }}
+                        >
+                          <Slider
+                            value={[sidebarSliderState[track.id]?.value ?? gainToSlider(track.volume)]}
+                            onValueChange={([value]) => setSidebarSliderState(prev => ({ ...prev, [track.id]: { ...prev[track.id], value } }))}
+                            max={100}
+                            step={0.1}
+                            className="w-full"
+                            onDoubleClick={() => handleTrackVolumeChange(track.id, 1.0)}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2463,18 +2489,25 @@ const handleUpdateOrDeleteTimelineItem = (
                           setDraggedTempoMarkerTime(null);
                         }}
                       >
-                        {dynamicTempos.map((change, i) => {
-                          const position = (change.time / song.duration) * timelineWidth;
-                          const isDraggable = warpModeEnabled && change.time > 0;
-                          return (
-                            <div key={i} className="absolute top-0 bottom-0" style={{ left: position, zIndex: 21 }}>
-                              <div className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full ${isDraggable ? 'bg-yellow-500 border-2 border-white cursor-ew-resize' : 'bg-purple-500/60 border-2 border-white/30'}`} />
-                              <Badge variant="secondary" className={`absolute top-0.5 left-1 text-xs ${isDraggable ? 'bg-yellow-600' : 'bg-purple-600'} text-white`}>
-                                {change.tempo.toFixed(1)} BPM
-                              </Badge>
-                            </div>
-                          );
-                        })}
+    {/* Tempo/Time Signature Markers */}
+    {tempoChanges.map((tc, index) => (
+        <div
+            key={`tempo-${index}`}
+            className="absolute top-0 h-full flex items-center cursor-pointer"
+            style={{ left: `${(tc.time / song.duration) * 100}%` }}
+            onClick={() => openMarkerEditor('tempo_timesig', tc)}
+        >
+            <div className="h-full w-px bg-yellow-500 opacity-50" />
+            <div className="absolute top-1 -translate-x-1/2 flex flex-col items-center gap-1">
+                <Badge variant="secondary" className="text-xs hover:bg-yellow-600">
+                    {tc.tempo} BPM
+                </Badge>
+                <Badge variant="outline" className="text-xs hover:bg-gray-600">
+                    {tc.timeSignature}
+                </Badge>
+            </div>
+        </div>
+    ))}
                       </div>
                     );
                   case 'chords':
@@ -2489,7 +2522,7 @@ const handleUpdateOrDeleteTimelineItem = (
                                 if (editMode) {
                                   setEditingChordMarker(chord);
                                   setEditorType('chord');
-                                  setTimelineEditorOpen(true);
+                                  setMarkerEditorOpen(true);
                                 } else {
                                   setSelectedChord({ chord: chord.chord, customDiagram: chord.customDiagram });
                                 }
@@ -2568,8 +2601,7 @@ const handleUpdateOrDeleteTimelineItem = (
             onMouseUp={handleWaveformMouseUp}
             onMouseLeave={handleWaveformMouseUp}
           >
-            <div style={{ width: timelineWidth, minHeight: '100%', transition: 'transform 0s' }} className="relative tracks-content">
-              {tracks.map((track, index) => (
+            <div style={{ width: timelineWidth, minHeight: '100%', transition: 'transform 0s' }} className="relative tracks-content">{currentTracks.map((track, index) => (
                 <div
                   key={track.id}
                   className={`${getTrackHeight()} border-b border-gray-700 relative bg-gray-850`}
@@ -2635,7 +2667,7 @@ const handleUpdateOrDeleteTimelineItem = (
                   className="absolute top-0 w-1 bg-yellow-500 pointer-events-none z-10"
                   style={{
                     left: (loopStart / song.duration) * timelineWidth,
-                    height: tracks.length * getTrackHeightPx()
+                    height: currentTracks.length * getTrackHeightPx()
                   }}
                 />
               )}
@@ -2646,7 +2678,7 @@ const handleUpdateOrDeleteTimelineItem = (
                   className="absolute top-0 w-1 bg-yellow-500 pointer-events-none z-10"
                   style={{
                     left: (loopEnd / song.duration) * timelineWidth,
-                    height: tracks.length * getTrackHeightPx()
+                    height: currentTracks.length * getTrackHeightPx()
                   }}
                 />
               )}
@@ -2694,7 +2726,7 @@ const handleUpdateOrDeleteTimelineItem = (
       {/* Mixer Dock (Bottom) */}
       {mixerDockVisible && (
         <MixerDock
-          tracks={tracks}
+          tracks={currentTracks}
           onTrackVolumeChange={handleTrackVolumeChange}
           onTrackMuteToggle={handleTrackMuteToggle}
           onTrackSoloToggle={handleTrackSoloToggle}
@@ -2923,8 +2955,8 @@ const handleUpdateOrDeleteTimelineItem = (
             >
               <div className="space-y-3">
                 <div className="text-sm" style={{ color: '#F1F1F1' }}>Mix Presets</div>
-                <MixPresetsManager
-                  tracks={tracks}
+                <MixPresetsManager // << CORREÇÃO: Passar `song.mixPresets` >>
+                  tracks={currentTracks}
                   presets={mixPresets}
                   onSavePreset={handleSaveMixPreset}
                   onLoadPreset={handleLoadMixPreset}
@@ -3004,18 +3036,13 @@ const handleUpdateOrDeleteTimelineItem = (
         onCreateProject={handleCreateProjectSubmit}
       />
 
-      <TimelineEditorDialog
-        open={timelineEditorOpen}
-        onOpenChange={(isOpen) => {
-            setTimelineEditorOpen(isOpen);
-            if (!isOpen) {
-                setEditingChordMarker(null);
-            }
-        }}
+      <MarkerEditorDialog
+        open={markerEditorOpen}
+        onOpenChange={setMarkerEditorOpen}
         type={editorType}
-        currentTime={editingChordMarker ? editingChordMarker.time : currentTime}
-        initialData={editingChordMarker}
-        onSubmit={(action, data) => handleUpdateOrDeleteTimelineItem(action, data, editingChordMarker || undefined)}
+        currentTime={currentTime}
+        initialData={editingMarker}
+        onSubmit={handleTimelineItemSubmit}
       />
 
       {selectedChord && (
