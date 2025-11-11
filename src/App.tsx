@@ -190,10 +190,10 @@ function AppContent() {
 
   return (
     // *** CORREÇÃO: Definido h-screen aqui para o container flex principal ***
-    <div className="min-h-screen bg-gray-50 flex flex-col h-screen">
+    <div className="min-h-screen bg-background text-foreground flex flex-col h-screen">
       {/* Desktop Header */}
       {activeView !== 'player' && (
-        <header className="bg-white border-b sticky top-0 z-30 hidden md:block flex-shrink-0"> {/* Adicionado flex-shrink-0 */}
+        <header className="bg-background border-b sticky top-0 z-30 hidden md:block flex-shrink-0"> {/* Adicionado flex-shrink-0 */}
           <div className="px-6 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-6">

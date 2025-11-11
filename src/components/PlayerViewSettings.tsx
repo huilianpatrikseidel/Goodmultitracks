@@ -25,14 +25,8 @@ export interface RulerConfig {
 interface PlayerViewSettingsProps {
   trackHeight: 'small' | 'medium' | 'large';
   onTrackHeightChange: (height: 'small' | 'medium' | 'large') => void;
-  showTempoRuler: boolean;
-  onShowTempoRulerChange: (show: boolean) => void;
-  showChordRuler: boolean;
-  onShowChordRulerChange: (show: boolean) => void;
-  showSectionRuler: boolean;
-  onShowSectionRulerChange: (show: boolean) => void;
-  showTimeSignatureRuler: boolean;
-  onShowTimeSignatureRulerChange: (show: boolean) => void;
+  rulerVisibility: Record<string, boolean>;
+  onRulerVisibilityChange: (visibility: Record<string, boolean>) => void;
   rulerOrder?: string[];
   onRulerOrderChange?: (order: string[]) => void;
 }
@@ -40,76 +34,68 @@ interface PlayerViewSettingsProps {
 export function PlayerViewSettings({
   trackHeight,
   onTrackHeightChange,
-  showTempoRuler,
-  onShowTempoRulerChange,
-  showChordRuler,
-  onShowChordRulerChange,
-  showSectionRuler,
-  onShowSectionRulerChange,
-  showTimeSignatureRuler,
-  onShowTimeSignatureRulerChange,
-  rulerOrder = ['sections', 'chords', 'tempo', 'timesig'],
+  rulerVisibility,
+  onRulerVisibilityChange,
+  rulerOrder = ['time', 'measures', 'sections', 'chords', 'tempo'], // Ordem padrão consistente
   onRulerOrderChange,
 }: PlayerViewSettingsProps) {
-  const [draggedRulerIndex, setDraggedRulerIndex] = useState<number | null>(null);
+  const [draggedRulerId, setDraggedRulerId] = useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
 
-  // Create ruler configurations
+  // << CORREÇÃO: Usar rulerVisibility do pai >>
   const rulerConfigs: Record<string, RulerConfig> = {
-    sections: { id: 'sections', label: 'Sections', visible: showSectionRuler },
-    chords: { id: 'chords', label: 'Chords', visible: showChordRuler },
-    tempo: { id: 'tempo', label: 'Tempo/TS', visible: showTempoRuler },
-    timesig: { id: 'timesig', label: 'Time Signature', visible: showTimeSignatureRuler },
+    time: { id: 'time', label: 'Time (mm:ss)', visible: rulerVisibility['time'] },
+    measures: { id: 'measures', label: 'Measures / Beats', visible: rulerVisibility['measures'] },
+    sections: { id: 'sections', label: 'Sections', visible: rulerVisibility['sections'] },
+    chords: { id: 'chords', label: 'Chords', visible: rulerVisibility['chords'] },
+    tempo: { id: 'tempo', label: 'Tempo / Time Signature', visible: rulerVisibility['tempo'] },
   };
-
   const orderedRulers = rulerOrder.map(id => rulerConfigs[id]).filter(Boolean);
-
-  const handleRulerToggle = (rulerId: string, newValue: boolean) => {
-    switch (rulerId) {
-      case 'sections':
-        onShowSectionRulerChange(newValue);
-        break;
-      case 'chords':
-        onShowChordRulerChange(newValue);
-        break;
-      case 'tempo':
-        onShowTempoRulerChange(newValue);
-        break;
-      case 'timesig':
-        onShowTimeSignatureRulerChange(newValue);
-        break;
-    }
+  
+  // << CORREÇÃO: Chamar onRulerVisibilityChange >>
+  const handleRulerToggle = (rulerId: string, isVisible: boolean) => {
+    const newVisibility = { ...rulerVisibility, [rulerId]: isVisible };
+    onRulerVisibilityChange(newVisibility);
   };
 
-  const handleDragStart = (e: React.DragEvent, index: number) => {
-    setDraggedRulerIndex(index);
+  const handleDragStart = (e: React.DragEvent, rulerId: string) => {
+    setDraggedRulerId(rulerId);
+    e.dataTransfer.setData('text/plain', rulerId);
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent, rulerId: string) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+    if (rulerId !== dropTargetId) {
+      setDropTargetId(rulerId);
+    }
   };
 
-  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+  const handleDrop = (e: React.DragEvent, dropTargetRulerId: string) => {
     e.preventDefault();
-    if (draggedRulerIndex === null || draggedRulerIndex === dropIndex) {
-      setDraggedRulerIndex(null);
+    const draggedId = e.dataTransfer.getData('text/plain');
+    if (!draggedId || draggedId === dropTargetRulerId) {
       return;
     }
 
     const newOrder = [...rulerOrder];
-    const [draggedItem] = newOrder.splice(draggedRulerIndex, 1);
+    const draggedIndex = newOrder.indexOf(draggedId);
+    const dropIndex = newOrder.indexOf(dropTargetRulerId);
+
+    if (draggedIndex === -1 || dropIndex === -1) return;
+
+    const [draggedItem] = newOrder.splice(draggedIndex, 1);
     newOrder.splice(dropIndex, 0, draggedItem);
-    
+
     if (onRulerOrderChange) {
       onRulerOrderChange(newOrder);
     }
-    
-    setDraggedRulerIndex(null);
   };
 
   const handleDragEnd = () => {
-    setDraggedRulerIndex(null);
+    setDraggedRulerId(null);
+    setDropTargetId(null);
   };
 
   return (
@@ -203,15 +189,17 @@ export function PlayerViewSettings({
               {orderedRulers.map((ruler, index) => (
                 <div
                   key={ruler.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, index)}
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, index)}
+                  draggable={!!onRulerOrderChange}
+                  onDragStart={(e) => onRulerOrderChange && handleDragStart(e, ruler.id)}
+                  onDragOver={(e) => onRulerOrderChange && handleDragOver(e, ruler.id)}
+                  onDrop={(e) => onRulerOrderChange && handleDrop(e, ruler.id)}
                   onDragEnd={handleDragEnd}
+                  onDragLeave={() => setDropTargetId(null)}
                   className={cn(
                     'flex items-center justify-between p-2 rounded transition-all',
-                    'hover:bg-gray-800/50 cursor-move',
-                    draggedRulerIndex === index && 'opacity-50 scale-95'
+                    onRulerOrderChange && 'cursor-move',
+                    draggedRulerId === ruler.id ? 'opacity-50 scale-95' : 'opacity-100',
+                    dropTargetId === ruler.id && draggedRulerId !== ruler.id && 'bg-blue-500/30'
                   )}
                   style={{ backgroundColor: '#404040' }}
                 >
