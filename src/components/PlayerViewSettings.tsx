@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Settings, Eye, EyeOff, GripVertical } from 'lucide-react';
+import { useLanguage } from '../lib/LanguageContext'; // << ADICIONADO
 import { Button } from './ui/button';
 import { Label } from './ui/label';
 import {
@@ -39,19 +40,21 @@ export function PlayerViewSettings({
   rulerOrder = ['time', 'measures', 'sections', 'chords', 'tempo'], // Ordem padrão consistente
   onRulerOrderChange,
 }: PlayerViewSettingsProps) {
+  const { t } = useLanguage(); // << ADICIONADO: Hook de tradução
   const [draggedRulerId, setDraggedRulerId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
 
-  // << CORREÇÃO: Usar rulerVisibility do pai >>
+  // << CORREÇÃO: Usar traduções e visibilidade recebidas via props >>
   const rulerConfigs: Record<string, RulerConfig> = {
-    time: { id: 'time', label: 'Time (mm:ss)', visible: rulerVisibility['time'] },
-    measures: { id: 'measures', label: 'Measures / Beats', visible: rulerVisibility['measures'] },
-    sections: { id: 'sections', label: 'Sections', visible: rulerVisibility['sections'] },
-    chords: { id: 'chords', label: 'Chords', visible: rulerVisibility['chords'] },
-    tempo: { id: 'tempo', label: 'Tempo / Time Signature', visible: rulerVisibility['tempo'] },
+    time: { id: 'time', label: t.time, visible: rulerVisibility['time'] },
+    measures: { id: 'measures', label: t.measures, visible: rulerVisibility['measures'] },
+    sections: { id: 'sections', label: t.sections, visible: rulerVisibility['sections'] },
+    chords: { id: 'chords', label: t.chords, visible: rulerVisibility['chords'] },
+    tempo: { id: 'tempo', label: t.tempo, visible: rulerVisibility['tempo'] },
   };
+
   const orderedRulers = rulerOrder.map(id => rulerConfigs[id]).filter(Boolean);
-  
+
   // << CORREÇÃO: Chamar onRulerVisibilityChange >>
   const handleRulerToggle = (rulerId: string, isVisible: boolean) => {
     const newVisibility = { ...rulerVisibility, [rulerId]: isVisible };

@@ -45,8 +45,8 @@ export interface Translations {
   metronomeVolume: string;
   
   // Timeline
-  timestamps: string;
-  tempoTimeSignature: string;
+  time: string;
+  tempo: string;
   chords: string;
   sections: string;
   measures: string;
@@ -210,8 +210,8 @@ export const translations: Record<Language, Translations> = {
     metronomeVolume: 'Metronome Volume',
     
     // Timeline
-    timestamps: 'Timestamps',
-    tempoTimeSignature: 'Tempo / Time Signature',
+    time: 'Time (mm:ss)',
+    tempo: 'Tempo / Time Signature',
     chords: 'Chords',
     sections: 'Sections',
     measures: 'Measures',
@@ -373,8 +373,8 @@ export const translations: Record<Language, Translations> = {
     metronomeVolume: 'Volume do Metrônomo',
     
     // Timeline
-    timestamps: 'Timestamps',
-    tempoTimeSignature: 'Tempo / Fórmula de Compasso',
+    time: 'Tempo (mm:ss)',
+    tempo: 'Tempo / Fórmula de Compasso',
     chords: 'Acordes',
     sections: 'Seções',
     measures: 'Compassos',

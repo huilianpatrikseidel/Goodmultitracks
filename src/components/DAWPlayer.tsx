@@ -133,6 +133,9 @@ const RulerDropTarget: React.FC<{
   />
 );
 
+// << REATORAÇÃO: Centralizando a lista de IDs de réguas >>
+const ALL_RULER_IDS = ['time', 'measures', 'sections', 'chords', 'tempo'];
+
 
 export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCreateProject }: DAWPlayerProps) {
   const { t } = useLanguage();
@@ -236,13 +239,12 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
   });
   const [rulerOrder, setRulerOrder] = useState<string[]>(() => {
     const saved = localStorage.getItem('goodmultitracks_ruler_order');
-    return saved ? JSON.parse(saved) : ['time', 'measures', 'sections', 'chords', 'tempo']; // Ordem padrão
+    return saved ? JSON.parse(saved) : ALL_RULER_IDS; // Ordem padrão
   });
-  // << CORREÇÃO: Adicionado estado para visibilidade das réguas >>
   const [rulerVisibility, setRulerVisibility] = useState<Record<string, boolean>>(() => {
     const visibility: Record<string, boolean> = {};
-    const rulerIds = ['time', 'measures', 'sections', 'chords', 'tempo']; // Lista de IDs correta
-    rulerIds.forEach(id => {
+    // << CORREÇÃO: Usar a lista completa de IDs para inicializar a visibilidade >>
+    ALL_RULER_IDS.forEach(id => {
       const saved = localStorage.getItem(`goodmultitracks_show_${id}_ruler`);
       // Default to true if not found
       visibility[id] = saved === null ? true : saved === 'true';
@@ -2148,8 +2150,16 @@ const handleUpdateOrDeleteTimelineItem = (
             <div id="ruler-labels-container">
               {rulerOrder.map(rulerId => {
                 if (!rulerVisibility[rulerId]) return null;
-
-                const rulerLabel = { time: 'Time', measures: showBeats ? 'Beats' : 'Measures', tempo: 'Tempo/TS', chords: 'Chords', sections: 'Sections' }[rulerId];
+                
+                // << CORREÇÃO: Usar o objeto de traduções 't' que é completo >>
+                const rulerLabelMap: Record<string, string> = {
+                  time: t.time,
+                  measures: t.measures,
+                  tempo: t.tempo,
+                  chords: t.chords,
+                  sections: t.sections,
+                };
+                const rulerLabel = rulerLabelMap[rulerId];
                 const rulerHeight = rulerId === 'sections' ? 'h-8' : 'h-7';
 
                 if (!rulerLabel) return null;
@@ -2413,127 +2423,120 @@ const handleUpdateOrDeleteTimelineItem = (
           >
             <div style={{ width: timelineWidth }} className="relative">
               {/* Time Row */}
-
-              {/* << CORREÇÃO: Renderização das réguas baseada na ordem e visibilidade >> */}
+              {/* << CORREÇÃO DEFINITIVA: Renderização correta das 5 réguas >> */}
               {rulerOrder.map(rulerId => {
                 if (!rulerVisibility[rulerId]) return null;
  
-                if (rulerId === 'time') {
-                  return (
-                    <div key="time" className="h-7 border-b relative" style={{ backgroundColor: '#171717', borderColor: '#3A3A3A' }} onDrop={(e) => handleRulerDrop(e, 'time')} onDragOver={handleRulerDragOver}>
-                      {timeMarkers.map((time) => {
-                        const position = (time / song.duration) * timelineWidth;
-                        return (
-                          <div key={time} className="absolute top-0 bottom-0 border-l" style={{ left: position, borderColor: '#3A3A3A' }}>
-                            <span className="absolute top-0.5 left-1 text-xs" style={{ color: '#9E9E9E' }}>{formatTime(time)}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                }
- 
-                if (rulerId === 'measures') {
-                  return (
-                    <div key="measures" className="h-7 border-b relative" style={{ backgroundColor: '#171717', borderColor: '#3A3A3A' }} onDrop={(e) => handleRulerDrop(e, 'measures')} onDragOver={handleRulerDragOver}>
-                      {measureBars.map((bar, i) => {
-                        const position = (bar.time / song.duration) * timelineWidth;
-                        if (!bar.measure && !bar.isBeat) return null;
-                        let borderColor = '#3A3A3A';
-                        let backgroundColor = 'transparent';
-                        if (bar.isCompound) {
-                          borderColor = '#8B5CF6';
-                          backgroundColor = 'rgba(139, 92, 246, 0.05)';
-                        } else if (bar.isIrregular) {
-                          borderColor = '#F59E0B';
-                          backgroundColor = 'rgba(245, 158, 11, 0.05)';
-                        } else if (bar.isBeat) {
-                          borderColor = '#2B2B2B';
-                        }
-                        return (
-                          <div key={i} className="absolute top-0 bottom-0 border-l transition-colors" style={{ left: position, borderColor, backgroundColor, }} title={bar.isCompound ? 'Compound Time' : bar.isIrregular ? 'Irregular Time' : undefined}>
-                            {bar.measure && (
-                              <span className="absolute top-0.5 left-1 text-xs font-semibold" style={{ color: bar.isCompound ? '#8B5CF6' : bar.isIrregular ? '#F59E0B' : '#9E9E9E' }}>{bar.measure}</span>
-                            )}
-                            {showBeats && bar.isBeat && (
-                              <span className="absolute top-0.5 left-1 text-xs" style={{ color: '#9E9E9E' }}>{bar.beat}</span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                }
- 
-                if (rulerId === 'tempo') {
-                  return (
-                    <div key="tempo" className="h-7 border-b relative" style={{ backgroundColor: '#171717', borderColor: '#3A3A3A' }} onDrop={(e) => handleRulerDrop(e, 'tempo')} onDragOver={handleRulerDragOver}>
-                      {(warpModeEnabled && warpMarkers.length > 1) ? (
-                        <Badge variant="secondary" className="absolute top-0.5 left-2 text-xs bg-yellow-600 text-white">
-                          Time Warp Active
-                        </Badge>
-                      ) : (
-                        tempoChanges.map((change, i) => {
-                          const position = (change.time / song.duration) * timelineWidth;
+                switch (rulerId) {
+                  case 'time':
+                    return (
+                      <div key="time" className="h-7 border-b relative" style={{ backgroundColor: '#171717', borderColor: '#3A3A3A' }} onDrop={(e) => handleRulerDrop(e, 'time')} onDragOver={handleRulerDragOver}>
+                        {timeMarkers.map((time) => {
+                          const position = (time / song.duration) * timelineWidth;
+                          return (
+                            <div key={time} className="absolute top-0 bottom-0 border-l" style={{ left: position, borderColor: '#3A3A3A' }}>
+                              <span className="absolute top-0.5 left-1 text-xs" style={{ color: '#9E9E9E' }}>{formatTime(time)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  case 'measures':
+                    return (
+                      <div key="measures" className="h-7 border-b relative" style={{ backgroundColor: '#171717', borderColor: '#3A3A3A' }} onDrop={(e) => handleRulerDrop(e, 'measures')} onDragOver={handleRulerDragOver}>
+                        {measureBars.map((bar, i) => {
+                          const position = (bar.time / song.duration) * timelineWidth;
+                          if (!bar.measure && !bar.isBeat) return null;
+                          let borderColor = '#3A3A3A';
+                          let backgroundColor = 'transparent';
+                          if (bar.isCompound) {
+                            borderColor = '#8B5CF6';
+                            backgroundColor = 'rgba(139, 92, 246, 0.05)';
+                          } else if (bar.isIrregular) {
+                            borderColor = '#F59E0B';
+                            backgroundColor = 'rgba(245, 158, 11, 0.05)';
+                          } else if (bar.isBeat) {
+                            borderColor = '#2B2B2B';
+                          }
+                          return (
+                            <div key={i} className="absolute top-0 bottom-0 border-l transition-colors" style={{ left: position, borderColor, backgroundColor, }} title={bar.isCompound ? 'Compound Time' : bar.isIrregular ? 'Irregular Time' : undefined}>
+                              {bar.measure && (
+                                <span className="absolute top-0.5 left-1 text-xs font-semibold" style={{ color: bar.isCompound ? '#8B5CF6' : bar.isIrregular ? '#F59E0B' : '#9E9E9E' }}>{bar.measure}</span>
+                              )}
+                              {showBeats && bar.isBeat && (
+                                <span className="absolute top-0.5 left-1 text-xs" style={{ color: '#9E9E9E' }}>{bar.beat}</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  case 'tempo':
+                    return (
+                      <div key="tempo" className="h-7 border-b relative" style={{ backgroundColor: '#171717', borderColor: '#3A3A3A' }} onDrop={(e) => handleRulerDrop(e, 'tempo')} onDragOver={handleRulerDragOver}>
+                        {(warpModeEnabled && warpMarkers.length > 1) ? (
+                          <Badge variant="secondary" className="absolute top-0.5 left-2 text-xs bg-yellow-600 text-white">
+                            Time Warp Active
+                          </Badge>
+                        ) : (
+                          tempoChanges.map((change, i) => {
+                            const position = (change.time / song.duration) * timelineWidth;
+                            return (
+                              <div key={i} className="absolute top-0 bottom-0" style={{ left: position }}>
+                                <Badge variant="secondary" className="absolute top-0.5 left-0 text-xs bg-purple-600 text-white">
+                                  {change.tempo} BPM · {change.timeSignature}
+                                </Badge>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    );
+                  case 'chords':
+                    return (
+                      <div key="chords" className="h-7 border-b relative" style={{ backgroundColor: '#171717', borderColor: '#3A3A3A' }} onDrop={(e) => handleRulerDrop(e, 'chords')} onDragOver={handleRulerDragOver}>
+                        {chordProgression.map((chord, i) => {
+                          const position = (chord.time / song.duration) * timelineWidth;
                           return (
                             <div key={i} className="absolute top-0 bottom-0" style={{ left: position }}>
-                              <Badge variant="secondary" className="absolute top-0.5 left-0 text-xs bg-purple-600 text-white">
-                                {change.tempo} BPM · {change.timeSignature}
+                              <Badge variant="secondary" className="absolute top-0.5 left-0 text-xs bg-blue-600 text-white cursor-pointer hover:bg-blue-700 transition-colors whitespace-nowrap" onClick={(e) => {
+                                e.stopPropagation();
+                                if (editMode) {
+                                  setEditingChordMarker(chord);
+                                  setEditorType('chord');
+                                  setTimelineEditorOpen(true);
+                                } else {
+                                  setSelectedChord({ chord: chord.chord, customDiagram: chord.customDiagram });
+                                }
+                              }}>
+                                {transposeKey(chord.chord, keyShift)}
                               </Badge>
                             </div>
                           );
-                        })
-                      )}
-                    </div>
-                  );
+                        })}
+                      </div>
+                    );
+                  case 'sections':
+                    return (
+                      <div key="sections" className="h-8 border-b relative" style={{ backgroundColor: '#171717', borderColor: '#3A3A3A' }} onDrop={(e) => handleRulerDrop(e, 'sections')} onDragOver={handleRulerDragOver}>
+                        {song.markers.map((marker, i) => {
+                          const position = (marker.time / song.duration) * timelineWidth;
+                          const nextMarker = song.markers[i + 1];
+                          const width = nextMarker ? ((nextMarker.time - marker.time) / song.duration) * timelineWidth : timelineWidth - position;
+                          const colorMap: Record<string, string> = { intro: 'bg-green-600', verse: 'bg-blue-600', chorus: 'bg-red-600', bridge: 'bg-yellow-600', outro: 'bg-purple-600', 'pre-chorus': 'bg-pink-600', instrumental: 'bg-teal-600', tag: 'bg-gray-500', custom: 'bg-gray-400' };
+                          const bgColor = colorMap[marker.type] || colorMap.custom;
+                          const borderColor = bgColor.replace('bg-', 'border-');
+                          return (
+                            <div key={marker.id} className={`absolute top-1 bottom-1 ${bgColor} bg-opacity-30 border-l-2 ${borderColor} cursor-pointer hover:bg-opacity-50 transition-all`} style={{ left: position, width: Math.max(0, width) }} onClick={(e) => { e.stopPropagation(); handleSectionClick(i); }}>
+                              <span className="absolute top-1 left-2 text-xs pointer-events-none truncate max-w-full pr-1">{marker.label}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  default:
+                    return null;
                 }
- 
-                if (rulerId === 'chords') {
-                  return (
-                    <div key="chords" className="h-7 border-b relative" style={{ backgroundColor: '#171717', borderColor: '#3A3A3A' }} onDrop={(e) => handleRulerDrop(e, 'chords')} onDragOver={handleRulerDragOver}>
-                      {chordProgression.map((chord, i) => {
-                        const position = (chord.time / song.duration) * timelineWidth;
-                        return (
-                          <div key={i} className="absolute top-0 bottom-0" style={{ left: position }}>
-                            <Badge variant="secondary" className="absolute top-0.5 left-0 text-xs bg-blue-600 text-white cursor-pointer hover:bg-blue-700 transition-colors whitespace-nowrap" onClick={(e) => {
-                              e.stopPropagation();
-                              if (editMode) {
-                                setEditingChordMarker(chord);
-                                setEditorType('chord');
-                                setTimelineEditorOpen(true);
-                              } else {
-                                setSelectedChord({ chord: chord.chord, customDiagram: chord.customDiagram });
-                              }
-                            }}>
-                              {transposeKey(chord.chord, keyShift)}
-                            </Badge>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                }
- 
-                if (rulerId === 'sections') {
-                  return (
-                    <div key="sections" className="h-8 border-b relative" style={{ backgroundColor: '#171717', borderColor: '#3A3A3A' }} onDrop={(e) => handleRulerDrop(e, 'sections')} onDragOver={handleRulerDragOver}>
-                      {song.markers.map((marker, i) => {
-                        const position = (marker.time / song.duration) * timelineWidth;
-                        const nextMarker = song.markers[i + 1];
-                        const width = nextMarker ? ((nextMarker.time - marker.time) / song.duration) * timelineWidth : timelineWidth - position;
-                        const colorMap: Record<string, string> = { intro: 'bg-green-600', verse: 'bg-blue-600', chorus: 'bg-red-600', bridge: 'bg-yellow-600', outro: 'bg-purple-600', 'pre-chorus': 'bg-pink-600', instrumental: 'bg-teal-600', tag: 'bg-gray-500', custom: 'bg-gray-400' };
-                        const bgColor = colorMap[marker.type] || colorMap.custom;
-                        const borderColor = bgColor.replace('bg-', 'border-');
-                        return (
-                          <div key={marker.id} className={`absolute top-1 bottom-1 ${bgColor} bg-opacity-30 border-l-2 ${borderColor} cursor-pointer hover:bg-opacity-50 transition-all`} style={{ left: position, width: Math.max(0, width) }} onClick={(e) => { e.stopPropagation(); handleSectionClick(i); }}>
-                            <span className="absolute top-1 left-2 text-xs pointer-events-none truncate max-w-full pr-1">{marker.label}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                }
-                return null;
               })}
 
               {/* Loop region highlight in timeline */}
