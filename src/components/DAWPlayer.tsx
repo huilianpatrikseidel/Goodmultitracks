@@ -39,9 +39,9 @@ import { MixPresetsManager } from './MixPresetsManager';
 import { MixerDock } from './MixerDock';
 import { NotesPanel } from './NotesPanel';
 import { Button } from './ui/button';
-import { Slider } from './ui/slider';
+import { Slider } from './ui/slider'; // << IMPORTAÇÕES ADICIONADAS >>
 import { Input } from './ui/input';
-import { getWarpedTime as utilsGetWarpedTime, parseTimeInput, calculateLocalBPM, getAdjacentMarkers, generateDynamicTempos, audioTimeToGridTime } from '../lib/warpUtils';
+import { getWarpedTime as utilsGetWarpedTime, parseTimeInput, calculateBPMForSegment, audioTimeToGridTime } from '../lib/warpUtils';
 
 import { Badge } from './ui/badge';
 import { Song, AudioTrack, SectionMarker, TempoChange, ChordMarker, MixPreset, TrackTag, WarpMarker } from '../types';
@@ -160,8 +160,6 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
   const [dragStartTime, setDragStartTime] = useState<number | null>(null);
   const [hasDragged, setHasDragged] = useState(false);
   const [dragStartX, setDragStartX] = useState<number | null>(null);
-  const [isDraggingWarpMarker, setIsDraggingWarpMarker] = useState(false);
-  const [draggedWarpMarkerId, setDraggedWarpMarkerId] = useState<string | null>(null);
   const [snapEnabled, setSnapEnabled] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [mixerVisible, setMixerVisible] = useState(true);
@@ -176,38 +174,11 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
   const [selectedChord, setSelectedChord] = useState<{ chord: string; customDiagram?: any } | null>(null);
   const [editingChordMarker, setEditingChordMarker] = useState<ChordMarker | null>(null);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
+  // << ESTADOS DE WARP REMOVIDOS/SIMPLIFICADOS >>
   const [warpModeEnabled, setWarpModeEnabled] = useState(false);
-  const [warpMarkers, setWarpMarkers] = useState<WarpMarker[]>(song?.warpMarkers || []);
   const [dynamicTempos, setDynamicTempos] = useState<Array<{ time: number; tempo: number }>>([]);
-  const [hoveredWarpMarkerId, setHoveredWarpMarkerId] = useState<string | null>(null);
-    const [editingWarpMarkerId, setEditingWarpMarkerId] = useState<string | null>(null);
-    const [editingSourceInput, setEditingSourceInput] = useState('');
-    const [editingGridInput, setEditingGridInput] = useState('');
-
-    // Autofocus and ESC-to-cancel for inline warp editor
-    useEffect(() => {
-      if (!editingWarpMarkerId) return;
-
-      const handler = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') {
-          setEditingWarpMarkerId(null);
-        }
-      };
-
-      window.addEventListener('keydown', handler);
-
-      // Focus source input if present
-      setTimeout(() => {
-        try {
-          const el = document.getElementById(`warp-src-${editingWarpMarkerId}`) as HTMLInputElement | null;
-          if (el) el.focus();
-        } catch (err) {
-          // ignore
-        }
-      }, 0);
-
-      return () => window.removeEventListener('keydown', handler);
-    }, [editingWarpMarkerId]);
+  const [isDraggingTempoMarker, setIsDraggingTempoMarker] = useState(false);
+  const [draggedTempoMarkerTime, setDraggedTempoMarkerTime] = useState<number | null>(null);
   
   // Mix presets state
   const [mixPresets, setMixPresets] = useState<MixPreset[]>([]);
@@ -373,47 +344,23 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
 
 
   const getWarpedTime = (currentGridTime: number): number => {
-    return utilsGetWarpedTime(currentGridTime, warpMarkers, warpModeEnabled);
+    if (!song) return currentGridTime;
+    const tempos = dynamicTempos.length > 0 ? dynamicTempos : (song.tempoChanges || []);
+    return utilsGetWarpedTime(currentGridTime, tempos, song.tempo, warpModeEnabled);
   };
 
-  // Generate dynamic tempos from warp markers and update the song's tempo map
-  // This implements "Warp Grid" mode.
+  // Sync dynamicTempos with the song's tempoChanges
   useEffect(() => {
-    if (!song || !onSongUpdate) return;
-
-    const originalTempoChanges = song.tempoChanges?.filter(tc => !tc.hidden) || [];
-
-    if (warpModeEnabled && warpMarkers.length >= 2) {
-      const baseBPM = song.tempo || 120;
-      const generatedTempos = generateDynamicTempos(warpMarkers, baseBPM);
-
-      // Mark generated tempos as hidden
-      const hiddenGeneratedTempos = generatedTempos.map(t => ({ ...t, hidden: true }));
-
-      // Combine original (non-hidden) tempos with new hidden ones
-      const newTempoMap = [...originalTempoChanges, ...hiddenGeneratedTempos].sort((a, b) => a.time - b.time);
-
-      // Update song state if changed
-      if (JSON.stringify(newTempoMap) !== JSON.stringify(song.tempoChanges)) {
-        onSongUpdate({ ...song, tempoChanges: newTempoMap });
-      }
-      setDynamicTempos(newTempoMap);
-    } else {
-      // When warp is disabled or not enough markers, revert to original tempos
-      if (JSON.stringify(originalTempoChanges) !== JSON.stringify(song.tempoChanges)) {
-        onSongUpdate({ ...song, tempoChanges: originalTempoChanges });
-      }
-      setDynamicTempos(originalTempoChanges);
+    if (song) {
+      setDynamicTempos(song.tempoChanges || [{ time: 0, tempo: song.tempo, timeSignature: '4/4' }]);
     }
-  }, [warpModeEnabled, warpMarkers, song, onSongUpdate]);
+  }, [song?.tempoChanges, song?.tempo]);
 
   // Simulate playback with advanced metronome and tempo curves
   useEffect(() => {
     if (!isPlaying || !song) return;
 
     const interval = setInterval(() => {
-      // Warp Grid Mode: currentTime (audio) advances linearly.
-      // gridTime is calculated from currentTime based on the (potentially dynamic) tempo map.
       
       setCurrentTime((prevCurrentTime) => {
         // Get current tempo info (with tempo curve interpolation)
@@ -456,8 +403,8 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
         // Advance currentTime (audio time) linearly
         const newCurrentTime = prevCurrentTime + (0.1 * tempo / 100);
 
-        // Calculate gridTime from the new audio time using the dynamic tempo map
-        const allTempos = dynamicTempos.length > 0 ? dynamicTempos : (song.tempoChanges || [{ time: 0, tempo: song.tempo }]);
+        // Calcula o gridTime a partir do novo tempo de áudio usando o mapa de tempo dinâmico
+        const allTempos = dynamicTempos.length > 0 ? dynamicTempos : [{ time: 0, tempo: song.tempo }];
         const newGridTime = audioTimeToGridTime(newCurrentTime, allTempos, song.tempo);
         setGridTime(newGridTime);
 
@@ -467,7 +414,7 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
         // Advanced metronome logic (still based on grid time)
         if (metronomeEnabled) {
           const beatDuration = 60 / actualTempo;
-          const currentBeat = Math.floor(newGridTime / beatDuration);
+          const currentBeat = Math.floor(newGridTime / beatDuration); // Metrônomo continua baseado no gridTime
 
           // Play click if we've crossed to a new beat
           if (currentBeat > lastBeatRef.current) {
@@ -515,7 +462,7 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
       });
     }, 100);
 
-    return () => clearInterval(interval);
+    return () => clearInterval(interval); // << LÓGICA DE PLAYBACK ATUALIZADA PARA O WARP GRID >>
   }, [isPlaying, tempo, song, loopEnabled, loopStart, loopEnd, metronomeEnabled, metronomeVolume, dynamicTempos]);
 
 
@@ -848,38 +795,6 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
     const percentage = (x + scrollLeft) / totalWidth;
     const time = percentage * song.duration;
 
-    if (warpModeEnabled) {
-      const markerRadiusPx = 8; // Clickable radius around the handle
-      let markerClicked = null;
-
-      for (const marker of warpMarkers) {
-        const gridPositionPx = (marker.gridTime / song.duration) * totalWidth;
-        const distance = Math.abs((x + scrollLeft) - gridPositionPx);
-        if (distance < markerRadiusPx) {
-          markerClicked = marker;
-          break;
-        }
-      }
-
-      if (markerClicked) {
-        // Start dragging existing marker
-        setIsDraggingWarpMarker(true);
-        setDraggedWarpMarkerId(markerClicked.id);
-      } else {
-        // Create a new marker and start dragging it (snap grid time to measure)
-        const snapped = snapToMeasure(time);
-        const newMarker: WarpMarker = {
-          id: `warp-${Date.now()}`,
-          sourceTime: time,
-          gridTime: snapped,
-        };
-        setWarpMarkers(prev => [...prev, newMarker]);
-        setIsDraggingWarpMarker(true);
-        setDraggedWarpMarkerId(newMarker.id);
-      }
-      return; // Skip loop creation logic
-    }
-
 
     setIsDragging(true);
     setDragStartTime(time);
@@ -889,21 +804,6 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
 
   const handleWaveformMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!song) return;
-
-    if (isDraggingWarpMarker && draggedWarpMarkerId) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const scrollLeft = timelineScrollRef.current?.scrollLeft || 0;
-      const totalWidth = (containerWidth * zoom);
-      const percentage = Math.max(0, Math.min(1, (x + scrollLeft) / totalWidth));
-      const rawTime = percentage * song.duration;
-      const newGridTime = snapToMeasure(rawTime);
-
-      setWarpMarkers(prev => prev.map(m => 
-        m.id === draggedWarpMarkerId ? { ...m, gridTime: newGridTime } : m
-      ));
-      return; // Skip loop creation logic
-    }
 
     if (!isDragging || dragStartTime === null || dragStartX === null) return;
 
@@ -931,16 +831,6 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
   };
 
   const handleWaveformMouseUp = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (isDraggingWarpMarker) {
-      setIsDraggingWarpMarker(false);
-      setDraggedWarpMarkerId(null);
-      // Persist changes
-      if (song && onSongUpdate) {
-        onSongUpdate({ ...song, warpMarkers });
-      }
-      return;
-    }
-
     if (!hasDragged && dragStartTime !== null && song) {
       // This was a click, not a drag
       const rect = e.currentTarget.getBoundingClientRect();
@@ -2093,19 +1983,7 @@ const handleUpdateOrDeleteTimelineItem = (
                   backgroundColor: warpModeEnabled ? '#3B82F6' : '#404040',
                   color: '#F1F1F1'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = warpModeEnabled ? '#2563EB' : '#5A5A5A'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = warpModeEnabled ? '#3B82F6' : '#404040'}
-                onClick={() => {
-                  const newMode = !warpModeEnabled;
-                  setWarpModeEnabled(newMode);
-                  if (newMode && warpMarkers.length === 0 && song) {
-                    const initialMarkers: WarpMarker[] = [
-                      { id: 'warp-start', sourceTime: 0, gridTime: 0 },
-                      { id: 'warp-end', sourceTime: song.duration, gridTime: song.duration },
-                    ];
-                    setWarpMarkers(initialMarkers);
-                  }
-                }}
+                onClick={() => setWarpModeEnabled(!warpModeEnabled)}
               >
                 <Wand2 className="w-4 h-4" />
               </Button>
@@ -2416,10 +2294,12 @@ const handleUpdateOrDeleteTimelineItem = (
             onMouseMove={handleWaveformMouseMove}
             onMouseUp={handleWaveformMouseUp}
             onMouseLeave={handleWaveformMouseUp}
-            onContextMenu={(e) => {
-              if (!warpModeEnabled || !song) return;
+            onContextMenu={(e) => { // << CONTEXT MENU PARA REMOVER PONTOS DE TEMPO >>
+              if (!warpModeEnabled || !song || !onSongUpdate) return;
 
-              const rect = e.currentTarget.getBoundingClientRect();
+              const rect = (e.currentTarget as HTMLElement).closest('.tempo-ruler-interactive')?.getBoundingClientRect();
+              if (!rect) return;
+
               const x = e.clientX - rect.left;
               const scrollLeft = timelineScrollRef.current?.scrollLeft || 0;
               const totalWidth = (containerWidth * zoom);
@@ -2427,22 +2307,20 @@ const handleUpdateOrDeleteTimelineItem = (
               const markerRadiusPx = 8;
               let markerClicked = null;
 
-              for (const marker of warpMarkers) {
-                const gridPositionPx = (marker.gridTime / song.duration) * totalWidth;
+              for (const change of dynamicTempos) {
+                if (change.time === 0) continue; // Cannot delete the first marker
+                const gridPositionPx = (change.time / song.duration) * totalWidth;
                 const distance = Math.abs((x + scrollLeft) - gridPositionPx);
                 if (distance < markerRadiusPx) {
-                  markerClicked = marker;
+                  markerClicked = change;
                   break;
                 }
               }
 
               if (markerClicked) {
                 e.preventDefault();
-                const newMarkers = warpMarkers.filter(m => m.id !== markerClicked!.id);
-                setWarpMarkers(newMarkers);
-                if (onSongUpdate) {
-                  onSongUpdate({ ...song, warpMarkers: newMarkers });
-                }
+                const newTempos = dynamicTempos.filter(t => t.time !== markerClicked!.time);
+                onSongUpdate({ ...song, tempoChanges: newTempos });
               }
             }}
           >
@@ -2498,23 +2376,105 @@ const handleUpdateOrDeleteTimelineItem = (
                     );
                   case 'tempo':
                     return (
-                      <div key="tempo" className="h-7 border-b relative" style={{ backgroundColor: '#171717', borderColor: '#3A3A3A' }} onDrop={(e) => handleRulerDrop(e, 'tempo')} onDragOver={handleRulerDragOver}>
-                        {(warpModeEnabled && warpMarkers.length > 1) ? (
-                          <Badge variant="secondary" className="absolute top-0.5 left-2 text-xs bg-yellow-600 text-white">
-                            Time Warp Active
-                          </Badge>
-                        ) : (
-                          tempoChanges.map((change, i) => {
-                            const position = (change.time / song.duration) * timelineWidth;
-                            return (
-                              <div key={i} className="absolute top-0 bottom-0" style={{ left: position }}>
-                                <Badge variant="secondary" className="absolute top-0.5 left-0 text-xs bg-purple-600 text-white">
-                                  {change.tempo} BPM · {change.timeSignature}
-                                </Badge>
-                              </div>
-                            );
-                          })
-                        )}
+                      <div
+                        key="tempo"
+                        className={`h-7 border-b relative tempo-ruler-interactive ${warpModeEnabled ? 'bg-yellow-900/20 cursor-cell' : ''}`}
+                        style={{ backgroundColor: '#171717', borderColor: '#3A3A3A' }}
+                        onDrop={(e) => handleRulerDrop(e, 'tempo')}
+                        onDragOver={handleRulerDragOver}
+                        onMouseDown={(e) => { // << MOUSE DOWN NA RÉGUA DE TEMPO >>
+                          if (!warpModeEnabled || !song || !onSongUpdate) return;
+                          e.stopPropagation();
+
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const x = e.clientX - rect.left;
+                          const scrollLeft = timelineScrollRef.current?.scrollLeft || 0;
+                          const clickTime = ((x + scrollLeft) / timelineWidth) * song.duration;
+
+                          // Check if clicking on an existing marker handle
+                          const markerRadiusPx = 8;
+                          let markerClicked: TempoChange | null = null;
+                          for (const change of dynamicTempos) {
+                            const gridPositionPx = (change.time / song.duration) * timelineWidth;
+                            if (Math.abs((x + scrollLeft) - gridPositionPx) < markerRadiusPx) {
+                              markerClicked = change;
+                              break;
+                            }
+                          }
+
+                          if (markerClicked) {
+                            if (markerClicked.time === 0) return; // Cannot drag the first marker
+                            setIsDraggingTempoMarker(true);
+                            setDraggedTempoMarkerTime(markerClicked.time);
+                          } else {
+                            // Create a new tempo marker
+                            const newTime = snapToMeasure(clickTime);
+                            const audioTimeAtNewGrid = getWarpedTime(newTime);
+
+                            const newTempoChange: TempoChange = {
+                              time: newTime,
+                              tempo: getCurrentTempoInfo(newTime).tempo, // Inherit tempo for now
+                              timeSignature: getCurrentTempoInfo(newTime).timeSignature || '4/4',
+                            };
+
+                            const newTempos = [...dynamicTempos, newTempoChange].sort((a, b) => a.time - b.time);
+                            onSongUpdate({ ...song, tempoChanges: newTempos });
+                          }
+                        }}
+                        onMouseMove={(e) => { // << MOUSE MOVE NA RÉGUA DE TEMPO >>
+                          if (!isDraggingTempoMarker || draggedTempoMarkerTime === null || !song || !onSongUpdate) return;
+                          e.stopPropagation();
+
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const x = e.clientX - rect.left;
+                          const scrollLeft = timelineScrollRef.current?.scrollLeft || 0;
+                          const rawTime = ((x + scrollLeft) / timelineWidth) * song.duration;
+                          const newGridTime = snapToMeasure(rawTime);
+
+                          const sortedTempos = [...dynamicTempos].sort((a, b) => a.time - b.time);
+                          const markerIndex = sortedTempos.findIndex(t => t.time === draggedTempoMarkerTime);
+                          if (markerIndex < 1) return; // Cannot be the first marker
+
+                          const prevMarker = sortedTempos[markerIndex - 1];
+                          const currentMarker = sortedTempos[markerIndex];
+
+                          // The audio time of the marker being dragged is fixed. We are changing its grid time.
+                          const audioTimeAtMarker = getWarpedTime(currentMarker.time);
+                          const audioTimeAtPrevMarker = getWarpedTime(prevMarker.time);
+
+                          const audioDuration = audioTimeAtMarker - audioTimeAtPrevMarker;
+                          const newGridDuration = newGridTime - prevMarker.time;
+
+                          const newBPM = calculateBPMForSegment(newGridDuration, audioDuration, song.tempo);
+
+                          // Update the tempo of the *previous* segment and the time of the *current* marker
+                          const updatedTempos = dynamicTempos.map(t => {
+                            if (t.time === prevMarker.time) return { ...t, tempo: newBPM };
+                            if (t.time === draggedTempoMarkerTime) return { ...t, time: newGridTime };
+                            return t;
+                          });
+
+                          onSongUpdate({ ...song, tempoChanges: updatedTempos });
+                          setDraggedTempoMarkerTime(newGridTime); // Update the reference for continuous dragging
+                        }}
+                        onMouseUp={(e) => { // << MOUSE UP NA RÉGUA DE TEMPO >>
+                          e.stopPropagation();
+                          setIsDraggingTempoMarker(false);
+                          setDraggedTempoMarkerTime(null);
+                        }}
+                      >
+                        {dynamicTempos.map((change, i) => {
+                          const position = (change.time / song.duration) * timelineWidth;
+                          const isDraggable = warpModeEnabled && change.time > 0;
+                          return (
+                            <div key={i} className="absolute top-0 bottom-0" style={{ left: position, zIndex: 21 }}>
+                              <div className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full ${isDraggable ? 'bg-yellow-500 border-2 border-white cursor-ew-resize' : 'bg-purple-500/60 border-2 border-white/30'}`} />
+                              <Badge variant="secondary" className={`absolute top-0.5 left-1 text-xs ${isDraggable ? 'bg-yellow-600' : 'bg-purple-600'} text-white`}>
+                                {change.tempo.toFixed(1)} BPM
+                              </Badge>
+                            </div>
+                          );
+                        })}
                       </div>
                     );
                   case 'chords':
@@ -2584,114 +2544,6 @@ const handleUpdateOrDeleteTimelineItem = (
                   />
                 </>
               )}
-
-              {/* Warp Markers - always rendered (subtle when warpMode disabled) */}
-              {warpMarkers.map(marker => {
-                const gridPosition = (marker.gridTime / song.duration) * timelineWidth;
-                const sourcePosition = (marker.sourceTime / song.duration) * timelineWidth;
-                const showFull = warpModeEnabled;
-                return (
-                  <React.Fragment key={marker.id}>
-                    {/* Line connecting source to grid (visible only when warp mode active) */}
-                    {showFull && Math.abs(gridPosition - sourcePosition) > 2 && (
-                      <div
-                        className="absolute top-0 h-full border-l border-dashed pointer-events-none"
-                        style={{
-                          left: Math.min(gridPosition, sourcePosition),
-                          width: Math.abs(gridPosition - sourcePosition),
-                          borderColor: 'rgba(250, 204, 21, 0.7)',
-                          height: '100%',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          borderTopWidth: '1px',
-                        }}
-                      />
-                    )}
-
-                    {/* Source Marker (thin line) - subtle when inactive */}
-                    <div
-                      className={`absolute top-0 bottom-0 w-0.5 ${showFull ? 'bg-yellow-300 opacity-50' : 'bg-yellow-600 opacity-20'} pointer-events-none`}
-                      style={{ left: sourcePosition }}
-                    />
-
-                          {/* Grid Marker (handle) - clickable to open tool when inactive, draggable when active */}
-                          <div
-                            className={`absolute top-0 bottom-0 w-0.5 ${showFull ? 'bg-yellow-500 cursor-ew-resize z-20' : 'bg-yellow-500/30 z-10'}`}
-                            style={{ left: gridPosition }}
-                            onMouseEnter={() => setHoveredWarpMarkerId(marker.id)}
-                            onMouseLeave={() => setHoveredWarpMarkerId(prev => (prev === marker.id ? null : prev))}
-                            onDoubleClick={(e) => {
-                              e.stopPropagation();
-                              // Open inline editor popup
-                              setEditingWarpMarkerId(marker.id);
-                              setEditingSourceInput(marker.sourceTime.toFixed(2));
-                              setEditingGridInput(marker.gridTime.toFixed(2));
-                            }}
-                          >
-                            <div className={`absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full ${showFull ? 'bg-yellow-500 border-2 border-white' : 'bg-yellow-500/60 border-2 border-white/30'}`} />
-
-                            {/* Shift label above handle */}
-                            <div className={`absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-mono px-1 py-0.5 rounded ${showFull ? 'bg-yellow-600 text-white' : 'bg-yellow-600/40 text-white/80'}`}>
-                              {((marker.gridTime - marker.sourceTime) >= 0 ? '+' : '') + (marker.gridTime - marker.sourceTime).toFixed(2) + 's'}
-                            </div>
-                            {/* Inline editor popup on double-click */}
-                            {editingWarpMarkerId === marker.id && (
-                              <div style={{ position: 'absolute', left: Math.min(Math.max(gridPosition, 16), Math.max(16, timelineWidth - 220)), top: -56, transform: 'translateX(-50%)', zIndex: 70 }}>
-                                <div className="bg-white shadow rounded p-2 text-xs text-black w-56">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <label className="w-16">Source</label>
-                                    <Input id={`warp-src-${marker.id}`} value={editingSourceInput} onChange={(e) => setEditingSourceInput(e.target.value)} />
-                                  </div>
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <label className="w-16">Grid</label>
-                                    <Input id={`warp-grid-${marker.id}`} value={editingGridInput} onChange={(e) => setEditingGridInput(e.target.value)} />
-                                  </div>
-                                  <div className="flex justify-end gap-2">
-                                    <Button variant="outline" size="sm" onClick={() => { setEditingWarpMarkerId(null); }}>Cancel</Button>
-                                    <Button size="sm" onClick={() => {
-                                      const srcParsed = parseTimeInput(editingSourceInput);
-                                      const grdParsed = parseTimeInput(editingGridInput);
-                                      if (srcParsed === null || grdParsed === null || !song) {
-                                        return;
-                                      }
-                                      const newMarkers = warpMarkers.map(m => m.id === marker.id ? { ...m, sourceTime: srcParsed, gridTime: grdParsed } : m);
-                                      setWarpMarkers(newMarkers);
-                                      if (song && onSongUpdate) {
-                                        onSongUpdate({ ...song, warpMarkers: newMarkers });
-                                      }
-                                      setEditingWarpMarkerId(null);
-                                    }}>Save</Button>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          {/* Hover Tooltip (rendered near the handle when hovered) */}
-                          {hoveredWarpMarkerId === marker.id && (
-                            <div style={{ position: 'absolute', left: Math.min(Math.max(gridPosition, 16), Math.max(16, timelineWidth - 120)), top: 8, transform: 'translateX(-50%)', zIndex: 60 }}>
-                              <div className="bg-black/80 text-white text-xs rounded px-2 py-1 whitespace-nowrap space-y-1">
-                                <div>Grid: {formatTime(marker.gridTime)}</div>
-                                <div>Source: {formatTime(marker.sourceTime)}</div>
-                                <div>Shift: {((marker.gridTime - marker.sourceTime) >= 0 ? '+' : '') + (marker.gridTime - marker.sourceTime).toFixed(2)}s</div>
-                                {/* Show local BPM if multiple markers exist */}
-                                {warpMarkers.length > 1 && (() => {
-                                  const { prev, next } = getAdjacentMarkers(marker.gridTime, warpMarkers);
-                                  if (next) {
-                                    const localBPM = calculateLocalBPM(marker, next, song.tempo);
-                                    return <div className="border-t border-gray-600 pt-1 mt-1">To next: {localBPM.toFixed(1)} BPM</div>;
-                                  }
-                                  if (prev) {
-                                    const localBPM = calculateLocalBPM(prev, marker, song.tempo);
-                                    return <div className="border-t border-gray-600 pt-1 mt-1">From prev: {localBPM.toFixed(1)} BPM</div>;
-                                  }
-                                  return null;
-                                })()}
-                              </div>
-                            </div>
-                          )}
-                  </React.Fragment>
-                );
-              })}
 
               {/* Playhead */}
               <div

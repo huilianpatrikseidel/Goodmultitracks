@@ -74,6 +74,7 @@
     --color-yellow-300: oklch(.905 .182 98.111);
     --color-yellow-500: oklch(.795 .184 86.047);
     --color-yellow-600: oklch(.681 .162 75.834);
+    --color-yellow-900: oklch(.421 .095 57.708);
     --color-green-400: oklch(.792 .209 151.711);
     --color-green-500: oklch(.723 .219 149.579);
     --color-green-600: oklch(.627 .194 149.214);
@@ -89,6 +90,7 @@
     --color-blue-600: oklch(.546 .245 262.881);
     --color-blue-700: oklch(.488 .243 264.376);
     --color-blue-800: oklch(.424 .199 265.638);
+    --color-purple-500: oklch(.627 .265 303.9);
     --color-purple-600: oklch(.558 .288 302.321);
     --color-pink-600: oklch(.592 .249 .584);
     --color-gray-50: oklch(.985 .002 247.839);
@@ -513,10 +515,6 @@
     top: calc(var(--spacing) * -1.5);
   }
 
-  .-top-6 {
-    top: calc(var(--spacing) * -6);
-  }
-
   .top-0 {
     top: calc(var(--spacing) * 0);
   }
@@ -681,10 +679,6 @@
 
   .my-1 {
     margin-block: calc(var(--spacing) * 1);
-  }
-
-  .mt-1 {
-    margin-top: calc(var(--spacing) * 1);
   }
 
   .mt-2 {
@@ -1267,6 +1261,10 @@
     animation: enter var(--tw-duration, .15s) var(--tw-ease, ease);
   }
 
+  .cursor-cell {
+    cursor: cell;
+  }
+
   .cursor-default {
     cursor: default;
   }
@@ -1753,16 +1751,6 @@
     }
   }
 
-  .bg-black\/80 {
-    background-color: #000c;
-  }
-
-  @supports (color: color-mix(in lab, red, red)) {
-    .bg-black\/80 {
-      background-color: color-mix(in oklab, var(--color-black) 80%, transparent);
-    }
-  }
-
   .bg-blue-50 {
     background-color: var(--color-blue-50);
   }
@@ -1909,6 +1897,16 @@
     background-color: var(--primary);
   }
 
+  .bg-purple-500\/60 {
+    background-color: color-mix(in srgb, oklch(.627 .265 303.9) 60%, transparent);
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .bg-purple-500\/60 {
+      background-color: color-mix(in oklab, var(--color-purple-500) 60%, transparent);
+    }
+  }
+
   .bg-purple-600 {
     background-color: var(--color-purple-600);
   }
@@ -1959,37 +1957,17 @@
     background-color: var(--color-yellow-500);
   }
 
-  .bg-yellow-500\/30 {
-    background-color: color-mix(in srgb, oklch(.795 .184 86.047) 30%, transparent);
-  }
-
-  @supports (color: color-mix(in lab, red, red)) {
-    .bg-yellow-500\/30 {
-      background-color: color-mix(in oklab, var(--color-yellow-500) 30%, transparent);
-    }
-  }
-
-  .bg-yellow-500\/60 {
-    background-color: color-mix(in srgb, oklch(.795 .184 86.047) 60%, transparent);
-  }
-
-  @supports (color: color-mix(in lab, red, red)) {
-    .bg-yellow-500\/60 {
-      background-color: color-mix(in oklab, var(--color-yellow-500) 60%, transparent);
-    }
-  }
-
   .bg-yellow-600 {
     background-color: var(--color-yellow-600);
   }
 
-  .bg-yellow-600\/40 {
-    background-color: color-mix(in srgb, oklch(.681 .162 75.834) 40%, transparent);
+  .bg-yellow-900\/20 {
+    background-color: color-mix(in srgb, oklch(.421 .095 57.708) 20%, transparent);
   }
 
   @supports (color: color-mix(in lab, red, red)) {
-    .bg-yellow-600\/40 {
-      background-color: color-mix(in oklab, var(--color-yellow-600) 40%, transparent);
+    .bg-yellow-900\/20 {
+      background-color: color-mix(in oklab, var(--color-yellow-900) 20%, transparent);
     }
   }
 
@@ -2308,10 +2286,6 @@
     white-space: pre-wrap;
   }
 
-  .text-black {
-    color: var(--color-black);
-  }
-
   .text-blue-400 {
     color: var(--color-blue-400);
   }
@@ -2420,16 +2394,6 @@
     color: var(--color-white);
   }
 
-  .text-white\/80 {
-    color: #fffc;
-  }
-
-  @supports (color: color-mix(in lab, red, red)) {
-    .text-white\/80 {
-      color: color-mix(in oklab, var(--color-white) 80%, transparent);
-    }
-  }
-
   .capitalize {
     text-transform: capitalize;
   }
@@ -2477,11 +2441,6 @@
 
   .opacity-100 {
     opacity: 1;
-  }
-
-  .shadow {
-    --tw-shadow: 0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a);
-    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
   }
 
   .shadow-lg {
