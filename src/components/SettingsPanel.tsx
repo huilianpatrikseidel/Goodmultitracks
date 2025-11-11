@@ -199,6 +199,96 @@ export function SettingsPanel() {
         </CardContent>
       </Card>
 
+      {/* Player Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Sliders className="w-5 h-5" />
+            Player Settings
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="track-height-select">Track Height</Label>
+            <Select 
+              defaultValue={localStorage.getItem('goodmultitracks_track_height') || 'medium'}
+              onValueChange={(value) => {
+                localStorage.setItem('goodmultitracks_track_height', value);
+                window.dispatchEvent(new Event('storage'));
+              }}
+            >
+              <SelectTrigger id="track-height-select">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="small">Small</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="large">Large</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Visible Rulers</Label>
+            <div className="space-y-3 pl-2">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  defaultChecked={localStorage.getItem('goodmultitracks_show_time_ruler') !== 'false'}
+                  onCheckedChange={(checked) => {
+                    localStorage.setItem('goodmultitracks_show_time_ruler', String(checked));
+                    window.dispatchEvent(new Event('storage'));
+                  }}
+                />
+                Time Ruler
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  defaultChecked={localStorage.getItem('goodmultitracks_show_measures_ruler') !== 'false'}
+                  onCheckedChange={(checked) => {
+                    localStorage.setItem('goodmultitracks_show_measures_ruler', String(checked));
+                    window.dispatchEvent(new Event('storage'));
+                  }}
+                />
+                Measures Ruler
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  defaultChecked={localStorage.getItem('goodmultitracks_show_sections_ruler') !== 'false'}
+                  onCheckedChange={(checked) => {
+                    localStorage.setItem('goodmultitracks_show_sections_ruler', String(checked));
+                    window.dispatchEvent(new Event('storage'));
+                  }}
+                />
+                Sections Ruler
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  defaultChecked={localStorage.getItem('goodmultitracks_show_chords_ruler') !== 'false'}
+                  onCheckedChange={(checked) => {
+                    localStorage.setItem('goodmultitracks_show_chords_ruler', String(checked));
+                    window.dispatchEvent(new Event('storage'));
+                  }}
+                />
+                Chords Ruler
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  defaultChecked={localStorage.getItem('goodmultitracks_show_tempo_ruler') !== 'false'}
+                  onCheckedChange={(checked) => {
+                    localStorage.setItem('goodmultitracks_show_tempo_ruler', String(checked));
+                    window.dispatchEvent(new Event('storage'));
+                  }}
+                />
+                Tempo Ruler
+              </label>
+            </div>
+            <p className="text-xs text-gray-500">
+              Toggle visibility of rulers in the player view.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
        {/* About Section */}
        <Card>
            <CardHeader>

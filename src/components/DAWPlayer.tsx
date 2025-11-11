@@ -239,20 +239,7 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
   });
   const [rulerOrder, setRulerOrder] = useState<string[]>(() => {
     const saved = localStorage.getItem('goodmultitracks_ruler_order');
-    let order = saved ? JSON.parse(saved) : ALL_RULER_IDS;
-    
-    // Validate that all required ruler IDs are present
-    // If any are missing, add them and re-save
-    const hasAllIds = ALL_RULER_IDS.every(id => order.includes(id));
-    if (!hasAllIds) {
-      // Add missing IDs at the end
-      const missing = ALL_RULER_IDS.filter(id => !order.includes(id));
-      order = [...order, ...missing];
-      localStorage.setItem('goodmultitracks_ruler_order', JSON.stringify(order));
-    }
-    
-    console.debug('[DAWPlayer] Initialized rulerOrder:', order);
-    return order;
+    return saved ? JSON.parse(saved) : ALL_RULER_IDS; // Ordem padrão
   });
   const [rulerVisibility, setRulerVisibility] = useState<Record<string, boolean>>(() => {
     const visibility: Record<string, boolean> = {};
@@ -287,7 +274,6 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
       // Default to true if not found
       visibility[id] = saved === null ? true : saved === 'true';
     });
-    console.debug('[DAWPlayer] Initialized rulerVisibility:', visibility);
     return visibility;
   });
 
