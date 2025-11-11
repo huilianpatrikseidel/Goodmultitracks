@@ -239,16 +239,55 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
   });
   const [rulerOrder, setRulerOrder] = useState<string[]>(() => {
     const saved = localStorage.getItem('goodmultitracks_ruler_order');
-    return saved ? JSON.parse(saved) : ALL_RULER_IDS; // Ordem padrão
+    let order = saved ? JSON.parse(saved) : ALL_RULER_IDS;
+    
+    // Validate that all required ruler IDs are present
+    // If any are missing, add them and re-save
+    const hasAllIds = ALL_RULER_IDS.every(id => order.includes(id));
+    if (!hasAllIds) {
+      // Add missing IDs at the end
+      const missing = ALL_RULER_IDS.filter(id => !order.includes(id));
+      order = [...order, ...missing];
+      localStorage.setItem('goodmultitracks_ruler_order', JSON.stringify(order));
+    }
+    
+    console.debug('[DAWPlayer] Initialized rulerOrder:', order);
+    return order;
   });
   const [rulerVisibility, setRulerVisibility] = useState<Record<string, boolean>>(() => {
     const visibility: Record<string, boolean> = {};
     // << CORREÇÃO: Usar a lista completa de IDs para inicializar a visibilidade >>
     ALL_RULER_IDS.forEach(id => {
-      const saved = localStorage.getItem(`goodmultitracks_show_${id}_ruler`);
+      // Check for migration from old naming conventions
+      let saved = localStorage.getItem(`goodmultitracks_show_${id}_ruler`);
+      
+      // Migrate old names if they exist
+      if (saved === null) {
+        if (id === 'measures') {
+          saved = localStorage.getItem('goodmultitracks_show_timesig_ruler');
+          if (saved !== null) {
+            localStorage.setItem('goodmultitracks_show_measures_ruler', saved);
+            localStorage.removeItem('goodmultitracks_show_timesig_ruler');
+          }
+        } else if (id === 'sections') {
+          saved = localStorage.getItem('goodmultitracks_show_section_ruler');
+          if (saved !== null) {
+            localStorage.setItem('goodmultitracks_show_sections_ruler', saved);
+            localStorage.removeItem('goodmultitracks_show_section_ruler');
+          }
+        } else if (id === 'chords') {
+          saved = localStorage.getItem('goodmultitracks_show_chord_ruler');
+          if (saved !== null) {
+            localStorage.setItem('goodmultitracks_show_chords_ruler', saved);
+            localStorage.removeItem('goodmultitracks_show_chord_ruler');
+          }
+        }
+      }
+      
       // Default to true if not found
       visibility[id] = saved === null ? true : saved === 'true';
     });
+    console.debug('[DAWPlayer] Initialized rulerVisibility:', visibility);
     return visibility;
   });
 

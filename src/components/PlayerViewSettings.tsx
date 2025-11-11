@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Settings, Eye, EyeOff, GripVertical } from 'lucide-react';
 import { useLanguage } from '../lib/LanguageContext'; // << ADICIONADO
 import { Button } from './ui/button';
@@ -45,20 +45,45 @@ export function PlayerViewSettings({
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
 
   // << CORREÇÃO: Usar traduções e visibilidade recebidas via props >>
-  const rulerConfigs: Record<string, RulerConfig> = {
-    time: { id: 'time', label: t.time, visible: rulerVisibility['time'] },
-    measures: { id: 'measures', label: t.measures, visible: rulerVisibility['measures'] },
-    sections: { id: 'sections', label: t.sections, visible: rulerVisibility['sections'] },
-    chords: { id: 'chords', label: t.chords, visible: rulerVisibility['chords'] },
-    tempo: { id: 'tempo', label: t.tempo, visible: rulerVisibility['tempo'] },
-  };
+  // Memoize rulerConfigs to ensure it updates when rulerVisibility changes
+  const rulerConfigs = useMemo(() => ({
+    time: { id: 'time', label: t.time || 'Time', visible: rulerVisibility['time'] ?? true },
+    measures: { id: 'measures', label: t.measures || 'Measures', visible: rulerVisibility['measures'] ?? true },
+    sections: { id: 'sections', label: t.sections || 'Sections', visible: rulerVisibility['sections'] ?? true },
+    chords: { id: 'chords', label: t.chords || 'Chords', visible: rulerVisibility['chords'] ?? true },
+    tempo: { id: 'tempo', label: t.tempo || 'Tempo', visible: rulerVisibility['tempo'] ?? true },
+  }), [rulerVisibility, t]);
 
-  const orderedRulers = rulerOrder.map(id => rulerConfigs[id]).filter(Boolean);
+  // Ensure all rulers in rulerOrder are present, adding missing ones
+  const finalRulerOrder = useMemo(() => {
+    return rulerOrder.every(id => ['time', 'measures', 'sections', 'chords', 'tempo'].includes(id))
+      ? rulerOrder
+      : ['time', 'measures', 'sections', 'chords', 'tempo'];
+  }, [rulerOrder]);
+
+  const orderedRulers = useMemo(() => {
+    return finalRulerOrder
+      .map(id => rulerConfigs[id])
+      .filter((ruler): ruler is RulerConfig => !!ruler && !!ruler.id);
+  }, [finalRulerOrder, rulerConfigs]);
+
+  // Debug: Log visibility changes
+  React.useEffect(() => {
+    console.debug('[PlayerViewSettings] Ruler visibility updated:', rulerVisibility);
+    console.debug('[PlayerViewSettings] orderedRulers:', orderedRulers);
+  }, [rulerVisibility, orderedRulers]);
 
   // << CORREÇÃO: Chamar onRulerVisibilityChange >>
   const handleRulerToggle = (rulerId: string, isVisible: boolean) => {
+    console.debug(`[PlayerViewSettings] Toggle ruler '${rulerId}' to ${isVisible}`);
     const newVisibility = { ...rulerVisibility, [rulerId]: isVisible };
+    console.debug('[PlayerViewSettings] New visibility:', newVisibility);
     onRulerVisibilityChange(newVisibility);
+  };
+
+  // Handle toggle with event stopping
+  const handleRulerToggleWithStopPropagation = (rulerId: string) => (checked: boolean) => {
+    handleRulerToggle(rulerId, checked);
   };
 
   const handleDragStart = (e: React.DragEvent, rulerId: string) => {
@@ -198,6 +223,7 @@ export function PlayerViewSettings({
                   onDrop={(e) => onRulerOrderChange && handleDrop(e, ruler.id)}
                   onDragEnd={handleDragEnd}
                   onDragLeave={() => setDropTargetId(null)}
+                  onClick={(e) => e.stopPropagation()}
                   className={cn(
                     'flex items-center justify-between p-2 rounded transition-all',
                     onRulerOrderChange && 'cursor-move',
@@ -222,8 +248,7 @@ export function PlayerViewSettings({
                   </div>
                   <Switch 
                     checked={ruler.visible} 
-                    onCheckedChange={(checked) => handleRulerToggle(ruler.id, checked)}
-                    onClick={(e) => e.stopPropagation()}
+                    onCheckedChange={handleRulerToggleWithStopPropagation(ruler.id)}
                   />
                 </div>
               ))}
