@@ -6,6 +6,7 @@ import { SetlistManager } from './components/SetlistManager';
 import { SettingsPanel } from './components/SettingsPanel';
 import { PerformanceMode } from './components/PerformanceMode';
 import { FirstTimeSetup } from './components/FirstTimeSetup';
+import { LoadingScreen } from './components/LoadingScreen';
 import { MobileNav } from './components/MobileNav';
 import { Button } from './components/ui/button';
 import { Separator } from './components/ui/separator';
@@ -16,6 +17,9 @@ import { ThemeProvider } from './lib/ThemeContext';
 
 function AppContent() {
   const { t } = useLanguage();
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadingMessage, setLoadingMessage] = useState('Initializing application...');
   const [songs, setSongs] = useState<Song[]>(mockSongs);
   const [setlists, setSetlists] = useState<Setlist[]>(mockSetlists);
   const [selectedSong, setSelectedSong] = useState<Song | null>(mockSongs[0]); // Mantido o default para teste
@@ -25,6 +29,30 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState('library');
   const [showFirstTimeSetup, setShowFirstTimeSetup] = useState(false);
   const [userPreferences, setUserPreferences] = useState(currentUser.preferences);
+
+  // Simulate loading process
+  useEffect(() => {
+    const loadingSteps = [
+      { progress: 10, message: 'Loading audio engine...' },
+      { progress: 30, message: 'Initializing user preferences...' },
+      { progress: 50, message: 'Loading song library...' },
+      { progress: 70, message: 'Syncing setlists...' },
+      { progress: 90, message: 'Preparing user interface...' },
+      { progress: 100, message: 'Ready!' },
+    ];
+
+    let stepIndex = 0;
+    const interval = setInterval(() => {
+      if (stepIndex < loadingSteps.length) {
+        setLoadingProgress(loadingSteps[stepIndex].progress);
+        setLoadingMessage(loadingSteps[stepIndex].message);
+        stepIndex++;
+      } else {
+        clearInterval(interval);
+        setIsLoading(false);
+      }
+    }, 400); // Adjust timing as needed
+  }, []);
 
   // Check if first time setup is needed
   useEffect(() => {
@@ -176,6 +204,10 @@ function AppContent() {
   const handleCreateNewProject = (projectData: any) => {
     handleCreateProject(projectData);
   };
+
+  if (isLoading) {
+    return <LoadingScreen progress={loadingProgress} message={loadingMessage} />;
+  }
 
   // Show first time setup if needed
   if (showFirstTimeSetup) {
