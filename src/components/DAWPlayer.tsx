@@ -71,6 +71,7 @@ import {
 } from './ui/tooltip';
 import { Label } from './ui/label';
 import { playMetronomeClick, resumeAudioContext, getMainBeats, parseSubdivision, getSubdivisionInfo } from '../lib/metronome';
+import { useLanguage } from '../lib/LanguageContext';
 
 interface DAWPlayerProps {
   song: Song | null;
@@ -138,14 +139,14 @@ const RulerDropTarget: React.FC<{
 const ALL_RULER_IDS = ['time', 'measures', 'sections', 'chords', 'tempo'];
 
 
-// Componente interno
+export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCreateProject }: DAWPlayerProps) {
 const DAWPlayerContent: React.FC<{
   song: Song;
   onSongUpdate?: (song: Song) => void;
   onPerformanceMode?: () => void;
   onBack: () => void;
-  onCreateProject?: (projectData: any) => void;
-}> = ({ song, onSongUpdate, onPerformanceMode, onBack, onCreateProject }) => {
+}> = ({ song, onSongUpdate, onPerformanceMode, onBack }) => {
+  const { t } = useLanguage();
 
   const [keyShift, setKeyShift] = useState(0);
   const [zoom, setZoom] = useState(1);
@@ -169,7 +170,7 @@ const DAWPlayerContent: React.FC<{
   const [isDraggingScrollbar, setIsDraggingScrollbar] = useState(false);
   const [isDraggingLeftHandle, setIsDraggingLeftHandle] = useState(false);
   const [isDraggingRightHandle, setIsDraggingRightHandle] = useState(false);
-  const [handleDragStart, setHandleDragStart] = useState<{ x: number; scrollLeft: number } | null>(null);
+  const [handleDragStart, setHandleDragStart] = useState<{ x: number; zoom: number } | null>(null);
   const [scrollUpdate, setScrollUpdate] = useState(0);
   const [isDraggingVerticalScrollbar, setIsDraggingVerticalScrollbar] = useState(false);
   const [selectedChord, setSelectedChord] = useState<{ chord: string; customDiagram?: any } | null>(null);
@@ -337,214 +338,17 @@ const DAWPlayerContent: React.FC<{
   };
 
   // --- Custom scroll/zoom logic is handled elsewhere ---
-  // Scrollbar horizontal customizada
-  function getScrollPercentage(): number {
-    if (!timelineScrollRef.current || timelineWidth <= containerWidth) return 0;
-    return (timelineScrollRef.current.scrollLeft || 0) / (timelineWidth - containerWidth);
-  }
-
-  function getVisiblePercentage(): number {
-    if (timelineWidth <= containerWidth) return 1;
-    return containerWidth / timelineWidth;
-  }
-
-  // Drag handles para zoom horizontal - refatorado para estabilidade
-  const [leftHandleDragStart, setLeftHandleDragStart] = useState<{ x: number; zoom: number; scrollLeft: number; rightEdgeTime: number } | null>(null);
-  const [rightHandleDragStart, setRightHandleDragStart] = useState<{ x: number; zoom: number; scrollLeft: number; leftEdgeTime: number } | null>(null);
-
-  useEffect(() => {
-    let rafId: number | null = null;
-    
-    function onMouseMove(e: MouseEvent) {
-      if (rafId) return; // Ignora se já há uma atualização pendente
-      
-      rafId = requestAnimationFrame(() => {
-        // Handle esquerdo: fixa a ponta direita no tempo
-        if (isDraggingLeftHandle && leftHandleDragStart && scrollbarRef.current && timelineScrollRef.current && song) {
-          const rect = scrollbarRef.current.getBoundingClientRect();
-          const mouseX = e.clientX - rect.left;
-          const barWidth = rect.width;
-          
-          // Calcula onde o handle direito deve estar (fixo)
-          const rightHandlePosition = (leftHandleDragStart.rightEdgeTime / song.duration) * barWidth;
-          
-          // Nova largura do thumb = distância entre mouse e handle direito
-          let newThumbWidth = rightHandlePosition - mouseX;
-          newThumbWidth = Math.max(20, Math.min(barWidth, newThumbWidth));
-          
-          // Novo zoom baseado na largura do thumb
-          const newZoom = Math.max(1, Math.min(8, barWidth / newThumbWidth));
-          const newTimelineWidth = containerWidth * newZoom;
-          
-          // Calcula novo scrollLeft para manter a borda direita fixa no tempo
-          const newScrollLeft = (leftHandleDragStart.rightEdgeTime / song.duration) * newTimelineWidth - containerWidth;
-          
-          setZoom(newZoom);
-          timelineScrollRef.current.scrollLeft = Math.max(0, Math.min(newScrollLeft, newTimelineWidth - containerWidth));
-        }
-        
-        // Handle direito: fixa a ponta esquerda no tempo
-        if (isDraggingRightHandle && rightHandleDragStart && scrollbarRef.current && timelineScrollRef.current && song) {
-          const rect = scrollbarRef.current.getBoundingClientRect();
-          const mouseX = e.clientX - rect.left;
-          const barWidth = rect.width;
-          
-          // Calcula onde o handle esquerdo deve estar (fixo)
-          const leftHandlePosition = (rightHandleDragStart.leftEdgeTime / song.duration) * barWidth;
-          
-          // Nova largura do thumb = distância entre handle esquerdo e mouse
-          let newThumbWidth = mouseX - leftHandlePosition;
-          newThumbWidth = Math.max(20, Math.min(barWidth, newThumbWidth));
-          
-          // Novo zoom baseado na largura do thumb
-          const newZoom = Math.max(1, Math.min(8, barWidth / newThumbWidth));
-          const newTimelineWidth = containerWidth * newZoom;
-          
-          // Calcula novo scrollLeft para manter a borda esquerda fixa no tempo
-          const newScrollLeft = (rightHandleDragStart.leftEdgeTime / song.duration) * newTimelineWidth;
-          
-          setZoom(newZoom);
-          timelineScrollRef.current.scrollLeft = Math.max(0, Math.min(newScrollLeft, newTimelineWidth - containerWidth));
-        }
-        
-        rafId = null;
-      });
-    }
-    
-    function onMouseUp() {
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-        rafId = null;
-      }
-      setIsDraggingLeftHandle(false);
-      setIsDraggingRightHandle(false);
-      setLeftHandleDragStart(null);
-      setRightHandleDragStart(null);
-    }
-    
-    if (isDraggingLeftHandle || isDraggingRightHandle) {
-      window.addEventListener('mousemove', onMouseMove);
-      window.addEventListener('mouseup', onMouseUp);
-      return () => {
-        window.removeEventListener('mousemove', onMouseMove);
-        window.removeEventListener('mouseup', onMouseUp);
-        if (rafId) cancelAnimationFrame(rafId);
-      };
-    }
-  }, [isDraggingLeftHandle, isDraggingRightHandle, leftHandleDragStart, rightHandleDragStart, containerWidth, song]);
-
-  function handleLeftHandleMouseDown(e: React.MouseEvent<HTMLDivElement>): void {
-    if (!timelineScrollRef.current || !song) return;
-    setIsDraggingLeftHandle(true);
-    // Salva a posição da borda direita no tempo (tempo absoluto da música)
-    const currentTimelineWidth = containerWidth * zoom;
-    const scrollLeft = timelineScrollRef.current.scrollLeft;
-    const rightEdgeTime = ((scrollLeft + containerWidth) / currentTimelineWidth) * song.duration;
-    setLeftHandleDragStart({ x: e.clientX, zoom, scrollLeft, rightEdgeTime });
-    e.stopPropagation();
-  }
-  function handleRightHandleMouseDown(e: React.MouseEvent<HTMLDivElement>): void {
-    if (!timelineScrollRef.current || !song) return;
-    setIsDraggingRightHandle(true);
-    // Salva a posição da borda esquerda no tempo (tempo absoluto da música)
-    const currentTimelineWidth = containerWidth * zoom;
-    const scrollLeft = timelineScrollRef.current.scrollLeft;
-    const leftEdgeTime = (scrollLeft / currentTimelineWidth) * song.duration;
-    setRightHandleDragStart({ x: e.clientX, zoom, scrollLeft, leftEdgeTime });
-    e.stopPropagation();
-  }  function handleScrollbarMouseDown(e: React.MouseEvent<HTMLDivElement>): void {
-    if (!timelineScrollRef.current || timelineWidth <= containerWidth) return;
-    // Só inicia drag se clicar no thumb
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const thumbLeft = getScrollPercentage() * (rect.width - getVisiblePercentage() * rect.width);
-    const thumbWidth = getVisiblePercentage() * rect.width;
-    if (x >= thumbLeft && x <= thumbLeft + thumbWidth) {
-      setIsDraggingScrollbar(true);
-      setHandleDragStart({ x: e.clientX, scrollLeft: timelineScrollRef.current.scrollLeft });
-      setIsDraggingScrollbar(true);
-    } else {
-      // Clique seco fora do thumb: move o scroll para a posição clicada
-      const scrollableWidth = timelineWidth - containerWidth;
-      const newScrollLeft = (x / rect.width) * scrollableWidth;
-      timelineScrollRef.current.scrollLeft = newScrollLeft;
-      setScrollUpdate((prev: number) => prev + 1);
-    }
-    e.stopPropagation();
-  }
-
-  // Scrollbar vertical customizada
-  function getVerticalScrollPercentage(): number {
-    if (!tracksScrollRef.current) return 0;
-    const scrollTop = tracksScrollRef.current.scrollTop || 0;
-    const maxScroll = tracksScrollRef.current.scrollHeight - tracksScrollRef.current.clientHeight;
-    return maxScroll > 0 ? scrollTop / maxScroll : 0;
-  }
-  function getVerticalVisiblePercentage(): number {
-    if (!tracksScrollRef.current) return 1;
-    return tracksScrollRef.current.clientHeight / tracksScrollRef.current.scrollHeight;
-  }
-  // Drag do thumb vertical
-  useEffect(() => {
-    function onMouseMove(e: MouseEvent) {
-      // Drag do thumb vertical
-      if (isDraggingVerticalScrollbar && verticalScrollbarRef.current && tracksScrollRef.current) {
-        const rect = verticalScrollbarRef.current.getBoundingClientRect();
-        const y = e.clientY - rect.top;
-        const scrollableHeight = tracksScrollRef.current.scrollHeight - tracksScrollRef.current.clientHeight;
-        const newScrollTop = (y / rect.height) * scrollableHeight;
-        tracksScrollRef.current.scrollTop = newScrollTop;
-      }
-      // Drag do thumb horizontal
-      if (isDraggingScrollbar && handleDragStart && timelineScrollRef.current && timelineWidth > containerWidth) {
-        const rect = scrollbarRef.current?.getBoundingClientRect();
-        if (!rect) return;
-        const delta = e.clientX - handleDragStart.x;
-        const scrollableWidth = timelineWidth - containerWidth;
-        const barWidth = rect.width;
-        // O movimento do mouse é proporcional ao scrollableWidth
-        const newScrollLeft = Math.max(0, Math.min(scrollableWidth, handleDragStart.scrollLeft + (delta * (scrollableWidth / (barWidth - getVisiblePercentage() * barWidth)))));
-        timelineScrollRef.current.scrollLeft = newScrollLeft;
-        setScrollUpdate((prev: number) => prev + 1);
-      }
-    }
-    function onMouseUp() {
-      setIsDraggingVerticalScrollbar(false);
-      setIsDraggingScrollbar(false);
-      setHandleDragStart(null);
-    }
-    if (isDraggingVerticalScrollbar || isDraggingScrollbar) {
-      window.addEventListener('mousemove', onMouseMove);
-      window.addEventListener('mouseup', onMouseUp);
-      return () => {
-        window.removeEventListener('mousemove', onMouseMove);
-        window.removeEventListener('mouseup', onMouseUp);
-      };
-    }
-  }, [isDraggingVerticalScrollbar, isDraggingScrollbar, handleDragStart]);
-
-  function handleVerticalScrollbarMouseDown(e: React.MouseEvent<HTMLDivElement>): void {
-    setIsDraggingVerticalScrollbar(true);
-    e.stopPropagation();
-  }
-
-  // Zoom controls
-  function handleZoomOutOnPlayhead(): void {
-    setZoom((prev: number) => Math.max(1, prev - 0.25));
-  }
-  function handleZoomInOnPlayhead(): void {
-    setZoom((prev: number) => Math.min(8, prev + 0.25));
-  }
-
-  // Wheel scroll/zoom
-  function handleWheel(e: React.WheelEvent<HTMLDivElement>): void {
-    if (e.ctrlKey) {
-      // Zoom com Ctrl + scroll
-      if (e.deltaY < 0) handleZoomInOnPlayhead();
-      else handleZoomOutOnPlayhead();
-      e.preventDefault();
-    }
-  }
+  function getScrollPercentage(): number { return 0; }
+  function getVisiblePercentage(): number { return 0; }
+  function handleScrollbarMouseDown(e: React.MouseEvent<HTMLDivElement>): void {}
+  function handleLeftHandleMouseDown(e: React.MouseEvent<HTMLDivElement>): void {}
+  function handleRightHandleMouseDown(e: React.MouseEvent<HTMLDivElement>): void {}
+  function getVerticalScrollPercentage(): number { return 0; }
+  function getVerticalVisiblePercentage(): number { return 0; }
+  function handleVerticalScrollbarMouseDown(e: React.MouseEvent<HTMLDivElement>): void {}
+  function handleZoomOutOnPlayhead(): void {}
+  function handleZoomInOnPlayhead(): void {}
+  function handleWheel(e: React.WheelEvent<HTMLDivElement>): void {}
 
 
   const getWarpedTime = (currentGridTime: number): number => {
@@ -1400,8 +1204,8 @@ ${chordMarkers.map(chord => `    <chord>
                 size="icon"
                 className="h-10 w-10 rounded"
                 style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
-                onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
-                onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#404040'}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
                 onClick={onBack}
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -1424,8 +1228,8 @@ ${chordMarkers.map(chord => `    <chord>
                   size="icon"
                   className="h-10 w-10 rounded"
                   style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
-                  onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
-                  onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#404040'}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
                   onClick={playbackActions.stop}
                 >
                   <Square className="w-5 h-5" />
@@ -1533,8 +1337,8 @@ ${chordMarkers.map(chord => `    <chord>
                     backgroundColor: metronomeEnabled ? '#3B82F6' : '#404040',
                     color: '#F1F1F1'
                   }}
-                  onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = metronomeEnabled ? '#2563EB' : '#5A5A5A'}
-                  onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = metronomeEnabled ? '#3B82F6' : '#404040'}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = metronomeEnabled ? '#2563EB' : '#5A5A5A'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = metronomeEnabled ? '#3B82F6' : '#404040'}
                 >
                   <ChevronDown className="w-3 h-3" />
                 </Button>
@@ -1542,7 +1346,7 @@ ${chordMarkers.map(chord => `    <chord>
               <DropdownMenuContent className="w-64 p-4" style={{ backgroundColor: '#2B2B2B', borderColor: '#3A3A3A' }}>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <Label className="text-sm" style={{ color: '#F1F1F1' }}>Metronome Volume</Label>
+                    <Label className="text-sm" style={{ color: '#F1F1F1' }}>{t.metronomeVolume}</Label>
                     <span className="text-sm" style={{ color: '#9E9E9E' }}>{formatDb(gainToDb(metronomeVolume))} dB</span>
                   </div>
                   <Slider
@@ -1591,8 +1395,8 @@ ${chordMarkers.map(chord => `    <chord>
                   backgroundColor: snapEnabled ? '#3B82F6' : '#404040',
                   color: '#F1F1F1'
                 }}
-                onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = snapEnabled ? '#2563EB' : '#5A5A5A'}
-                onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = snapEnabled ? '#3B82F6' : '#404040'}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = snapEnabled ? '#2563EB' : '#5A5A5A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = snapEnabled ? '#3B82F6' : '#404040'}
                 onClick={() => setSnapEnabled(!snapEnabled)}
               >
                 <Grid3x3 className="w-5 h-5" />
@@ -1608,8 +1412,8 @@ ${chordMarkers.map(chord => `    <chord>
                 size="icon"
                 className="h-10 w-10 rounded"
                 style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
-                onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => (e.currentTarget.style.backgroundColor = '#5A5A5A')}
-                onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => (e.currentTarget.style.backgroundColor = '#404040')}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#5A5A5A')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#404040')}
                 onClick={() => setShowShortcutsHelp(true)}
               >
                 <Keyboard className="w-5 h-5" />
@@ -1630,8 +1434,8 @@ ${chordMarkers.map(chord => `    <chord>
                 size="icon"
                 className="h-9 w-9 rounded"
                 style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
-                onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
-                onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#404040'}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
                 onClick={() => openMarkerEditor('section')}
               >
                 <Plus className="w-4 h-4" />
@@ -1647,8 +1451,8 @@ ${chordMarkers.map(chord => `    <chord>
                 size="icon"
                 className="h-9 w-9 rounded"
                 style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
-                onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
-                onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#404040'}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
                 onClick={() => openMarkerEditor('chord')}
               >
                 <Music2 className="w-4 h-4" />
@@ -1664,8 +1468,8 @@ ${chordMarkers.map(chord => `    <chord>
                 size="icon"
                 className="h-9 w-9 rounded"
                 style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
-                onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
-                onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#404040'}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
                 onClick={() => openMarkerEditor('tempo')} // << 5. MUDAR PARA 'tempo' POR PADRÃO
               >
                 <Clock className="w-4 h-4" />
@@ -1706,9 +1510,9 @@ ${chordMarkers.map(chord => `    <chord>
             
                                         style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
             
-                                        onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
             
-                                        onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#404040'}
+                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
             
                                         onClick={handleExportProject}
             
@@ -1732,8 +1536,8 @@ ${chordMarkers.map(chord => `    <chord>
                   size="icon"
                   className="h-9 w-9 rounded"
                   style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
-                  onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
-                  onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#404040'}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
                   onClick={() => setEditMode(false)}
                 >
                   <Edit className="w-4 h-4" />
@@ -1755,13 +1559,13 @@ ${chordMarkers.map(chord => `    <chord>
               {rulerOrder.map(rulerId => {
                 if (!rulerVisibility[rulerId]) return null;
                 
-                // Mapa de rótulos dos rulers
+                // << CORREÇÃO: Usar o objeto de traduções 't' que é completo >>
                 const rulerLabelMap: Record<string, string> = {
-                  time: 'Time',
-                  measures: 'Measures',
-                  tempo: 'Tempo',
-                  chords: 'Chords',
-                  sections: 'Sections',
+                  time: t.time,
+                  measures: t.measures,
+                  tempo: t.tempo,
+                  chords: t.chords,
+                  sections: t.sections,
                 };
                 const rulerLabel = rulerLabelMap[rulerId];
                 const rulerHeight = rulerId === 'sections' ? 'h-8' : 'h-7';
@@ -1917,8 +1721,8 @@ ${chordMarkers.map(chord => `    <chord>
                           backgroundColor: track.muted ? '#F87171' : '#404040',
                           color: '#FFFFFF'
                         }}
-                        onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = track.muted ? '#EF4444' : '#5A5A5A'}
-                        onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = track.muted ? '#F87171' : '#404040'}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = track.muted ? '#EF4444' : '#5A5A5A'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = track.muted ? '#F87171' : '#404040'}
                         onClick={() => handleTrackMuteToggle(track.id)}
                       >
                         M
@@ -1931,8 +1735,8 @@ ${chordMarkers.map(chord => `    <chord>
                           backgroundColor: track.solo ? '#FBBF24' : '#404040',
                           color: '#FFFFFF'
                         }}
-                        onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = track.solo ? '#F59E0B' : '#5A5A5A'}
-                        onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = track.solo ? '#FBBF24' : '#404040'}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = track.solo ? '#F59E0B' : '#5A5A5A'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = track.solo ? '#FBBF24' : '#404040'}
                         onClick={() => handleTrackSoloToggle(track.id)}
                       >
                         S
@@ -2238,8 +2042,8 @@ ${chordMarkers.map(chord => `    <chord>
                     height: `${getVerticalVisiblePercentage() * 100}%`,
                     minHeight: '20px'
                   }}
-                  onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#7A7A7A'}
-                  onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7A7A7A'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
                 />
               </div>
             </div>
@@ -2321,8 +2125,8 @@ ${chordMarkers.map(chord => `    <chord>
                   color: '#F1F1F1',
                   opacity: zoom <= 1 ? 0.5 : 1
                 }}
-                onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => zoom > 1 && (e.currentTarget.style.backgroundColor = '#5A5A5A')}
-                onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => zoom > 1 && (e.currentTarget.style.backgroundColor = '#404040')}
+                onMouseEnter={(e) => zoom > 1 && (e.currentTarget.style.backgroundColor = '#5A5A5A')}
+                onMouseLeave={(e) => zoom > 1 && (e.currentTarget.style.backgroundColor = '#404040')}
                 onClick={handleZoomOutOnPlayhead}
                 disabled={zoom <= 1}
               >
@@ -2345,8 +2149,8 @@ ${chordMarkers.map(chord => `    <chord>
                   color: '#F1F1F1',
                   opacity: zoom >= 8 ? 0.5 : 1
                 }}
-                onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => zoom < 8 && (e.currentTarget.style.backgroundColor = '#5A5A5A')}
-                onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => zoom < 8 && (e.currentTarget.style.backgroundColor = '#404040')}
+                onMouseEnter={(e) => zoom < 8 && (e.currentTarget.style.backgroundColor = '#5A5A5A')}
+                onMouseLeave={(e) => zoom < 8 && (e.currentTarget.style.backgroundColor = '#404040')}
                 onClick={handleZoomInOnPlayhead}
                 disabled={zoom >= 8}
               >
@@ -2361,49 +2165,41 @@ ${chordMarkers.map(chord => `    <chord>
         <div className="flex-1 px-3 py-1">
           <div
             ref={scrollbarRef}
-            className="relative rounded-full cursor-pointer"
-            style={{ backgroundColor: '#171717', height: '6px' }}
+            className="relative h-4 rounded cursor-pointer"
+            style={{ backgroundColor: '#171717' }}
             onMouseDown={handleScrollbarMouseDown}
           >
-            {/* Scrollbar Thumb with Circular Handles */}
+            {/* Scrollbar Thumb with Handles */}
             <div
-              className="absolute top-0 h-full rounded-full flex items-center justify-between"
+              className="absolute top-0 h-full rounded flex items-center justify-between"
               style={{
                 backgroundColor: '#5A5A5A',
                 left: `${getScrollPercentage() * (100 - getVisiblePercentage() * 100)}%`,
                 width: `${getVisiblePercentage() * 100}%`,
-                minWidth: '30px'
+                minWidth: '20px'
               }}
             >
-              {/* Left Handle (Circle) */}
+              {/* Left Handle */}
               <div
-                className="rounded-full flex items-center justify-center cursor-ew-resize"
-                style={{ 
-                  backgroundColor: '#7A7A7A',
-                  width: '14px',
-                  height: '14px',
-                  marginLeft: '-7px',
-                  border: '1px solid #3A3A3A'
-                }}
+                className="w-2.5 h-full rounded-l flex items-center justify-center cursor-ew-resize"
+                style={{ backgroundColor: '#7A7A7A' }}
                 onMouseDown={handleLeftHandleMouseDown}
-                onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#9A9A9A'}
-                onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#7A7A7A'}
-              />
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#9A9A9A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#7A7A7A'}
+              >
+                <div className="w-0.5 h-2 rounded" style={{ backgroundColor: '#F1F1F1' }} />
+              </div>
 
-              {/* Right Handle (Circle) */}
+              {/* Right Handle */}
               <div
-                className="rounded-full flex items-center justify-center cursor-ew-resize"
-                style={{ 
-                  backgroundColor: '#7A7A7A',
-                  width: '14px',
-                  height: '14px',
-                  marginRight: '-7px',
-                  border: '1px solid #3A3A3A'
-                }}
+                className="w-2.5 h-full rounded-r flex items-center justify-center cursor-ew-resize"
+                style={{ backgroundColor: '#7A7A7A' }}
                 onMouseDown={handleRightHandleMouseDown}
-                onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#9A9A9A'}
-                onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#7A7A7A'}
-              />
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#9A9A9A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#7A7A7A'}
+              >
+                <div className="w-0.5 h-2 rounded" style={{ backgroundColor: '#F1F1F1' }} />
+              </div>
             </div>
           </div>
         </div>
@@ -2420,8 +2216,8 @@ ${chordMarkers.map(chord => `    <chord>
                 size="icon"
                 className="h-8 w-8 rounded"
                 style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
-                onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
-                onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#404040'}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
                 onClick={() => setSidebarVisible(!sidebarVisible)}
               >
                 {sidebarVisible ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
@@ -2439,8 +2235,8 @@ ${chordMarkers.map(chord => `    <chord>
                     size="icon"
                     className="h-8 w-8 rounded"
                     style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
-                    onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
-                    onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#404040'}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
                   >
                     <Settings className="w-4 h-4" />
                   </Button>
@@ -2471,8 +2267,8 @@ ${chordMarkers.map(chord => `    <chord>
                       size="icon"
                       className="h-8 w-8 rounded"
                       style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
-                      onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
-                      onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#404040'}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
                     >
                       <Save className="w-4 h-4" />
                     </Button>
@@ -2509,8 +2305,8 @@ ${chordMarkers.map(chord => `    <chord>
                   backgroundColor: mixerDockVisible ? '#3B82F6' : '#404040',
                   color: '#F1F1F1'
                 }}
-                onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = mixerDockVisible ? '#3B82F6' : '#5A5A5A'}
-                onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = mixerDockVisible ? '#3B82F6' : '#404040'}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = mixerDockVisible ? '#3B82F6' : '#5A5A5A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = mixerDockVisible ? '#3B82F6' : '#404040'}
                 onClick={() => setMixerDockVisible(!mixerDockVisible)}
               >
                 <Sliders className="w-4 h-4" />
@@ -2529,8 +2325,8 @@ ${chordMarkers.map(chord => `    <chord>
                   backgroundColor: notesPanelVisible ? '#3B82F6' : '#404040',
                   color: '#F1F1F1'
                 }}
-                onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = notesPanelVisible ? '#3B82F6' : '#5A5A5A'}
-                onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = notesPanelVisible ? '#3B82F6' : '#404040'}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = notesPanelVisible ? '#3B82F6' : '#5A5A5A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = notesPanelVisible ? '#3B82F6' : '#404040'}
                 onClick={() => setNotesPanelVisible(!notesPanelVisible)}
               >
                 <StickyNote className="w-4 h-4" />
@@ -2549,8 +2345,8 @@ ${chordMarkers.map(chord => `    <chord>
                 size="icon"
                 className="h-9 w-9 rounded"
                 style={{ backgroundColor: '#404040', color: '#F1F1F1' }}
-                onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
-                onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.backgroundColor = '#404040'}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5A5A5A'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#404040'}
                 onClick={onPerformanceMode}
               >
                 <Maximize2 className="w-4 h-4" />
@@ -2610,8 +2406,6 @@ ${chordMarkers.map(chord => `    <chord>
   );
 };
 
-// Componente exportado
-export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCreateProject }: DAWPlayerProps) {
   // End of DAWPlayerContent. Now render the outer DAWPlayer wrapper.
   if (!song) {
     return null as any;
@@ -2623,7 +2417,6 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
       onSongUpdate={onSongUpdate}
       onPerformanceMode={onPerformanceMode}
       onBack={onBack}
-      onCreateProject={onCreateProject}
     />
   );
 }
