@@ -1,0 +1,573 @@
+import React, { useState, useEffect, Suspense } from 'react';
+import { Music, ListMusic, Settings, Play } from 'lucide-react';
+
+const DAWPlayer = React.lazy(() => import('./features/player/components/DAWPlayer').then(module => ({ default: module.DAWPlayer })));
+const SettingsPanel = React.lazy(() => import('./components/SettingsPanel').then(module => ({ default: module.SettingsPanel })));
+
+import { SongLibrary } from './features/library/components/SongLibrary';
+import { SetlistManager } from './features/setlist/components/SetlistManager';
+import { PerformanceMode } from './components/PerformanceMode';
+import { FirstTimeSetup } from './components/FirstTimeSetup';
+import { LoadingScreen } from './components/shared/LoadingScreen';
+import { MobileNav } from './components/layout/MobileNav';
+import { Button } from './components/ui/button';
+import { Separator } from './components/ui/separator';
+import { Song, Setlist, AudioTrack, TrackTag } from './types';
+import { LanguageProvider, useLanguage } from './lib/LanguageContext';
+import { ThemeProvider } from './lib/ThemeContext';
+import { AudioContextProvider } from './features/player/context/AudioContextProvider';
+import { storage } from './lib/localStorageManager';
+import { ProjectService } from './services/ProjectService';
+import { toast } from 'sonner';
+import { Toaster } from './components/ui/sonner';
+import { waveformStore } from './lib/waveformStore';
+
+function AppContent() {
+  const { t } = useLanguage();
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadingMessage, setLoadingMessage] = useState('Initializing application...');
+  const [songs, setSongs] = useState<Song[]>([]);
+  const [setlists, setSetlists] = useState<Setlist[]>([]);
+  const [selectedSong, setSelectedSong] = useState<Song | null>(null);
+  const [performanceMode, setPerformanceMode] = useState(false);
+  const [activeView, setActiveView] = useState<'library' | 'setlists' | 'player' | 'settings'>('library');
+  const [previousView, setPreviousView] = useState<'library' | 'setlists' | 'settings'>('library');
+  const [activeTab, setActiveTab] = useState('library');
+  const [showFirstTimeSetup, setShowFirstTimeSetup] = useState(false);
+  const [userPreferences, setUserPreferences] = useState({
+    theme: 'dark' as const,
+    language: 'en' as const,
+    outputDevice: 1,
+  });
+
+  // Real initialization process
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Failed to initialize", error);
+      }
+    };
+
+    initializeApp();
+  }, []);
+
+  // Check if first time setup is needed
+  useEffect(() => {
+    const hasCompletedSetup = storage.isFirstTimeSetupComplete();
+    if (!hasCompletedSetup) {
+      setShowFirstTimeSetup(true);
+    }
+  }, []);
+
+  const handleFirstTimeSetupComplete = (selectedInstruments: TrackTag[], mainInstrument: TrackTag) => {
+    const updatedPreferences = {
+      ...userPreferences,
+      selectedInstruments,
+      mainInstrument,
+    };
+    setUserPreferences(updatedPreferences);
+    storage.setFirstTimeSetupComplete();
+    setShowFirstTimeSetup(false);
+  };
+
+  /**
+   * CRÍTICO (P0): Libera Blob URLs para prevenir memory leak
+   * Deve ser chamado ANTES de descartar uma Song
+   */
+  const cleanupSongResources = React.useCallback((song: Song | null) => {
+    if (!song) return;
+    
+    // Revogar URLs das tracks
+    song.tracks.forEach(track => {
+      if (track.url && track.url.startsWith('blob:')) {
+        URL.revokeObjectURL(track.url);
+      }
+    });
+    
+    // Revogar thumbnail
+    if (song.thumbnailUrl && song.thumbnailUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(song.thumbnailUrl);
+    }
+  }, []);
+
+  const handleSongUpdate = (updatedSong: Song) => {
+    setSongs((prev) => prev.map((s) => (s.id === updatedSong.id ? updatedSong : s)));
+    if (selectedSong && updatedSong.id === selectedSong.id) {
+        setSelectedSong(updatedSong);
+    }
+  };
+
+  // Setlist functions using new structure with items
+  const handleCreateSetlist = (name: string, songId?: string) => {
+    const newSetlist: Setlist = {
+      id: `setlist-${Date.now()}`,
+      name,
+      items: songId ? [{ type: 'song', id: songId }] : [],
+      createdBy: 'user-1',
+    };
+    setSetlists((prev) => [...prev, newSetlist]);
+  };
+
+  const handleAddToSetlist = (setlistId: string, songId: string) => {
+    setSetlists((prev) =>
+      prev.map((setlist) => {
+        if (setlist.id === setlistId) {
+          const songAlreadyExists = setlist.items.some(
+            (item) => item.type === 'song' && item.id === songId
+          );
+          if (songAlreadyExists) {
+            return setlist;
+          }
+          return { ...setlist, items: [...setlist.items, { type: 'song', id: songId }] };
+        }
+        return setlist;
+      })
+    );
+  };
+
+  const handleUpdateSetlist = (updatedSetlist: Setlist) => {
+    setSetlists((prev) =>
+      prev.map((setlist) => (setlist.id === updatedSetlist.id ? updatedSetlist : setlist))
+    );
+  };
+
+  const handleDeleteSetlist = (setlistId: string) => {
+    setSetlists((prev) => prev.filter((setlist) => setlist.id !== setlistId));
+  };
+
+  const handleReorderSetlists = (reorderedSetlists: Setlist[]) => {
+    setSetlists(reorderedSetlists);
+  };
+
+  const handleImportSetlist = () => {
+    alert('Import functionality would connect to external services');
+  };
+
+  /**
+   * Importa um projeto .gmtk
+   */
+  const handleImportProject = async (file: File) => {
+    try {
+      setIsLoading(true);
+      setLoadingMessage('Loading project...');
+      
+      const loadedSong = await ProjectService.loadProject(file);
+      
+      // Adiciona à biblioteca e seleciona
+      setSongs(prev => [loadedSong, ...prev]);
+      setSelectedSong(loadedSong);
+      setActiveView('player');
+      
+      toast.success(`Project "${loadedSong.title}" loaded successfully`);
+    } catch (error) {
+      console.error('Error importing project:', error);
+      toast.error('Failed to load project. Please check if the file is valid.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Exporta o projeto atual como .gmtk
+   */
+  const handleExportProject = async (song: Song) => {
+    // Ativa a tela de bloqueio
+    setIsLoading(true);
+    setLoadingMessage('Packaging project files... this may take a moment.');
+    
+    try {
+      // O await aqui garante que a tela fique visível até o zip terminar
+      await ProjectService.saveProject(song);
+      toast.success('Project exported successfully!');
+    } catch (error) {
+      console.error('Error exporting project:', error);
+      toast.error('Failed to save project');
+    } finally {
+      // Desativa a tela
+      setIsLoading(false);
+    }
+  };
+
+  const handleCreateProject = async (projectData: any) => {
+    const colors = ['#60a5fa', '#ef4444', '#22c55e', '#f59e0b', '#a855f7', '#ec4899', '#14b8a6', '#f97316'];
+    
+    // Mostrar toast de progresso
+    const toastId = toast.loading('Creating project...', {
+      description: 'Analyzing audio files and generating waveforms...'
+    });
+    
+    try {
+      // Importar a função de geração de waveform
+      const { generateWaveformFromFile } = await import('./features/player/utils/audioUtils');
+      
+      // CORREÇÃO: Variável para rastrear a duração máxima (inicia em 0, usa duração real dos arquivos)
+      let maxDuration = 0;
+      
+      // Gerar waveforms reais de forma assíncrona
+      const tracksPromises = projectData.tracks.map(async (track: any, index: number) => {
+      
+      try {
+        // Tentar gerar waveform real do arquivo de áudio (usa cálculo dinâmico de samples)
+        if (track.file) {
+          // OTIMIZAÇÃO QA: Agora recebe { waveform, waveformOverview, duration }
+          const result = await generateWaveformFromFile(track.file);
+          
+          // ARCHITECTURE CHANGE: Store in WaveformStore
+          waveformStore.setWaveform(track.id, result.waveform);
+          if (result.waveformOverview) {
+            waveformStore.setOverview(track.id, result.waveformOverview);
+          }
+          
+          // Se este arquivo for mais longo que o atual maxDuration, atualizamos
+          if (result.duration > maxDuration) {
+            maxDuration = result.duration;
+          }
+        } else {
+          // FIX QA: Empty arrays instead of random data
+          waveformStore.setWaveform(track.id, []);
+        }
+      } catch (error) {
+        console.warn(`Failed to generate waveform for ${track.channelName}:`, error);
+        // FIX QA: Empty arrays instead of random data - UI will show loading state
+        waveformStore.setWaveform(track.id, []);
+      }
+      
+      return {
+        id: track.id, 
+        name: track.channelName, 
+        type: 'other' as const,
+        volume: 1.0, 
+        muted: false, 
+        solo: false,
+        // waveformData removed - stored in WaveformStore
+        // waveformOverview removed - stored in WaveformStore
+        color: colors[index % colors.length],
+        output: 1,
+        file: track.file,
+        filename: track.file?.name,
+      };
+    });
+    
+    // Aguardar todas as waveforms serem geradas
+    const tracks = await Promise.all(tracksPromises);
+
+    // CORREÇÃO: Fallback para 180s apenas se nenhum arquivo foi processado
+    const finalDuration = maxDuration > 0 ? maxDuration : 180;
+
+    const newProject: Song = {
+      id: `project-${Date.now()}`,
+      title: projectData.songName,
+      artist: projectData.artist,
+      duration: Math.ceil(finalDuration), // Usa a duração real dos arquivos
+      key: projectData.key,
+      tempo: projectData.tempo,
+      version: '1.0',
+      thumbnailUrl: projectData.coverArtPreview || '',
+      tracks,
+      markers: [],
+      chords: [],
+      chordMarkers: [],
+      loops: [], 
+      mixPresets: [], 
+      notes: [], 
+      tags: ['project'],
+      tempoChanges: [{ time: 0, tempo: projectData.tempo, timeSignature: projectData.timeSignature, }],
+      permissions: { canEdit: true, canShare: true, canDelete: true, },
+      source: 'project',
+      lastModified: new Date(),
+      createdBy: 'user-1',
+    };
+
+      setSongs((prev) => [newProject, ...prev]);
+      setSelectedSong(newProject);
+      setPreviousView(activeView as any);
+      setActiveView('player');
+      setActiveTab('player');
+      
+      // Atualizar toast de sucesso
+      toast.success('Project created successfully!', {
+        id: toastId,
+        description: `${projectData.tracks.length} tracks ready to mix`
+      });
+    } catch (error) {
+      console.error('Failed to create project:', error);
+      toast.error('Failed to create project', {
+        id: toastId,
+        description: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw error;
+    }
+  };
+
+  const handleImportSong = () => {
+    alert('Import song functionality needed.');
+  };
+
+  const handleSetlistSelect = (setlist: Setlist) => {
+    const firstSongItem = setlist.items.find((item) => item.type === 'song');
+    if (firstSongItem && firstSongItem.type === 'song') {
+      const firstSong = songs.find((s) => s.id === firstSongItem.id);
+      if (firstSong) {
+        setSelectedSong(firstSong);
+        setPreviousView('setlists');
+        setActiveView('player');
+        setActiveTab('player');
+      }
+    }
+  };
+
+  const handleSongClick = (songId: string) => {
+    const song = songs.find((s) => s.id === songId);
+    if (song) {
+      handleSongSelect(song);
+    }
+  };
+
+  const handleSongSelect = (song: Song) => {
+    // CRÍTICO: Libera recursos da música anterior antes de trocar
+    if (selectedSong && selectedSong.id !== song.id) {
+      cleanupSongResources(selectedSong);
+    }
+    
+    setSelectedSong(song);
+    setPreviousView(activeView as any);
+    setActiveView('player');
+    setActiveTab('player');
+  };
+
+  const handleBackFromPlayer = () => {
+    setActiveView(previousView);
+    setActiveTab(previousView);
+  };
+
+  const handleCreateNewProject = (projectData: any) => {
+    handleCreateProject(projectData);
+  };
+
+  // CRÍTICO (P0): Cleanup de recursos ao desmontar componente
+  React.useEffect(() => {
+    return () => {
+      if (selectedSong) {
+        cleanupSongResources(selectedSong);
+      }
+    };
+  }, [selectedSong, cleanupSongResources]);
+
+  if (isLoading) {
+    return <LoadingScreen progress={loadingProgress} message={loadingMessage} />;
+  }
+
+  // Show first time setup if needed
+  if (showFirstTimeSetup) {
+    return <FirstTimeSetup onComplete={handleFirstTimeSetupComplete} />;
+  }
+
+  if (performanceMode && selectedSong) {
+    return (
+      <PerformanceMode song={selectedSong} onClose={() => setPerformanceMode(false)} />
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background text-foreground flex flex-col h-screen">
+      {activeView !== 'player' && (
+        <header className="bg-background border-b sticky top-0 z-30 hidden md:block flex-shrink-0">
+          <div className="px-6 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-3">
+                  <Music className="w-8 h-8 text-blue-600" />
+                  <div>
+                    <h1 className="text-xl">GoodMultitracks</h1> 
+                    <p className="text-sm text-gray-600">Professional Study Player</p>
+                  </div>
+                </div>
+                
+                <Separator orientation="vertical" className="h-8" />
+                
+                <nav className="flex items-center gap-2">
+                  <Button
+                    variant={activeView === 'library' ? 'default' : 'ghost'}
+                    onClick={() => setActiveView('library')}
+                    className="gap-2"
+                  >
+                    <Music className="w-4 h-4" />
+                    Library
+                  </Button>
+                  <Button
+                    variant={activeView === 'setlists' ? 'default' : 'ghost'}
+                    onClick={() => setActiveView('setlists')}
+                    className="gap-2"
+                  >
+                    <ListMusic className="w-4 h-4" />
+                    Setlists
+                  </Button>
+                  <Button
+                    variant={activeView === 'player' ? 'default' : 'ghost'}
+                    onClick={() => {
+                      setPreviousView(activeView as any);
+                      setActiveView('player');
+                    }}
+                    className="gap-2"
+                    disabled={!selectedSong}
+                  >
+                    <Play className="w-4 h-4" />
+                    Player
+                  </Button>
+                  <Button
+                    variant={activeView === 'settings' ? 'default' : 'ghost'}
+                    onClick={() => setActiveView('settings')}
+                    className="gap-2"
+                  >
+                    <Settings className="w-4 h-4" />
+                    Settings
+                  </Button>
+                </nav>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                {selectedSong && (
+                  <div className="text-sm text-gray-600">
+                    <Music className="w-4 h-4 inline mr-1" />
+                    {selectedSong.title}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </header>
+      )}
+
+      <main className="flex-1 overflow-hidden">
+        <div className="hidden md:flex h-full"> 
+          {activeView === 'player' ? (
+            <div className="flex-1 h-full overflow-hidden"> 
+              <Suspense fallback={<LoadingScreen progress={50} message="Loading Player..." />}>
+                <DAWPlayer
+                  song={selectedSong}
+                  onSongUpdate={handleSongUpdate}
+                  onPerformanceMode={selectedSong ? () => setPerformanceMode(true) : undefined}
+                  onBack={handleBackFromPlayer}
+                  onCreateProject={handleCreateProject}
+                  onExportProject={handleExportProject}
+                />
+              </Suspense>
+            </div>
+          ) : (
+            <div className="flex-1 container mx-auto px-6 py-6 h-full overflow-y-auto"> 
+              {activeView === 'library' && (
+                <SongLibrary
+                  songs={songs}
+                  setlists={setlists}
+                  onSongSelect={handleSongSelect}
+                  selectedSongId={selectedSong?.id}
+                  onAddToSetlist={handleAddToSetlist}
+                  onCreateSetlist={handleCreateSetlist}
+                  onImportSetlist={handleImportSetlist}
+                  onImportSong={handleImportSong}
+                  onCreateProject={handleCreateNewProject}
+                  onImportProject={handleImportProject}
+                />
+              )}
+
+              {activeView === 'setlists' && (
+                <SetlistManager
+                  setlists={setlists}
+                  songs={songs}
+                  onSongClick={handleSongClick}
+                  onCreateSetlist={handleCreateSetlist}
+                  onUpdateSetlist={handleUpdateSetlist}
+                  onDeleteSetlist={handleDeleteSetlist}
+                  onReorderSetlists={handleReorderSetlists}
+                />
+              )}
+
+              {activeView === 'settings' && (
+                <Suspense fallback={<LoadingScreen progress={50} message="Loading Settings..." />}>
+                  <SettingsPanel />
+                </Suspense>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="md:hidden h-full pb-16 overflow-y-auto">
+          {activeTab === 'library' && (
+            <div className="p-4">
+              <SongLibrary
+                songs={songs}
+                setlists={setlists}
+                onSongSelect={handleSongSelect}
+                selectedSongId={selectedSong?.id}
+                onAddToSetlist={handleAddToSetlist}
+                onCreateSetlist={handleCreateSetlist}
+                onImportSetlist={handleImportSetlist}
+                onImportSong={handleImportSong}
+                onCreateProject={handleCreateNewProject}
+                onImportProject={handleImportProject}
+              />
+            </div>
+          )}
+
+          {activeTab === 'setlists' && (
+            <div className="p-4">
+              <SetlistManager
+                setlists={setlists}
+                songs={songs}
+                onSongClick={handleSongClick}
+                onCreateSetlist={handleCreateSetlist}
+                onUpdateSetlist={handleUpdateSetlist}
+                onDeleteSetlist={handleDeleteSetlist}
+                onReorderSetlists={handleReorderSetlists}
+              />
+            </div>
+          )}
+
+          {activeTab === 'player' && (
+            <div className="h-full">
+              <Suspense fallback={<LoadingScreen progress={50} message="Loading Player..." />}>
+                <DAWPlayer
+                  song={selectedSong}
+                  onSongUpdate={handleSongUpdate}
+                  onPerformanceMode={selectedSong ? () => setPerformanceMode(true) : undefined}
+                  onBack={handleBackFromPlayer}
+                  onCreateProject={handleCreateProject}
+                  onExportProject={handleExportProject}
+                />
+              </Suspense>
+            </div>
+          )}
+
+          {activeTab === 'settings' && (
+            <div className="p-4">
+              <Suspense fallback={<LoadingScreen progress={50} message="Loading Settings..." />}>
+                <SettingsPanel />
+              </Suspense>
+            </div>
+          )}
+        </div>
+      </main>
+
+      <div className="md:hidden flex-shrink-0">
+        <MobileNav activeTab={activeTab} onTabChange={setActiveTab} />
+      </div>
+
+      <Toaster />
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AudioContextProvider>
+      <ThemeProvider>
+        <LanguageProvider>
+          <AppContent />
+        </LanguageProvider>
+      </ThemeProvider>
+    </AudioContextProvider>
+  );
+}
