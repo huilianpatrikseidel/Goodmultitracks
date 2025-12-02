@@ -1,2 +1,0 @@
-Line to insert after line 48:
-import { BetaWarningBanner } from './BetaWarningBanner';
