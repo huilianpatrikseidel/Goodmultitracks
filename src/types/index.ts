@@ -25,11 +25,17 @@ export interface AudioTrack {
   volume: number;
   muted: boolean;
   solo: boolean;
-  waveformData: number[];
+  waveformData?: number[]; // OPTIONAL: Now stored in WaveformStore to improve performance
+  waveformOverview?: number[]; // OTIMIZAÇÃO QA: LOD array para zoom distante (opcional, gerado via worker)
   output?: number; // Audio output routing
   color?: string; // Track color for visual identification
   tag?: TrackTag; // Mandatory tag for categorization
   notes?: string; // Track-specific notes
+  
+  // PERSISTENCE FIELDS: Added for .gmtk project file support
+  file?: File | Blob; // Physical audio file for packaging into ZIP
+  url?: string;       // Blob URL (blob:http://...) for <audio> element playback
+  filename?: string;  // Original filename for reference in XML
 }
 
 export interface SectionMarker {
@@ -59,7 +65,7 @@ export interface ChordMarker {
 }
 
 export interface TempoChange {
-  time: number;
+  time: number; // Position in Measures (1-based)
   tempo: number;
   timeSignature: string;
   hidden?: boolean; // Hide from player view (only show in edit mode)
@@ -70,12 +76,6 @@ export interface TempoChange {
     targetTempo: number;
     targetTime: number;
   };
-}
-
-export interface WarpMarker {
-  id: string;
-  sourceTime: number; // The actual time in the audio file
-  gridTime: number;   // The desired time on the musical grid
 }
 
 // TimeSignatureChange não é mais explicitamente necessário se incluído em TempoChange
@@ -130,7 +130,6 @@ export interface Song {
   tags: string[];
   tempoChanges?: TempoChange[];
   chordMarkers?: ChordMarker[];
-  warpMarkers?: WarpMarker[];
   permissions?: {
     canEdit: boolean;
     canShare: boolean; // Pode ser removido se não houver compartilhamento
