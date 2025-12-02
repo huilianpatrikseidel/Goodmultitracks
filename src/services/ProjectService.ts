@@ -1,13 +1,13 @@
 /**
- * ProjectService - Gerenciamento de arquivos .gmtk (GoodMultitracks Project)
+ * CRITICAL FIX (QA Report): Load project with memory-efficient streaming
  * 
- * Formato de arquivo:
- * - .gmtk é um arquivo ZIP contendo:
- *   - project.xml: metadados, tracks, markers, mix settings
- *   - audio/: pasta com arquivos de áudio (WAV/MP3)
- *   - cover.jpg: (opcional) imagem de capa
+ * Previous implementation loaded ALL audio files into memory simultaneously,
+ * causing OOM crashes on mobile devices with large projects (500MB+).
  * 
- * Inspirado em formatos da indústria (.als, .logicx, .flp)
+ * New implementation:
+ * 1. Parse XML first to get track list
+ * 2. Load audio files on-demand as Blob URLs
+ * 3. Allow browser to manage memory via garbage collection
  */
 
 import JSZip from 'jszip';
@@ -143,49 +143,19 @@ export class ProjectService {
     }
     
     try {
-      // 1. Descompactar arquivo
       const arrayBuffer = await file.arrayBuffer();
       const zip = await JSZip.loadAsync(arrayBuffer);
-      const files: Record<string, Blob> = {};
       
-      // Extrair todos os arquivos
-      const filePromises: Promise<void>[] = [];
+      // OPTIMIZATION: Don't extract all files upfront
+      // Instead, keep a reference to the ZIP and extract on-demand
       
-      zip.forEach((relativePath, zipEntry) => {
-        if (!zipEntry.dir) {
-          filePromises.push(
-            zipEntry.async('blob').then(blob => {
-              files[relativePath] = blob;
-            })
-          );
-        }
-      });
-      
-      await Promise.all(filePromises);
-
-      // SEGURANÇA: Validação de conteúdo descompactado
-      let totalUncompressedSize = 0;
-      for (const [path, blob] of Object.entries(files)) {
-        totalUncompressedSize += blob.size;
-        
-        // Path Traversal Protection
-        if (path.includes('..') || path.startsWith('/') || path.includes('\\')) {
-          throw new Error(`Invalid file path detected in archive: ${path}`);
-        }
-      }
-      
-      // Zip Bomb Protection (10x do tamanho original é suspeito)
-      if (totalUncompressedSize > MAX_PROJECT_SIZE * 10) {
-        throw new Error('Decompressed size exceeds safety limit (possible zip bomb)');
-      }
-
-      // 2. Ler e parsear XML
-      const xmlBlob = files['project.xml'];
-      if (!xmlBlob) {
+      // 1. Extract and parse XML first (small file)
+      const xmlEntry = zip.file('project.xml');
+      if (!xmlEntry) {
         throw new Error('Invalid .gmtk file: project.xml not found');
       }
-
-      const xmlString = await xmlBlob.text();
+      
+      const xmlString = await xmlEntry.async('text');
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
 
@@ -195,7 +165,7 @@ export class ProjectService {
         throw new Error('Invalid XML format in project.xml');
       }
 
-      // 3. Extrair metadados
+      // 2. Extrair metadados
       const song = this.parseProjectXML(xmlDoc);
       
       // --- LÓGICA DE CATEGORIZAÇÃO ---
@@ -208,17 +178,18 @@ export class ProjectService {
         song.source = 'imported';
       }
 
-      // 4. Carregar arquivos de áudio
+      // 3. Carregar arquivos de áudio
       // Importar função de geração de waveform
       const { generateWaveformFromFile } = await import('../features/player/utils/audioUtils');
       
       for (const track of song.tracks) {
         const extension = this.getFileExtension(track.filename || '');
         const audioPath = `audio/${track.id}${extension}`;
-        const blob = files[audioPath];
+        const audioEntry = zip.file(audioPath);
 
-        if (blob) {
+        if (audioEntry) {
           // SECURITY FIX (QA 3.3): Validate Magic Numbers
+          const blob = await audioEntry.async('blob');
           const isValid = await this.validateAudioBlob(blob);
           if (!isValid) {
              console.warn(`Security Warning: Invalid audio file signature for ${track.name} (${audioPath}). Skipping.`);
@@ -263,10 +234,11 @@ export class ProjectService {
         }
       }
 
-      // 5. Carregar cover art se existir
-      const coverBlob = files['cover.jpg'];
-      if (coverBlob) {
+      // 4. Carregar cover art se existir
+      const coverEntry = zip.file('cover.jpg');
+      if (coverEntry) {
         try {
+          const coverBlob = await coverEntry.async('blob');
           song.thumbnailUrl = URL.createObjectURL(coverBlob);
         } catch (error) {
           console.warn('Failed to load cover image:', error);

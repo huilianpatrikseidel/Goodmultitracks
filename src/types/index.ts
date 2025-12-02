@@ -40,22 +40,22 @@ export interface AudioTrack {
 
 export interface SectionMarker {
   id: string;
-  time: number;
+  time: number; // ⏱️ TIME STANDARD: ALWAYS in SECONDS from start of song (see /docs/TIME_STANDARD.md)
   label: string;
   type: 'intro' | 'verse' | 'chorus' | 'bridge' | 'outro' | 'pre-chorus' | 'instrumental' | 'tag' | 'custom';
 }
 
 export interface ChordData {
-  time: number;
+  time: number; // ⏱️ TIME STANDARD: ALWAYS in SECONDS from start of song
   chord: string;
-  duration: number;
+  duration: number; // ⏱️ TIME STANDARD: ALWAYS in SECONDS
 }
 
 export interface ChordMarker {
-  time: number;
+  time: number; // ⏱️ TIME STANDARD: ALWAYS in SECONDS from start of song
   chord: string;
-  startFret?: number; // Legacy field for backward compatibility
-  capo?: number; // Legacy field for backward compatibility
+  startFret?: number;
+  capo?: number;
   customDiagram?: {
     guitar: { frets: number[]; fingers: number[]; startFret?: number };
     ukulele: { frets: number[]; fingers: number[]; startFret?: number };
@@ -65,16 +65,15 @@ export interface ChordMarker {
 }
 
 export interface TempoChange {
-  time: number; // Position in Measures (1-based)
+  time: number; // ⏱️ TIME STANDARD: ALWAYS in SECONDS from start of song (NOT bars/beats!)
   tempo: number;
   timeSignature: string;
-  hidden?: boolean; // Hide from player view (only show in edit mode)
-  subdivision?: string; // For irregular time signatures (e.g., "2+3" for 5/8)
+  hidden?: boolean;
+  subdivision?: string;
   curve?: {
-    // For gradual tempo changes (rallentando)
     type: 'linear' | 'exponential';
     targetTempo: number;
-    targetTime: number;
+    targetTime: number; // ⏱️ TIME STANDARD: ALWAYS in SECONDS
   };
 }
 

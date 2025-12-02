@@ -1,12 +1,11 @@
-import React, { useRef, useEffect, useCallback } from 'react';
-import { Pin, Volume2, VolumeX } from 'lucide-react';
-import { AudioTrack, TrackTag } from '../types';
-import { Button } from './ui/button';
-import { Slider } from './ui/slider';
-import { Input } from './ui/input';
+import { Volume2, VolumeX, Music2, Trash2, ChevronDown, ChevronUp, Pin } from 'lucide-react';
+import { AudioTrack } from '../types';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Badge } from './ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { gainToDb, gainToSlider, sliderToGain, formatDb, parseDbInput, hexToRgba, sliderToDb } from '../features/player/utils/audioUtils';
+import { LAYOUT } from '../features/player/constants/uiConstants';
 
 interface TrackListSidebarProps {
   tracks: AudioTrack[];
@@ -263,14 +262,13 @@ export const TrackListSidebar = React.memo(React.forwardRef<HTMLDivElement, Trac
       ref={ref}
       className="track-list-sidebar-container flex-shrink-0 border-r flex flex-col overflow-y-auto"
       style={{ 
-        width: '280px', 
-        minWidth: '280px', 
-        maxWidth: '280px', 
+        width: `${LAYOUT.SIDEBAR_WIDTH}px`, 
+        minWidth: `${LAYOUT.SIDEBAR_WIDTH}px`, 
+        maxWidth: `${LAYOUT.SIDEBAR_WIDTH}px`, 
         backgroundColor: 'var(--daw-bg-contrast)', 
         borderColor: 'var(--daw-border)',
-        scrollbarWidth: 'none', // Firefox
-        msOverflowStyle: 'none',  // IE/Edge
-        // CRITICAL FIX: Garante alinhamento perfeito com timeline
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
         paddingTop: 0,
         paddingBottom: 0,
       }}
