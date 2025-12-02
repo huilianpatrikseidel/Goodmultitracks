@@ -251,19 +251,36 @@ export const TrackListSidebar = React.memo(React.forwardRef<HTMLDivElement, Trac
     onPinnedTracksChange(newPinned);
   };
 
-  // FIX QA: Handler local para emitir scroll ao pai
-  const handleLocalScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    onScroll(e.currentTarget.scrollTop);
-  };
-
   // Separate tracks into pinned and unpinned
   const pinnedTracksList = tracks.filter(t => pinnedTracks.has(t.id));
   const unpinnedTracksList = tracks.filter(t => !pinnedTracks.has(t.id));
   const currentTracks = [...pinnedTracksList, ...unpinnedTracksList];
 
+  // CRITICAL QA FIX: Implement REAL virtualization using useVirtualizer
+  const scrollElementRef = useRef<HTMLDivElement>(null);
+  
+  const virtualizer = useVirtualizer({
+    count: currentTracks.length,
+    getScrollElement: () => scrollElementRef.current,
+    estimateSize: () => trackHeightPx,
+    overscan: 3, // Render 3 extra items above/below viewport for smooth scrolling
+  });
+
+  // Emit scroll events to parent
+  const handleLocalScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    onScroll(e.currentTarget.scrollTop);
+  };
+
   return (
     <div 
-      ref={ref}
+      ref={(node) => {
+        scrollElementRef.current = node;
+        if (typeof ref === 'function') {
+          ref(node);
+        } else if (ref) {
+          ref.current = node;
+        }
+      }}
       className="track-list-sidebar-container flex-shrink-0 border-r flex flex-col overflow-y-auto"
       style={{ 
         width: `${LAYOUT.SIDEBAR_WIDTH}px`, 
@@ -278,24 +295,46 @@ export const TrackListSidebar = React.memo(React.forwardRef<HTMLDivElement, Trac
       }}
       onScroll={handleLocalScroll}
     >
-      {/* Track List */}
-      <div className="flex-1" style={{ margin: 0, padding: 0 }}>
-        {currentTracks.map((track) => (
-          <TrackListItem
-            key={track.id}
-            trackId={track.id}
-            trackName={track.name}
-            trackColor={track.color || '#3b82f6'}
-            trackVolume={track.volume}
-            trackMuted={track.muted}
-            trackSolo={track.solo}
-            trackHeightPx={trackHeightPx}
-            isAnySolo={isAnySolo}
-            onVolumeChange={handleVolumeChange}
-            onMuteToggle={onTrackMuteToggle}
-            onSoloToggle={onTrackSoloToggle}
-          />
-        ))}
+      {/* CRITICAL QA FIX: Virtualized Track List */}
+      <div 
+        className="flex-1 relative" 
+        style={{ 
+          height: `${virtualizer.getTotalSize()}px`,
+          margin: 0, 
+          padding: 0,
+        }}
+      >
+        {virtualizer.getVirtualItems().map((virtualItem) => {
+          const track = currentTracks[virtualItem.index];
+          return (
+            <div
+              key={track.id}
+              data-index={virtualItem.index}
+              ref={virtualizer.measureElement}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                transform: `translateY(${virtualItem.start}px)`,
+              }}
+            >
+              <TrackListItem
+                trackId={track.id}
+                trackName={track.name}
+                trackColor={track.color || '#3b82f6'}
+                trackVolume={track.volume}
+                trackMuted={track.muted}
+                trackSolo={track.solo}
+                trackHeightPx={trackHeightPx}
+                isAnySolo={isAnySolo}
+                onVolumeChange={handleVolumeChange}
+                onMuteToggle={onTrackMuteToggle}
+                onSoloToggle={onTrackSoloToggle}
+              />
+            </div>
+          );
+        })}
       </div>
       <style>{`
         .track-list-sidebar-container::-webkit-scrollbar {
