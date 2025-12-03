@@ -1,5 +1,6 @@
 import React from 'react';
-import { Play, Pause, Square, Repeat, Music2, ChevronDown } from 'lucide-react';
+import { Play, Pause, Square, ChevronDown } from 'lucide-react';
+import { MetronomeIcon, LoopIcon } from './icons/CustomIcons';
 import { Button } from './ui/button';
 import { Slider } from './ui/slider';
 import { Label } from './ui/label';
@@ -107,7 +108,7 @@ export const TransportBar: React.FC<TransportBarProps> = ({
               }}
               onClick={onLoopToggle}
             >
-              <Repeat className={`w-5 h-5 ${loopEnabled ? 'text-blue-400' : ''}`} />
+              <LoopIcon className={`w-5 h-5 ${loopEnabled ? 'text-blue-400' : ''}`} />
             </Button>
           </TooltipTrigger>
           <TooltipContent>Loop</TooltipContent>
@@ -156,7 +157,7 @@ export const TransportBar: React.FC<TransportBarProps> = ({
               className={`h-8 w-8 ${metronomeEnabled ? 'text-blue-400 bg-blue-400/10' : 'text-neutral-400'}`}
               onClick={onMetronomeToggle}
             >
-              <Music2 className="w-4 h-4" />
+              <MetronomeIcon className="w-4 h-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>Metronome</TooltipContent>

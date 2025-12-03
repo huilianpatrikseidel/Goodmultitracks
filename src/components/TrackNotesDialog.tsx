@@ -51,8 +51,8 @@ export function TrackNotesDialog({
             onChange={(e) => setEditedNotes(e.target.value)}
             rows={6}
             style={{
-              backgroundColor: '#404040',
-              borderColor: '#5A5A5A',
+              backgroundColor: 'var(--daw-control)',
+              borderColor: 'var(--daw-border)',
               color: '#F1F1F1',
             }}
           />

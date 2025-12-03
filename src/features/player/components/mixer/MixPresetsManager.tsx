@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from '../../../../components/ui/select';
 import { AudioTrack, MixPreset } from '../../../../types';
-import { toast } from 'sonner';
+import { toast } from 'sonner@2.0.3';
 
 interface MixPresetsManagerProps {
   tracks: AudioTrack[];
@@ -86,7 +86,7 @@ export function MixPresetsManager({
             size="sm" 
             className="w-full" 
             title="Save current mix as preset"
-            style={{ backgroundColor: '#404040', color: '#F1F1F1', borderColor: '#5A5A5A' }}
+            style={{ backgroundColor: 'var(--daw-control)', color: '#F1F1F1', borderColor: 'var(--daw-border)' }}
           >
             <Save className="w-4 h-4 mr-2" />
             Save Current Mix
@@ -141,7 +141,7 @@ export function MixPresetsManager({
       {/* Load Preset Section */}
       <div className="space-y-1">
         <Select value={selectedPreset} onValueChange={setSelectedPreset}>
-          <SelectTrigger className="w-full" style={{ backgroundColor: '#404040', color: '#F1F1F1', borderColor: '#5A5A5A' }}>
+          <SelectTrigger className="w-full" style={{ backgroundColor: 'var(--daw-control)', color: '#F1F1F1', borderColor: 'var(--daw-border)' }}>
             <SelectValue placeholder="Select preset..." />
           </SelectTrigger>
           <SelectContent>
@@ -165,7 +165,7 @@ export function MixPresetsManager({
             onClick={handleLoadPreset}
             disabled={!selectedPreset}
             title="Load selected preset"
-            style={{ backgroundColor: '#404040', color: '#F1F1F1', borderColor: '#5A5A5A' }}
+            style={{ backgroundColor: 'var(--daw-control)', color: '#F1F1F1', borderColor: 'var(--daw-border)' }}
           >
             <Upload className="w-4 h-4 mr-1" />
             Load
@@ -178,7 +178,7 @@ export function MixPresetsManager({
             onClick={() => selectedPreset && handleDeletePreset(selectedPreset)}
             disabled={!selectedPreset}
             title="Delete selected preset"
-            style={{ backgroundColor: '#404040', color: '#F1F1F1', borderColor: '#5A5A5A' }}
+            style={{ backgroundColor: 'var(--daw-control)', color: '#F1F1F1', borderColor: 'var(--daw-border)' }}
           >
             <Trash2 className="w-4 h-4 mr-1" />
             Delete
@@ -188,5 +188,4 @@ export function MixPresetsManager({
     </div>
   );
 }
-
 

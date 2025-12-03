@@ -251,16 +251,14 @@ export const TrackListSidebar = React.memo(React.forwardRef<HTMLDivElement, Trac
     onPinnedTracksChange(newPinned);
   };
 
-  // Separate tracks into pinned and unpinned
-  const pinnedTracksList = tracks.filter(t => pinnedTracks.has(t.id));
-  const unpinnedTracksList = tracks.filter(t => !pinnedTracks.has(t.id));
-  const currentTracks = [...pinnedTracksList, ...unpinnedTracksList];
+  // CRITICAL FIX: Removed duplicate ordering logic - now handled centrally in DAWPlayer.tsx
+  // The 'tracks' prop already comes pre-ordered with pinned tracks first
 
   // CRITICAL QA FIX: Implement REAL virtualization using useVirtualizer
   const scrollElementRef = useRef<HTMLDivElement>(null);
   
   const virtualizer = useVirtualizer({
-    count: currentTracks.length,
+    count: tracks.length,
     getScrollElement: () => scrollElementRef.current,
     estimateSize: () => trackHeightPx,
     overscan: 3, // Render 3 extra items above/below viewport for smooth scrolling
@@ -305,7 +303,7 @@ export const TrackListSidebar = React.memo(React.forwardRef<HTMLDivElement, Trac
         }}
       >
         {virtualizer.getVirtualItems().map((virtualItem) => {
-          const track = currentTracks[virtualItem.index];
+          const track = tracks[virtualItem.index];
           return (
             <div
               key={track.id}

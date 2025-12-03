@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Settings, Eye, EyeOff, GripVertical } from 'lucide-react';
-import { useLanguage } from '../lib/LanguageContext'; // << ADICIONADO
+import { Eye, EyeOff, GripVertical } from 'lucide-react';
+import { ViewSettingsIcon } from './icons/CustomIcons';
+import { useLanguage } from '../lib/LanguageContext';
 import { Button } from './ui/button';
 import { Label } from './ui/label';
 import {
@@ -37,14 +38,13 @@ export function PlayerViewSettings({
   onTrackHeightChange,
   rulerVisibility,
   onRulerVisibilityChange,
-  rulerOrder = ['time', 'measures', 'sections', 'chords', 'tempo'], // Ordem padrão consistente
+  rulerOrder = ['time', 'measures', 'sections', 'chords', 'tempo'],
   onRulerOrderChange,
 }: PlayerViewSettingsProps) {
-  const { t } = useLanguage(); // << ADICIONADO: Hook de tradução
+  const { t } = useLanguage();
   const [draggedRulerId, setDraggedRulerId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
 
-  // << CORREÇÃO: Usar traduções e visibilidade recebidas via props >>
   const rulerConfigs: Record<string, RulerConfig> = {
     time: { id: 'time', label: t.time, visible: rulerVisibility['time'] },
     measures: { id: 'measures', label: t.measures, visible: rulerVisibility['measures'] },
@@ -55,7 +55,6 @@ export function PlayerViewSettings({
 
   const orderedRulers = rulerOrder.map(id => rulerConfigs[id]).filter(Boolean);
 
-  // << CORREÇÃO: Chamar onRulerVisibilityChange >>
   const handleRulerToggle = (rulerId: string, isVisible: boolean) => {
     const newVisibility = { ...rulerVisibility, [rulerId]: isVisible };
     onRulerVisibilityChange(newVisibility);
@@ -122,7 +121,7 @@ export function PlayerViewSettings({
                 e.currentTarget.style.backgroundColor = 'var(--daw-control)';
               }}
             >
-              <Settings className="w-5 h-5" />
+              <ViewSettingsIcon className="w-5 h-5" />
             </Button>
           </DropdownMenuTrigger>
         </TooltipTrigger>
@@ -149,7 +148,7 @@ export function PlayerViewSettings({
                 style={
                   trackHeight === 'small'
                     ? { backgroundColor: '#3B82F6', color: '#F1F1F1' }
-                    : { backgroundColor: '#404040', color: '#9E9E9E', borderColor: '#5A5A5A' }
+                    : { backgroundColor: 'var(--daw-control)', color: 'var(--daw-text-muted)', borderColor: 'var(--daw-border)' }
                 }
               >
                 Small
@@ -162,7 +161,7 @@ export function PlayerViewSettings({
                 style={
                   trackHeight === 'medium'
                     ? { backgroundColor: '#3B82F6', color: '#F1F1F1' }
-                    : { backgroundColor: '#404040', color: '#9E9E9E', borderColor: '#5A5A5A' }
+                    : { backgroundColor: 'var(--daw-control)', color: 'var(--daw-text-muted)', borderColor: 'var(--daw-border)' }
                 }
               >
                 Medium
@@ -175,7 +174,7 @@ export function PlayerViewSettings({
                 style={
                   trackHeight === 'large'
                     ? { backgroundColor: '#3B82F6', color: '#F1F1F1' }
-                    : { backgroundColor: '#404040', color: '#9E9E9E', borderColor: '#5A5A5A' }
+                    : { backgroundColor: 'var(--daw-control)', color: 'var(--daw-text-muted)', borderColor: 'var(--daw-border)' }
                 }
               >
                 Large
@@ -212,7 +211,7 @@ export function PlayerViewSettings({
                     draggedRulerId === ruler.id ? 'opacity-50 scale-95' : 'opacity-100',
                     dropTargetId === ruler.id && draggedRulerId !== ruler.id && 'bg-blue-500/30'
                   )}
-                  style={{ backgroundColor: '#404040' }}
+                  style={{ backgroundColor: 'var(--daw-control)' }}
                 >
                   <div className="flex items-center gap-2 flex-1">
                     <GripVertical 

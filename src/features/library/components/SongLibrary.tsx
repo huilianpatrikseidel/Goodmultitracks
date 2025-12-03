@@ -181,10 +181,8 @@ export function SongLibrary({
         <div className="flex items-center gap-2 flex-grow sm:flex-grow-0">
           <div className="relative flex-grow sm:flex-grow-0 sm:w-64"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"/><Input placeholder="Search songs..." value={searchQuery} onChange={(e)=>setSearchQuery(e.target.value)} className="pl-9"/></div>
           <Button onClick={()=>setCreateProjectDialogOpen(true)} size="sm" className="hidden sm:inline-flex"><Plus className="w-4 h-4 mr-1"/> Create</Button>
-          <Button variant="outline" onClick={onImportSong} size="sm" className="hidden sm:inline-flex"><Upload className="w-4 h-4 mr-1"/> Import</Button>
           <Button variant="outline" onClick={()=>fileInputRef.current?.click()} size="sm" className="hidden sm:inline-flex"><Upload className="w-4 h-4 mr-1"/> Import Project</Button>
           <Button onClick={()=>setCreateProjectDialogOpen(true)} size="icon" className="sm:hidden"><Plus className="w-4 h-4"/></Button>
-          <Button variant="outline" onClick={onImportSong} size="icon" className="sm:hidden"><Upload className="w-4 h-4"/></Button>
         </div>
         {/* Lado Direito */}
         <div className="flex items-center gap-2">

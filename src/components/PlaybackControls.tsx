@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Gauge, Music, Guitar } from 'lucide-react';
+import { Music, Guitar } from 'lucide-react';
+import { PlaybackSettingsIcon } from './icons/CustomIcons';
 import { Button } from './ui/button';
 import { Slider } from './ui/slider';
 import { Label } from './ui/label';
@@ -83,7 +84,7 @@ export function PlaybackControls({
               }}
               disabled={disabled}
             >
-              <Gauge className="w-5 h-5" />
+              <PlaybackSettingsIcon className="w-5 h-5" />
             </Button>
           </DropdownMenuTrigger>
         </TooltipTrigger>
@@ -100,7 +101,7 @@ export function PlaybackControls({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-sm flex items-center gap-2" style={{ color: '#F1F1F1' }}>
-                <Gauge className="w-4 h-4" />
+                <PlaybackSettingsIcon className="w-4 h-4" />
                 Speed
               </Label>
               <div className="flex items-center gap-2">
@@ -264,9 +265,9 @@ export function PlaybackControls({
                 }}
                 className="text-xs"
                 style={{
-                  backgroundColor: '#404040',
-                  color: '#D1D1D1',
-                  borderColor: '#5A5A5A',
+                  backgroundColor: 'var(--daw-control)',
+                  color: 'var(--daw-text-secondary)',
+                  borderColor: 'var(--daw-border)',
                 }}
               >
                 Practice (75%)
@@ -281,9 +282,9 @@ export function PlaybackControls({
                 }}
                 className="text-xs"
                 style={{
-                  backgroundColor: '#404040',
-                  color: '#D1D1D1',
-                  borderColor: '#5A5A5A',
+                  backgroundColor: 'var(--daw-control)',
+                  color: 'var(--daw-text-secondary)',
+                  borderColor: 'var(--daw-border)',
                 }}
               >
                 Reset All
@@ -297,9 +298,9 @@ export function PlaybackControls({
                 }}
                 className="text-xs"
                 style={{
-                  backgroundColor: '#404040',
-                  color: '#D1D1D1',
-                  borderColor: '#5A5A5A',
+                  backgroundColor: 'var(--daw-control)',
+                  color: 'var(--daw-text-secondary)',
+                  borderColor: 'var(--daw-border)',
                 }}
               >
                 -2 semitones
@@ -313,9 +314,9 @@ export function PlaybackControls({
                 }}
                 className="text-xs"
                 style={{
-                  backgroundColor: '#404040',
-                  color: '#D1D1D1',
-                  borderColor: '#5A5A5A',
+                  backgroundColor: 'var(--daw-control)',
+                  color: 'var(--daw-text-secondary)',
+                  borderColor: 'var(--daw-border)',
                 }}
               >
                 +2 semitones

@@ -1,5 +1,6 @@
 import React from 'react';
-import { ArrowLeft, Magnet, ChevronDown, Music2, Play, Pause, Repeat, Square, Grid3x3, Download, Pencil, MousePointer2 } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Play, Pause, Square, Download } from 'lucide-react';
+import { MetronomeIcon, SnapGridIcon, LoopIcon, WorkspaceIcon, MarkerEditorIcon, WarpGridIcon, PlayerModeIcon } from '../../../../components/icons/CustomIcons';
 import { Button } from '../../../../components/ui/button';
 import { Slider } from '../../../../components/ui/slider';
 import { Label } from '../../../../components/ui/label';
@@ -200,7 +201,7 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
                 }}
                 onClick={onLoopToggle}
               >
-                <Repeat className="w-5 h-5" />
+                <LoopIcon className="w-5 h-5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Loop</TooltipContent>
@@ -274,7 +275,7 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
                   }}
                   onClick={onMetronomeToggle}
                 >
-                  <Music2 className="w-5 h-5" />
+                  <MetronomeIcon className="w-5 h-5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Metronome</TooltipContent>
@@ -343,17 +344,17 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
             >
               {activeTool === 'marker' ? (
                 <>
-                  <Pencil className="w-4 h-4" />
+                  <MarkerEditorIcon className="w-4 h-4" />
                   <span className="text-xs font-medium">Marker Editor</span>
                 </>
               ) : activeTool === 'warp' ? (
                 <>
-                  <Grid3x3 className="w-4 h-4" />
+                  <WarpGridIcon className="w-4 h-4" />
                   <span className="text-xs font-medium">Warp Grid</span>
                 </>
               ) : (
                 <>
-                  <MousePointer2 className="w-4 h-4" />
+                  <PlayerModeIcon className="w-4 h-4" />
                   <span className="text-xs font-medium">Player Mode</span>
                 </>
               )}
@@ -365,21 +366,21 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
               onClick={() => onToolChange && onToolChange(null)}
               className="gap-2 cursor-pointer"
             >
-              <MousePointer2 className="w-4 h-4" />
+              <PlayerModeIcon className="w-4 h-4" />
               <span>Player Mode</span>
             </DropdownMenuItem>
             <DropdownMenuItem 
               onClick={() => onToolChange && onToolChange('marker')}
               className="gap-2 cursor-pointer"
             >
-              <Pencil className="w-4 h-4" />
+              <MarkerEditorIcon className="w-4 h-4" />
               <span>Marker Editor</span>
             </DropdownMenuItem>
             <DropdownMenuItem 
               onClick={() => onToolChange && onToolChange('warp')}
               className="gap-2 cursor-pointer"
             >
-              <Grid3x3 className="w-4 h-4" />
+              <WarpGridIcon className="w-4 h-4" />
               <span>Warp Grid Editor</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -393,7 +394,7 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              className="h-10 px-3 gap-2"
+              className="h-10 px-3"
               style={{ 
                 backgroundColor: snapEnabled ? '#2563EB' : 'var(--daw-control)',
                 color: 'var(--daw-text-primary)',
@@ -407,8 +408,7 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
               }}
               onClick={onSnapToggle}
             >
-              <Grid3x3 className="w-4 h-4" />
-              Snap
+              <SnapGridIcon className="w-4 h-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>
@@ -461,5 +461,4 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
     </div>
   );
 };
-
 

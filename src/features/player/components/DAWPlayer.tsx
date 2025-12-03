@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Play,
   Pause,
@@ -899,7 +899,13 @@ function DAWPlayerContent({ song, onSongUpdate, onPerformanceMode, onBack, onExp
     );
   }
 
-  const currentTracks = song?.tracks || [];
+  // Centralizar ordenação: pinned tracks primeiro, depois unpinned
+  const orderedTracks = useMemo(() => {
+    if (!song?.tracks) return [];
+    const pinned = song.tracks.filter(t => pinnedTracks.has(t.id));
+    const unpinned = song.tracks.filter(t => !pinnedTracks.has(t.id));
+    return [...pinned, ...unpinned];
+  }, [song?.tracks, pinnedTracks]);
 
   const getTrackHeightPx = () => {
     switch (trackHeight) {
@@ -1070,7 +1076,7 @@ function DAWPlayerContent({ song, onSongUpdate, onPerformanceMode, onBack, onExp
               {sidebarVisible && mixerVisible && (
                 <TrackListSidebar
                   ref={sidebarRef}
-                  tracks={currentTracks}
+                  tracks={orderedTracks}
                   trackHeight={trackHeight}
                   editingTrackId={null}
                   trackNameInput=""
@@ -1096,7 +1102,7 @@ function DAWPlayerContent({ song, onSongUpdate, onPerformanceMode, onBack, onExp
                 currentTime={currentTime}
                 zoom={zoom}
                 pixelsPerSecond={getPixelsPerSecond()}
-                filteredTracks={currentTracks}
+                filteredTracks={orderedTracks}
                 loopStart={loopStart}
                 loopEnd={loopEnd}
                 trackHeightPx={getTrackHeightPx()}
@@ -1121,7 +1127,7 @@ function DAWPlayerContent({ song, onSongUpdate, onPerformanceMode, onBack, onExp
           {/* Mixer Dock */}
           {mixerDockVisible && (
             <MixerDock
-              tracks={currentTracks}
+              tracks={orderedTracks}
               onTrackVolumeChange={trackActions.handleTrackVolumeChange}
               onTrackMuteToggle={trackActions.handleTrackMuteToggle}
               onTrackSoloToggle={trackActions.handleTrackSoloToggle}
@@ -1158,7 +1164,7 @@ function DAWPlayerContent({ song, onSongUpdate, onPerformanceMode, onBack, onExp
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 rounded"
-                    style={{ backgroundColor: '#404040', color: '#F1F1F1', opacity: zoom <= 1 ? 0.5 : 1 }}
+                    style={{ backgroundColor: 'var(--daw-control)', color: '#F1F1F1', opacity: zoom <= 1 ? 0.5 : 1 }}
                     onClick={handleZoomOutOnPlayhead}
                     disabled={zoom <= 1}
                   >
@@ -1176,7 +1182,7 @@ function DAWPlayerContent({ song, onSongUpdate, onPerformanceMode, onBack, onExp
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 rounded"
-                    style={{ backgroundColor: '#404040', color: '#F1F1F1', opacity: zoom >= 8 ? 0.5 : 1 }}
+                    style={{ backgroundColor: 'var(--daw-control)', color: '#F1F1F1', opacity: zoom >= 8 ? 0.5 : 1 }}
                     onClick={handleZoomInOnPlayhead}
                     disabled={zoom >= 8}
                   >
@@ -1234,8 +1240,15 @@ function DAWPlayerContent({ song, onSongUpdate, onPerformanceMode, onBack, onExp
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <PopoverTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded" style={{ backgroundColor: '#404040', color: '#F1F1F1' }}>
-                        <Save className="w-4 h-4" />
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded" style={{ backgroundColor: 'var(--daw-control)', color: '#F1F1F1' }}>
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="6" y1="4" x2="6" y2="20" />
+                          <rect x="4" y="7" width="4" height="3" rx="1" fill="currentColor" />
+                          <line x1="12" y1="4" x2="12" y2="20" />
+                          <rect x="10" y="11" width="4" height="3" rx="1" fill="currentColor" />
+                          <line x1="18" y1="4" x2="18" y2="20" />
+                          <rect x="16" y="9" width="4" height="3" rx="1" fill="currentColor" />
+                        </svg>
                       </Button>
                     </PopoverTrigger>
                   </TooltipTrigger>
@@ -1243,7 +1256,7 @@ function DAWPlayerContent({ song, onSongUpdate, onPerformanceMode, onBack, onExp
                 </Tooltip>
                 <PopoverContent align="center" className="w-72" style={{ backgroundColor: 'var(--daw-bg-bars)', borderColor: 'var(--daw-border)' }}>
                   <MixPresetsManager
-                    tracks={currentTracks}
+                    tracks={orderedTracks}
                     presets={mixPresets}
                     onSavePreset={handleSaveMixPreset}
                     onLoadPreset={handleLoadMixPreset}
@@ -1258,7 +1271,7 @@ function DAWPlayerContent({ song, onSongUpdate, onPerformanceMode, onBack, onExp
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 rounded"
-                    style={{ backgroundColor: mixerDockVisible ? '#3B82F6' : '#404040', color: '#F1F1F1' }}
+                    style={{ backgroundColor: mixerDockVisible ? '#3B82F6' : 'var(--daw-control)', color: '#F1F1F1' }}
                     onClick={() => setMixerDockVisible(!mixerDockVisible)}
                   >
                     <Sliders className="w-4 h-4" />
@@ -1273,7 +1286,7 @@ function DAWPlayerContent({ song, onSongUpdate, onPerformanceMode, onBack, onExp
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 rounded"
-                    style={{ backgroundColor: notesPanelVisible ? '#3B82F6' : '#404040', color: '#F1F1F1' }}
+                    style={{ backgroundColor: notesPanelVisible ? '#3B82F6' : 'var(--daw-control)', color: '#F1F1F1' }}
                     onClick={() => setNotesPanelVisible(!notesPanelVisible)}
                   >
                     <StickyNote className="w-4 h-4" />
