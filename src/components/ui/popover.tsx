@@ -11,15 +11,11 @@ function Popover({
   return <PopoverPrimitive.Root data-slot="popover" {...props} />;
 }
 
-// CRITICAL FIX (26/11/2025): Adicionar forwardRef para compatibilidade com Tooltip
-// Sem isso, TooltipTrigger não consegue passar ref e gera warning no console
-const PopoverTrigger = React.forwardRef<
-  React.ElementRef<typeof PopoverPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Trigger>
->(({ ...props }, ref) => {
-  return <PopoverPrimitive.Trigger ref={ref} data-slot="popover-trigger" {...props} />;
-});
-PopoverTrigger.displayName = PopoverPrimitive.Trigger.displayName;
+function PopoverTrigger({
+  ...props
+}: React.ComponentProps<typeof PopoverPrimitive.Trigger>) {
+  return <PopoverPrimitive.Trigger data-slot="popover-trigger" {...props} />;
+}
 
 function PopoverContent({
   className,

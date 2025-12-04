@@ -114,7 +114,7 @@ export function PlaybackControls({
                   onClick={() => onTempoChange(100)}
                   className="h-6 px-2 text-xs"
                   style={{
-                    backgroundColor: tempo === 100 ? '#3B82F6' : '#404040',
+                    backgroundColor: tempo === 100 ? '#3B82F6' : 'var(--daw-control)',
                     color: '#F1F1F1',
                   }}
                 >
@@ -179,7 +179,7 @@ export function PlaybackControls({
                   onClick={() => onKeyShiftChange(0)}
                   className="h-6 px-2 text-xs"
                   style={{
-                    backgroundColor: keyShift === 0 ? '#3B82F6' : '#404040',
+                    backgroundColor: keyShift === 0 ? '#3B82F6' : 'var(--daw-control)',
                     color: '#F1F1F1',
                   }}
                 >
@@ -220,7 +220,7 @@ export function PlaybackControls({
                   onClick={() => setCapoFret(0)}
                   className="h-6 px-2 text-xs"
                   style={{
-                    backgroundColor: capoFret === 0 ? '#3B82F6' : '#404040',
+                    backgroundColor: capoFret === 0 ? '#3B82F6' : 'var(--daw-control)',
                     color: '#F1F1F1',
                   }}
                 >

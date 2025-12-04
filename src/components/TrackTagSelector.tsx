@@ -46,7 +46,7 @@ export function TrackTagSelector({ currentTag, onTagChange, disabled }: TrackTag
               size="sm"
               className="h-6 px-2 gap-1"
               style={{
-                backgroundColor: currentTag ? '#404040' : 'transparent',
+                backgroundColor: currentTag ? 'var(--daw-control)' : 'transparent',
                 color: currentTag ? '#F1F1F1' : '#9E9E9E',
               }}
               disabled={disabled}

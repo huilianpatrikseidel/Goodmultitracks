@@ -1,41 +1,66 @@
 #!/usr/bin/env python3
-# Script temporário para adicionar BetaWarningBanner ao DAWPlayer.tsx
+"""
+Fix duplicate function declarations in DAWPlayer.tsx by removing lines 466-489
+"""
 
-import sys
+def main():
+    filepath = 'features/player/components/DAWPlayer.tsx'
+    
+    print(f"Reading {filepath}...")
+    with open(filepath, 'r', encoding='utf-8') as f:
+        content = f.read()
+    
+    lines = content.split('\n')
+    
+    print(f"Total lines: {len(lines)}")
+    print(f"Removing lines 466-489 (duplicate function declarations)")
+    
+    # Lines 466-489 in 1-indexed = indices 465-488 in 0-indexed
+    # But we need to account for both \n and \r\n
+    # Let's use a different approach - remove the specific text block
+    
+    duplicate_block = """  const getTrackHeightPx = () => {
+    switch (trackHeight) {
+      case 'small': return 64;
+      case 'large': return 128;
+      default: return 96;
+    }
+  };
 
-# Ler o arquivo preservando line endings
-with open('/features/player/components/DAWPlayer.tsx', 'r', newline='') as f:
-    lines = f.readlines()
+  const getCurrentMeasure = () => {
+    const tempoChanges = song.tempoChanges || [{ time: 0, tempo: song.tempo, timeSignature: '4/4' }];
+    return Math.floor(secondsToMeasure(currentTime, tempoChanges, song.tempo));
+  };
 
-# Adicionar import na linha 50 (índice 49)
-if 'BetaWarningBanner' not in lines[49]:
-    lines.insert(50, "import { BetaWarningBanner } from './BetaWarningBanner';\r\n")
-    print("✓ Import adicionado na linha 50")
-else:
-    print("✓ Import já existe")
+  const getCurrentTempoInfo = (time: number) => {
+    const tempoChanges = song.tempoChanges || [{ time: 0, tempo: song.tempo, timeSignature: '4/4' }];
+    const measure = secondsToMeasure(time, tempoChanges, song.tempo);
+    const sortedChanges = [...tempoChanges].sort((a, b) => a.time - b.time);
+    const activeTempoChange = sortedChanges.slice().reverse().find(tc => tc.time <= measure) || tempoChanges[0];
+    return activeTempoChange;
+  };
 
-# Adicionar componente após linha 1018 (agora 1019 devido ao import adicionado)
-insert_pos = None
-for i, line in enumerate(lines):
-    if 'onToolChange={handleToolChange}' in line and i > 1000:
-        # Encontrou a linha, adicionar após o fechamento do TransportHeader (2 linhas depois)
-        insert_pos = i + 2
-        break
+  const getCurrentTimeSignature = () => {
+    return getCurrentTempoInfo(currentTime).timeSignature;
+  };
 
-if insert_pos:
-    # Verificar se já existe
-    if 'BetaWarningBanner' not in ''.join(lines[insert_pos:insert_pos+5]):
-        lines.insert(insert_pos, '\r\n')
-        lines.insert(insert_pos + 1, '          {/* Beta Warning Banner */}\r\n')
-        lines.insert(insert_pos + 2, '          <BetaWarningBanner />\r\n')
-        print(f"✓ BetaWarningBanner adicionado na linha {insert_pos + 1}")
+"""
+    
+    if duplicate_block in content:
+        new_content = content.replace(duplicate_block, "")
+        
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(new_content)
+        
+        print("✅ Successfully removed duplicate declarations:")
+        print("   - getTrackHeightPx")
+        print("   - getCurrentMeasure") 
+        print("   - getCurrentTempoInfo")
+        print("   - getCurrentTimeSignature")
+        print("\n✅ File saved!")
     else:
-        print("✓ BetaWarningBanner já existe")
-else:
-    print("⚠ Posição para BetaWarningBanner não encontrada")
+        print("❌ Could not find the duplicate block to remove")
+        print("The file may have already been fixed or has different formatting")
 
-# Salvar de volta
-with open('/features/player/components/DAWPlayer.tsx', 'w', newline='') as f:
-    f.writelines(lines)
-
-print("\n✅ Arquivo atualizado com sucesso!")
+if __name__ == '__main__':
+    main()

@@ -101,6 +101,7 @@ export const Ruler: React.FC<RulerProps> = ({
   // Estado para loop dragging
   const [isLoopDragging, setIsLoopDragging] = React.useState(false);
   const [loopDragStart, setLoopDragStart] = React.useState<number | null>(null);
+  const [loopDragEnd, setLoopDragEnd] = React.useState<number | null>(null); // Adicionar estado para o end
   const [ghostCursorTime, setGhostCursorTime] = React.useState<number | null>(null);
   const [snapEnabled, setSnapEnabled] = React.useState(true);
   const [isTempoExpanded, setIsTempoExpanded] = React.useState(false);
@@ -150,13 +151,15 @@ export const Ruler: React.FC<RulerProps> = ({
     
     // Loop Drag Logic (Measures Ruler only)
     // Block Loop Dragging if Warp Mode is active
-    if (!warpMode && rulerId === 'measures' && onLoopRegionChange && e.clientY - rect.top > TIMELINE.RULER_HEIGHT / 2) {
+    // FIXED: Remover restrição da metade inferior - permitir arrastar em qualquer lugar da régua
+    if (!warpMode && rulerId === 'measures' && onLoopRegionChange && e.shiftKey) {
        e.stopPropagation();
        const x = e.clientX - rect.left;
        const time = (x / timelineWidth) * song.duration;
        const snapped = snapToGrid(time);
        setIsLoopDragging(true);
        setLoopDragStart(snapped);
+       setLoopDragEnd(snapped); // Inicializar com mesmo valor
        return;
     }
 
@@ -386,6 +389,7 @@ export const Ruler: React.FC<RulerProps> = ({
             if (isLoopDragging) {
               setIsLoopDragging(false);
               setLoopDragStart(null);
+              setLoopDragEnd(null); // Reset loopDragEnd
             }
           }}
           onMouseLeave={() => {
@@ -393,6 +397,7 @@ export const Ruler: React.FC<RulerProps> = ({
             if (isLoopDragging) {
               setIsLoopDragging(false);
               setLoopDragStart(null);
+              setLoopDragEnd(null); // Reset loopDragEnd
             }
           }}
         >
