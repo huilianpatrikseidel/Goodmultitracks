@@ -1,9 +1,0 @@
-Lines to remove: 466-489
-
-These functions are already provided by useDAWHelpers hook on line 294:
-- getTrackHeightPx
-- getCurrentMeasure  
-- getCurrentTempoInfo
-- getCurrentTimeSignature
-
-They should not be redeclared.

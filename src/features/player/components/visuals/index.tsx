@@ -1,7 +1,6 @@
 /**
  * Waveform Component - Adaptive renderer
- * 
- * CORREÇÃO QA: Usa Canvas por padrão (performance), SVG como fallback
+ * Uses Canvas for rendering with fallback support
  */
 
 import React from 'react';
@@ -15,10 +14,10 @@ interface WaveformProps {
   fill?: string;
   opacity?: number;
   className?: string;
-  useCanvas?: boolean; // Default: true
-  scrollContainerRef?: React.RefObject<HTMLDivElement | null>; // Ref ao container de scroll
-  scrollPosRef?: React.MutableRefObject<number>; // OPTIMIZATION (QA 2.2): Ref para posição de scroll
-  zoom?: number; // Fator de zoom para LOD
+  useCanvas?: boolean;
+  scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
+  scrollPosRef?: React.MutableRefObject<number>;
+  zoom?: number;
 }
 
 export function Waveform({ 
@@ -28,25 +27,15 @@ export function Waveform({
   fill = '#60a5fa', 
   opacity = 0.8,
   className = '',
-  useCanvas = true, // Canvas por padrão (melhor performance)
+  useCanvas = true,
   scrollContainerRef,
   scrollPosRef,
   zoom = 1
 }: WaveformProps) {
   
-  // Detecta suporte a Canvas e OffscreenCanvas
   const hasCanvasSupport = typeof HTMLCanvasElement !== 'undefined';
+  const hasOffscreenCanvasSupport = false;
   
-  // SYNC FIX (26/11/2025): updateMetrics implementado no worker
-  // Para REATIVAR OffscreenCanvas (melhor performance):
-  //   1. Teste com projeto real (múltiplas tracks)
-  //   2. Verifique zoom in/out sem travamentos
-  //   3. Mude linha abaixo para: typeof OffscreenCanvas !== 'undefined' && typeof Worker !== 'undefined'
-  // ATENÇÃO: Main Thread Canvas (atual) é mais estável para desenvolvimento
-  const hasOffscreenCanvasSupport = false; // typeof OffscreenCanvas !== 'undefined' && typeof Worker !== 'undefined';
-  
-  // PRIORIDADE 1: OffscreenCanvas (renderiza em Worker, melhor performance)
-  // DESABILITADO temporariamente - sincronização de dimensões
   if (useCanvas && hasOffscreenCanvasSupport) {
     return (
       <WaveformCanvasOffscreen
@@ -57,15 +46,10 @@ export function Waveform({
         opacity={opacity}
         className={className}
         zoom={zoom}
-        // TODO: Pass scrollPosRef to OffscreenCanvas if we enable it
       />
     );
   }
   
-  // PRIORIDADE 2: Canvas Main Thread (fallback para navegadores sem OffscreenCanvas)
-  // FIX QA P0: Removemos verificação de scrollContainerRef.current
-  // Refs são null na primeira render. Se condicionarmos aqui, React renderiza SVG e nunca atualiza.
-  // WaveformCanvas tem RAF loop interno que espera a ref estar pronta.
   return (
     <WaveformCanvas
       data={data}
@@ -81,6 +65,5 @@ export function Waveform({
   );
 }
 
-// Re-export para compatibilidade
 export { WaveformCanvas } from './WaveformCanvas';
 

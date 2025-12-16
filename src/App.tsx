@@ -41,7 +41,6 @@ function AppContent() {
     outputDevice: 1,
   });
 
-  // Real initialization process
   useEffect(() => {
     const initializeApp = async () => {
       try {
@@ -54,7 +53,6 @@ function AppContent() {
     initializeApp();
   }, []);
 
-  // Check if first time setup is needed
   useEffect(() => {
     const hasCompletedSetup = storage.isFirstTimeSetupComplete();
     if (!hasCompletedSetup) {
@@ -73,21 +71,15 @@ function AppContent() {
     setShowFirstTimeSetup(false);
   };
 
-  /**
-   * CRÍTICO (P0): Libera Blob URLs para prevenir memory leak
-   * Deve ser chamado ANTES de descartar uma Song
-   */
   const cleanupSongResources = React.useCallback((song: Song | null) => {
     if (!song) return;
     
-    // Revogar URLs das tracks
     song.tracks.forEach(track => {
       if (track.url && track.url.startsWith('blob:')) {
         URL.revokeObjectURL(track.url);
       }
     });
     
-    // Revogar thumbnail
     if (song.thumbnailUrl && song.thumbnailUrl.startsWith('blob:')) {
       URL.revokeObjectURL(song.thumbnailUrl);
     }
@@ -142,10 +134,6 @@ function AppContent() {
     setSetlists(reorderedSetlists);
   };
 
-  const handleImportSetlist = () => {
-    alert('Import functionality would connect to external services');
-  };
-
   /**
    * Importa um projeto .gmtk
    */
@@ -174,19 +162,16 @@ function AppContent() {
    * Exporta o projeto atual como .gmtk
    */
   const handleExportProject = async (song: Song) => {
-    // Ativa a tela de bloqueio
     setIsLoading(true);
     setLoadingMessage('Packaging project files... this may take a moment.');
     
     try {
-      // O await aqui garante que a tela fique visível até o zip terminar
       await ProjectService.saveProject(song);
       toast.success('Project exported successfully!');
     } catch (error) {
       console.error('Error exporting project:', error);
       toast.error('Failed to save project');
     } finally {
-      // Desativa a tela
       setIsLoading(false);
     }
   };
@@ -194,92 +179,76 @@ function AppContent() {
   const handleCreateProject = async (projectData: any) => {
     const colors = ['#60a5fa', '#ef4444', '#22c55e', '#f59e0b', '#a855f7', '#ec4899', '#14b8a6', '#f97316'];
     
-    // Mostrar toast de progresso
     const toastId = toast.loading('Creating project...', {
       description: 'Analyzing audio files and generating waveforms...'
     });
     
     try {
-      // Importar a função de geração de waveform
       const { generateWaveformFromFile } = await import('./features/player/utils/audioUtils');
       
-      // CORREÇÃO: Variável para rastrear a duração máxima (inicia em 0, usa duração real dos arquivos)
       let maxDuration = 0;
       
-      // Gerar waveforms reais de forma assíncrona
       const tracksPromises = projectData.tracks.map(async (track: any, index: number) => {
-      
-      try {
-        // Tentar gerar waveform real do arquivo de áudio (usa cálculo dinâmico de samples)
-        if (track.file) {
-          // OTIMIZAÇÃO QA: Agora recebe { waveform, waveformOverview, duration }
-          const result = await generateWaveformFromFile(track.file);
-          
-          // ARCHITECTURE CHANGE: Store in WaveformStore
-          waveformStore.setWaveform(track.id, result.waveform);
-          if (result.waveformOverview) {
-            waveformStore.setOverview(track.id, result.waveformOverview);
+        try {
+          if (track.file) {
+            const result = await generateWaveformFromFile(track.file);
+            
+            waveformStore.setWaveform(track.id, result.waveform);
+            if (result.waveformOverview) {
+              waveformStore.setOverview(track.id, result.waveformOverview);
+            }
+            
+            if (result.duration > maxDuration) {
+              maxDuration = result.duration;
+            }
+          } else {
+            waveformStore.setWaveform(track.id, []);
           }
-          
-          // Se este arquivo for mais longo que o atual maxDuration, atualizamos
-          if (result.duration > maxDuration) {
-            maxDuration = result.duration;
-          }
-        } else {
-          // FIX QA: Empty arrays instead of random data
+        } catch (error) {
+          console.warn(`Failed to generate waveform for ${track.channelName}:`, error);
           waveformStore.setWaveform(track.id, []);
         }
-      } catch (error) {
-        console.warn(`Failed to generate waveform for ${track.channelName}:`, error);
-        // FIX QA: Empty arrays instead of random data - UI will show loading state
-        waveformStore.setWaveform(track.id, []);
-      }
-      
-      return {
-        id: track.id, 
-        name: track.channelName, 
-        type: 'other' as const,
-        volume: 1.0, 
-        muted: false, 
-        solo: false,
-        // waveformData removed - stored in WaveformStore
-        // waveformOverview removed - stored in WaveformStore
-        color: colors[index % colors.length],
-        output: 1,
-        file: track.file,
-        filename: track.file?.name,
-      };
-    });
+        
+        return {
+          id: track.id, 
+          name: track.channelName, 
+          type: 'other' as const,
+          volume: 1.0, 
+          muted: false, 
+          solo: false,
+          color: colors[index % colors.length],
+          output: 1,
+          file: track.file,
+          filename: track.file?.name,
+        };
+      });
     
-    // Aguardar todas as waveforms serem geradas
-    const tracks = await Promise.all(tracksPromises);
+      const tracks = await Promise.all(tracksPromises);
+      const finalDuration = maxDuration > 0 ? maxDuration : 180;
 
-    // CORREÇÃO: Fallback para 180s apenas se nenhum arquivo foi processado
-    const finalDuration = maxDuration > 0 ? maxDuration : 180;
-
-    const newProject: Song = {
-      id: `project-${Date.now()}`,
-      title: projectData.songName,
-      artist: projectData.artist,
-      duration: Math.ceil(finalDuration), // Usa a duração real dos arquivos
-      key: projectData.key,
-      tempo: projectData.tempo,
-      version: '1.0',
-      thumbnailUrl: projectData.coverArtPreview || '',
-      tracks,
-      markers: [],
-      chords: [],
-      chordMarkers: [],
-      loops: [], 
-      mixPresets: [], 
-      notes: [], 
-      tags: ['project'],
-      tempoChanges: [{ time: 0, tempo: projectData.tempo, timeSignature: projectData.timeSignature, }],
-      permissions: { canEdit: true, canShare: true, canDelete: true, },
-      source: 'project',
-      lastModified: new Date(),
-      createdBy: 'user-1',
-    };
+      const newProject: Song = {
+        id: `project-${Date.now()}`,
+        title: projectData.songName,
+        artist: projectData.artist,
+        duration: Math.ceil(finalDuration),
+        key: projectData.key,
+        tempo: projectData.tempo,
+        version: '1.0',
+        thumbnailUrl: projectData.coverArtPreview || '',
+        tracks,
+        markers: [],
+        chords: [],
+        chordMarkers: [],
+        loops: [], 
+        mixPresets: [], 
+        notes: [], 
+        tags: ['project'],
+        tempoChanges: [{ time: 0, tempo: projectData.tempo, timeSignature: projectData.timeSignature, }],
+        permissions: { canEdit: true, canShare: true, canDelete: true, },
+        source: 'project',
+        lastModified: new Date(),
+        createdBy: 'user-1',
+      };
 
       setSongs((prev) => [newProject, ...prev]);
       setSelectedSong(newProject);
@@ -287,7 +256,6 @@ function AppContent() {
       setActiveView('player');
       setActiveTab('player');
       
-      // Atualizar toast de sucesso
       toast.success('Project created successfully!', {
         id: toastId,
         description: `${projectData.tracks.length} tracks ready to mix`
@@ -302,8 +270,9 @@ function AppContent() {
     }
   };
 
-  const handleImportSong = () => {
-    alert('Import song functionality needed.');
+  const handleBackFromPlayer = () => {
+    setActiveView(previousView);
+    setActiveTab(previousView);
   };
 
   const handleSetlistSelect = (setlist: Setlist) => {
@@ -327,7 +296,6 @@ function AppContent() {
   };
 
   const handleSongSelect = (song: Song) => {
-    // CRÍTICO: Libera recursos da música anterior antes de trocar
     if (selectedSong && selectedSong.id !== song.id) {
       cleanupSongResources(selectedSong);
     }
@@ -338,16 +306,6 @@ function AppContent() {
     setActiveTab('player');
   };
 
-  const handleBackFromPlayer = () => {
-    setActiveView(previousView);
-    setActiveTab(previousView);
-  };
-
-  const handleCreateNewProject = (projectData: any) => {
-    handleCreateProject(projectData);
-  };
-
-  // CRÍTICO (P0): Cleanup de recursos ao desmontar componente
   React.useEffect(() => {
     return () => {
       if (selectedSong) {

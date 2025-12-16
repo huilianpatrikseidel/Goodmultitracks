@@ -1,20 +1,18 @@
-// << DEFINIÇÃO ATUALIZADA E TIPO DINÂMICO >>
 export const TRACK_TAG_HIERARCHY = {
   drums: ['drums'],
   percussion: ['percussion', 'cajon'],
   bass: ['bass'],
   guitar: ['acoustic-guitar', 'electric-guitar'],
-  keys: ['keys', 'keyboard-piano'], // Corrigido para incluir a tag usada nos mocks
+  keys: ['keys', 'keyboard-piano'],
   vocals: ['vocals-general', 'lead-vocal', 'backing-vocals'],
-  orchestral: [], // Adicionado para evitar erro de 'undefined'
-  loops: [], // Adicionado para evitar erro de 'undefined'
-  click: [], // Adicionado para corresponder ao tipo AudioTrack e evitar erro
-  guide: [], // Adicionado para corresponder ao tipo AudioTrack e evitar erro
-  piano: [], // Adicionado para corresponder às categorias usadas na UI
+  orchestral: [],
+  loops: [],
+  click: [],
+  guide: [],
+  piano: [],
   other: ['other-elements'],
 } as const;
 
-// Gera o tipo TrackTag dinamicamente a partir do objeto TRACK_TAG_HIERARCHY
 type AllTagsArray = typeof TRACK_TAG_HIERARCHY[keyof typeof TRACK_TAG_HIERARCHY];
 export type TrackTag = AllTagsArray[number];
 
@@ -25,34 +23,32 @@ export interface AudioTrack {
   volume: number;
   muted: boolean;
   solo: boolean;
-  waveformData?: number[]; // OPTIONAL: Now stored in WaveformStore to improve performance
-  waveformOverview?: number[]; // OTIMIZAÇÃO QA: LOD array para zoom distante (opcional, gerado via worker)
-  output?: number; // Audio output routing
-  color?: string; // Track color for visual identification
-  tag?: TrackTag; // Mandatory tag for categorization
-  notes?: string; // Track-specific notes
-  
-  // PERSISTENCE FIELDS: Added for .gmtk project file support
-  file?: File | Blob; // Physical audio file for packaging into ZIP
-  url?: string;       // Blob URL (blob:http://...) for <audio> element playback
-  filename?: string;  // Original filename for reference in XML
+  waveformData?: number[];
+  waveformOverview?: number[];
+  output?: number;
+  color?: string;
+  tag?: TrackTag;
+  notes?: string;
+  file?: File | Blob;
+  url?: string;
+  filename?: string;
 }
 
 export interface SectionMarker {
   id: string;
-  time: number; // ⏱️ TIME STANDARD: ALWAYS in SECONDS from start of song (see /docs/TIME_STANDARD.md)
+  time: number;
   label: string;
   type: 'intro' | 'verse' | 'chorus' | 'bridge' | 'outro' | 'pre-chorus' | 'instrumental' | 'tag' | 'custom';
 }
 
 export interface ChordData {
-  time: number; // ⏱️ TIME STANDARD: ALWAYS in SECONDS from start of song
+  time: number;
   chord: string;
-  duration: number; // ⏱️ TIME STANDARD: ALWAYS in SECONDS
+  duration: number;
 }
 
 export interface ChordMarker {
-  time: number; // ⏱️ TIME STANDARD: ALWAYS in SECONDS from start of song
+  time: number;
   chord: string;
   startFret?: number;
   capo?: number;
@@ -65,7 +61,7 @@ export interface ChordMarker {
 }
 
 export interface TempoChange {
-  time: number; // ⏱️ TIME STANDARD: ALWAYS in SECONDS from start of song (NOT bars/beats!)
+  time: number;
   tempo: number;
   timeSignature: string;
   hidden?: boolean;
@@ -73,15 +69,9 @@ export interface TempoChange {
   curve?: {
     type: 'linear' | 'exponential';
     targetTempo: number;
-    targetTime: number; // ⏱️ TIME STANDARD: ALWAYS in SECONDS
+    targetTime: number;
   };
 }
-
-// TimeSignatureChange não é mais explicitamente necessário se incluído em TempoChange
-// export interface TimeSignatureChange {
-//   time: number;
-//   timeSignature: string;
-// }
 
 export interface Loop {
   id: string;
@@ -117,10 +107,10 @@ export interface Song {
   duration: number;
   tracks: AudioTrack[];
   markers: SectionMarker[];
-  chords: ChordData[]; // Mantido por enquanto, mas pode ser removido se não usado
+  chords: ChordData[];
   loops: Loop[];
   mixPresets: MixPreset[];
-  notes: Note[]; // Notas específicas da música
+  notes: Note[];
   pdfUrl?: string;
   thumbnailUrl?: string;
   version: number | string;
@@ -131,27 +121,24 @@ export interface Song {
   chordMarkers?: ChordMarker[];
   permissions?: {
     canEdit: boolean;
-    canShare: boolean; // Pode ser removido se não houver compartilhamento
+    canShare: boolean;
     canDelete: boolean;
   };
   source?: 'imported' | 'project';
 }
 
-// Novo tipo para item da setlist
 export type SetlistItem =
   | { type: 'song'; id: string }
-  | { type: 'note'; id: string; content: string }; // Adiciona um ID para a nota também
+  | { type: 'note'; id: string; content: string };
 
 export interface Setlist {
   id: string;
   name: string;
-  // songIds: string[]; // << REMOVIDO
-  items: SetlistItem[]; // << ADICIONADO: Array de músicas ou notas
+  items: SetlistItem[];
   createdBy: string;
-  // sharedWith: string[]; // << REMOVIDO
   eventDate?: Date;
-  notes?: string; // Notas gerais da setlist
-  pinned?: boolean; // Pin setlist to top
+  notes?: string;
+  pinned?: boolean;
 }
 
 export interface User {

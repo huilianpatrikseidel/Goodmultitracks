@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ZOOM } from '../../../../config/constants';
+import { ZOOM } from '../../../../../config/constants';
 
 interface UseDAWScrollSyncProps {
   zoom: number;
