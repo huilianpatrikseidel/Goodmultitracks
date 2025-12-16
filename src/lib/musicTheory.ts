@@ -285,3 +285,36 @@ export const generateChordName = (
 
   return `${rootNote}${accSymbol}${qualSuffix}${finalExtSuffix}${bassNote ? '/' + bassNote : ''}`;
 };
+/**
+ * Transpose a musical note name by a number of semitones
+ * Supports both sharp and flat notation and maintains chord quality/bass notation
+ * @param key - The note/chord key (e.g., "C", "Am", "G/B", "Db")
+ * @param semitones - Number of semitones to transpose (positive = up, negative = down)
+ * @returns Transposed key maintaining flat/sharp preference and chord structure
+ */
+export const transposeKey = (key: string, semitones: number): string => {
+  if (semitones === 0) return key;
+  
+  const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const flatNotes = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+  
+  // Detect if input uses flats or sharps
+  const isFlat = key.includes('b');
+  const noteList = isFlat ? flatNotes : notes;
+  
+  // Extract root note and suffix (e.g., "Am7/G" -> root="A", suffix="m7/G")
+  const rootNote = key.match(/^[A-G][#b]?/)?.[0] || 'C';
+  const suffix = key.replace(rootNote, '');
+  
+  // Find current position
+  let index = noteList.indexOf(rootNote);
+  if (index === -1) {
+    // Try the other notation (if input was sharp, try flat list)
+    index = (isFlat ? notes : flatNotes).indexOf(rootNote);
+    if (index === -1) return key; // Can't find note, return as-is
+  }
+  
+  // Calculate new index with wrapping
+  const newIndex = (index + semitones + 12 * 100) % 12;
+  return noteList[newIndex] + suffix;
+};

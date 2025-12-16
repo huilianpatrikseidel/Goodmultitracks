@@ -23,6 +23,7 @@ import {
   X,
   GripVertical,
 } from 'lucide-react';
+import { transposeKey } from '../../../lib/musicTheory';
 import { PlayerViewSettings } from '../../../components/PlayerViewSettings';
 import { PlaybackControls } from '../../../components/PlaybackControls';
 import { KeyboardShortcutsHelp } from '../../../components/shared/KeyboardShortcutsHelp';
@@ -100,29 +101,6 @@ const PRESET_COLORS = [
   '#60a5fa', '#ef4444', '#22c55e', '#f59e0b', '#a855f7', '#ec4899', '#14b8a6', '#f97316',
   '#84cc16', '#0ea5e9', '#d946ef', '#f43f5e', '#64748b', '#78716c', '#facc15', '#3b82f6',
 ];
-
-// << FUNÇÃO ADICIONADA (copiada de PlaybackControls.tsx) >>
-// Helper function to transpose key
-const transposeKey = (key: string, semitones: number): string => {
-  const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-  const flatNotes = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
-  
-  // Parse key (e.g., "Cm" -> "C" + "m")
-  const isFlat = key.includes('b');
-  const noteList = isFlat ? flatNotes : notes;
-  const rootNote = key.match(/^[A-G][#b]?/)?.[0] || 'C';
-  const suffix = key.replace(rootNote, '');
-  
-  let index = noteList.indexOf(rootNote);
-  if (index === -1) {
-    // Try to find in the other list
-    index = (isFlat ? notes : flatNotes).indexOf(rootNote);
-    if (index === -1) return key; // Return original if not found
-  }
-  
-  const newIndex = (index + semitones + 12) % 12;
-  return noteList[newIndex] + suffix;
-};
 
 // << NOVO COMPONENTE INTERNO >>
 const RulerHandle: React.FC<{

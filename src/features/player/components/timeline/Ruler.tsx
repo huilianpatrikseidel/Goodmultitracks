@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Badge } from '../../../../components/ui/badge';
 import { Song, SectionMarker, TempoChange, ChordMarker } from '../../../../types';
 import { TIMELINE } from '../../../../config/constants';
+import { transposeKey } from '../../../../lib/musicTheory';
 import { calculateGridLines, calculateMeasureBars } from '../../utils/gridUtils';
 import { measureToSeconds, secondsToMeasure, calculateWarpBPM } from '../../../../lib/timeUtils';
 import { useWarpInteraction } from '../../hooks/useWarpInteraction';
@@ -32,27 +33,6 @@ interface RulerProps {
   warpMode?: boolean;
   onWarpCommit?: (prevAnchor: number, draggedMeasure: number, newBpm: number) => void;
 }
-
-// Helper function to transpose key
-const transposeKey = (key: string, semitones: number): string => {
-    if (semitones === 0) return key;
-    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-    const flatNotes = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
-    
-    const isFlat = key.includes('b');
-    const noteList = isFlat ? flatNotes : notes;
-    const rootNote = key.match(/^[A-G][#b]?/)?.[0] || 'C';
-    const suffix = key.replace(rootNote, '');
-    
-    let index = noteList.indexOf(rootNote);
-    if (index === -1) {
-      index = (isFlat ? notes : flatNotes).indexOf(rootNote);
-      if (index === -1) return key;
-    }
-    
-    const newIndex = (index + semitones + 12) % 12;
-    return noteList[newIndex] + suffix;
-};
 
 export const Ruler: React.FC<RulerProps> = ({
   rulerId,

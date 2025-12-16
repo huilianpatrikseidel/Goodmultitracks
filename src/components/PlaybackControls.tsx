@@ -5,6 +5,7 @@ import { Button } from './ui/button';
 import { Slider } from './ui/slider';
 import { Label } from './ui/label';
 import { Separator } from './ui/separator';
+import { transposeKey } from '../lib/musicTheory';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,28 +25,6 @@ interface PlaybackControlsProps {
   disabled?: boolean;
   originalKey?: string; // Original song key
 }
-
-// Helper function to transpose key
-const transposeKey = (key: string, semitones: number): string => {
-  const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-  const flatNotes = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
-  
-  // Parse key (e.g., "Cm" -> "C" + "m")
-  const isFlat = key.includes('b');
-  const noteList = isFlat ? flatNotes : notes;
-  const rootNote = key.match(/^[A-G][#b]?/)?.[0] || 'C';
-  const suffix = key.replace(rootNote, '');
-  
-  let index = noteList.indexOf(rootNote);
-  if (index === -1) {
-    // Try to find in the other list
-    index = (isFlat ? notes : flatNotes).indexOf(rootNote);
-    if (index === -1) return key; // Return original if not found
-  }
-  
-  const newIndex = (index + semitones + 12) % 12;
-  return noteList[newIndex] + suffix;
-};
 
 export function PlaybackControls({
   tempo,
