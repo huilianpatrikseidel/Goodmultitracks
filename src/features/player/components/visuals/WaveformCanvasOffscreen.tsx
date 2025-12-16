@@ -49,21 +49,13 @@ export function WaveformCanvasOffscreen({
   useEffect(() => {
     if (isLoading || !canvasRef.current) return;
 
-    // Verifica suporte a OffscreenCanvas
     if (typeof OffscreenCanvas === 'undefined') {
-      // OffscreenCanvas not supported - silent return (expected in some browsers)
       return;
     }
 
-    // DISABLED: Worker creation not supported in build environment
-    // This component requires Workers, so it will not render
-    // (Using WaveformCanvas as fallback is expected)
     return;
-  }, [isLoading]); // Init apenas uma vez
+  }, [isLoading]);
 
-  /**
-   * Atualiza dados quando mudam (ex: carregamento progressivo ou troca de track)
-   */
   useEffect(() => {
     if (!isInitializedRef.current || !workerRef.current || isLoading) return;
 
