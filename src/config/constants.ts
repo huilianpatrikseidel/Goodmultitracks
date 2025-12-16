@@ -152,6 +152,48 @@ export const VALIDATION = {
   MAX_PROJECT_NAME_LENGTH: 100,
 } as const;
 
+// ============ LAYOUT DIMENSIONS (DAW-specific) ============
+export const LAYOUT = {
+  SIDEBAR_WIDTH: 280,
+  TRANSPORT_HEIGHT: 64,
+  BOTTOM_BAR_HEIGHT: 32,
+  RULER_HEIGHT: 80, // Overrides TIMELINE.RULER_HEIGHT for DAW
+  MOBILE_BREAKPOINT: 768,
+} as const;
+
+// ============ DAW THEME COLORS ============
+export const DAW_COLORS = {
+  BG_MAIN: '#171717',
+  BG_CONTRAST: '#1E1E1E',
+  BG_BARS: '#2B2B2B',
+  BORDER: '#3A3A3A',
+  GRID: '#2B2B2B',
+  TEXT_PRIMARY: '#E5E5E5',
+  TEXT_SECONDARY: '#9E9E9E',
+  ACCENT_BLUE: '#3B82F6',
+  ACCENT_RED: '#EF4444',
+  ACCENT_GREEN: '#22C55E',
+  ACCENT_YELLOW: '#F59E0B',
+} as const;
+
+// ============ METRONOME CONFIGURATION ============
+export const METRONOME = {
+  DOWNBEAT_FREQ: 1000,
+  BEAT_FREQ: 800,
+  SUBDIVISION_FREQ: 600,
+  CLICK_DURATION: 0.05,
+  DEFAULT_VOLUME: 0.5,
+} as const;
+
+// ============ EXPORT/PROJECT PERSISTENCE ============
+export const EXPORT = {
+  EXTENSION: '.gmtk',
+  TEST_EXTENSION: '.gmtkmock',
+  COMPRESSION_LEVEL: 6,
+  XML_ENCODING: 'UTF-8',
+  XML_VERSION: '1.0',
+} as const;
+
 // ============ LOCAL STORAGE KEYS ============
 export const STORAGE_KEYS = {
   LANGUAGE: 'goodmultitracks_language',
@@ -166,3 +208,12 @@ export const STORAGE_KEYS = {
 export type TrackHeight = typeof TRACK_HEIGHT[keyof typeof TRACK_HEIGHT];
 export type SnapUnit = 'measure' | 'beat' | 'subdivision';
 export type PlaybackState = 'playing' | 'paused' | 'stopped';
+export type LayoutKey = keyof typeof LAYOUT;
+export type ZoomKey = keyof typeof ZOOM;
+export type WaveformKey = keyof typeof WAVEFORM;
+export type AudioKey = keyof typeof AUDIO;
+export type DAWColorKey = keyof typeof DAW_COLORS;
+export type GridKey = keyof typeof GRID;
+export type PerformanceKey = keyof typeof PERFORMANCE;
+export type MetronomeKey = keyof typeof METRONOME;
+export type ExportKey = keyof typeof EXPORT;

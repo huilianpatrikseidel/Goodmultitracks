@@ -9,6 +9,7 @@ import { Separator } from './ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { gainToDb, gainToSlider, sliderToGain, formatDb } from '../features/player/utils/audioUtils';
+import { formatTime } from '../lib/formatters';
 
 interface TransportBarProps {
   isPlaying: boolean;
@@ -28,7 +29,7 @@ interface TransportBarProps {
   onMetronomeVolumeChange: (volume: number) => void;
 }
 
-const formatTime = (seconds: number): string => {
+const formatTimeLocal = (seconds: number): string => {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   const ms = Math.floor((seconds % 1) * 100);
@@ -123,7 +124,7 @@ export const TransportBar: React.FC<TransportBarProps> = ({
           {currentMeasure}
         </span>
         <span className="text-xs text-neutral-400 font-mono">
-          {formatTime(currentTime)}
+          {formatTimeLocal(currentTime)}
         </span>
       </div>
 

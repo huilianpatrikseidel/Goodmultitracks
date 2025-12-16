@@ -1,6 +1,7 @@
 import React from 'react';
 import { SectionMarker, ChordData } from '../types';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from './ui/hover-card';
+import { formatTime } from '../lib/formatters';
 
 interface TimelineProps {
   duration: number;
@@ -37,12 +38,6 @@ export function Timeline({
   onMouseUp
 }: TimelineProps) {
   const progressPercentage = (currentTime / duration) * 100;
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
 
   return (
     <div className="space-y-3">

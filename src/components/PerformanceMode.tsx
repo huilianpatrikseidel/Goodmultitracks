@@ -23,6 +23,7 @@ import { Label } from './ui/label';
 import { getMainBeats, parseSubdivision, getSubdivisionInfo } from '../features/player/engine/metronome';
 import { usePlaybackEngine } from '../features/player/hooks/usePlaybackEngine';
 import { secondsToMeasure } from '../lib/timeUtils';
+import { formatBPM, formatTime } from '../lib/formatters';
 
 interface PerformanceModeProps {
   song: Song;
@@ -175,12 +176,6 @@ export function PerformanceMode({ song, onClose }: PerformanceModeProps) {
 
     updateMusicalContext(currentTime);
   }, [currentTime, song]);
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
 
   const handlePlayPause = () => {
     playbackActions.togglePlayPause();

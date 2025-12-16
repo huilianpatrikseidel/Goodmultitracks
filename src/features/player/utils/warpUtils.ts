@@ -124,28 +124,6 @@ export function getWarpedTime(gridTime: number, tempoChanges: Omit<TempoChange, 
 }
 
 /**
- * Calculates the required BPM for a segment to match a grid duration to an audio duration.
- * @param gridDuration The duration in musical grid time.
- * @param audioDuration The duration in real audio time.
- * @param baseBPM The song's original base BPM.
- * @returns The calculated BPM for the segment.
- */
-export function calculateBPMForSegment(gridDuration: number, audioDuration: number, baseBPM: number): number {
-  if (gridDuration <= 0 || audioDuration <= 0) {
-    return baseBPM; // Avoid division by zero or invalid states
-  }
-
-  // The "rate" tells us how fast source time passes relative to grid time.
-  // A rate > 1.0 means audio time is faster than grid time (needs higher BPM to compensate).
-  // A rate < 1.0 means audio time is slower than grid time (needs lower BPM to compensate).
-  const rate = audioDuration / gridDuration;
-  const localBPM = baseBPM / rate;
-
-  // As per user request, cap at 360 BPM.
-  return Math.min(localBPM, 360);
-}
-
-/**
  * Parses time input from formats like "mm:ss.xx" or seconds.
  * @param input The string input.
  * @returns The time in seconds, or null if invalid.

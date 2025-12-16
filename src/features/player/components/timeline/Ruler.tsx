@@ -5,7 +5,7 @@ import { TIMELINE } from '../../../../config/constants';
 import { calculateGridLines, calculateMeasureBars } from '../../utils/gridUtils';
 import { measureToSeconds, secondsToMeasure, calculateWarpBPM } from '../../../../lib/timeUtils';
 import { useWarpInteraction } from '../../hooks/useWarpInteraction';
-import { formatBPM } from '../../../../lib/formatters';
+import { formatBPM, formatTime } from '../../../../lib/formatters';
 
 interface RulerProps {
   rulerId: 'time' | 'measures' | 'sections' | 'chords' | 'tempo';
@@ -52,12 +52,6 @@ const transposeKey = (key: string, semitones: number): string => {
     
     const newIndex = (index + semitones + 12) % 12;
     return noteList[newIndex] + suffix;
-};
-
-const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
 export const Ruler: React.FC<RulerProps> = ({

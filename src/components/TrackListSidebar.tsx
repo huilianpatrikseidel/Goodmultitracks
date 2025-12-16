@@ -6,7 +6,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Badge } from './ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { gainToDb, gainToSlider, sliderToGain, formatDb, parseDbInput, hexToRgba, sliderToDb } from '../features/player/utils/audioUtils';
-import { LAYOUT } from '../features/player/constants/uiConstants';
+import { LAYOUT } from '../config/constants';
 import { Button } from './ui/button';
 import { Slider } from './ui/slider';
 import { TrackTag } from '../types';

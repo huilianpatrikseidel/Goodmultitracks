@@ -9,13 +9,7 @@ import { PlaybackControls } from '../../../../components/PlaybackControls';
 import { PlayerViewSettings } from '../../../../components/PlayerViewSettings';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../../components/ui/dropdown-menu';
 import { gainToDb, gainToSlider, sliderToGain, formatDb } from '../../utils/audioUtils';
-import { formatBPM } from '../../../../lib/formatters';
-
-const formatTime = (seconds: number): string => {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-};
+import { formatBPM, formatTime } from '../../../../lib/formatters';
 
 interface TransportHeaderProps {
   songTitle: string;
