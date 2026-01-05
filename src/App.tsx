@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useEffect, Suspense } from 'react';
 import { Music, ListMusic, Settings, Play } from 'lucide-react';
 
 // Lazy load heavy components for code splitting
@@ -22,52 +22,64 @@ import { ProjectService } from './services/ProjectService';
 import { toast } from 'sonner';
 import { Toaster } from './components/ui/sonner';
 import { waveformStore } from './lib/waveformStore';
+import { useAppStore } from './stores/useAppStore';
 
 function AppContent() {
   const { t } = useLanguage();
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadingProgress, setLoadingProgress] = useState(0);
-  const [loadingMessage, setLoadingMessage] = useState('Initializing application...');
-  const [songs, setSongs] = useState<Song[]>([]);
-  const [setlists, setSetlists] = useState<Setlist[]>([]);
-  const [selectedSong, setSelectedSong] = useState<Song | null>(null);
-  const [performanceMode, setPerformanceMode] = useState(false);
-  const [activeView, setActiveView] = useState<'library' | 'setlists' | 'player' | 'settings'>('library');
-  const [previousView, setPreviousView] = useState<'library' | 'setlists' | 'settings'>('library');
-  const [activeTab, setActiveTab] = useState('library');
-  const [showFirstTimeSetup, setShowFirstTimeSetup] = useState(false);
-  const [userPreferences, setUserPreferences] = useState({
-    theme: 'dark' as const,
-    language: 'en' as const,
-    outputDevice: 1,
-  });
+  
+  // Zustand store
+  const {
+    songs,
+    setlists,
+    selectedSong,
+    activeView,
+    previousView,
+    activeTab,
+    performanceMode,
+    isLoading,
+    loadingProgress,
+    loadingMessage,
+    showFirstTimeSetup,
+    userPreferences,
+    setSongs,
+    updateSong,
+    addSetlist,
+    updateSetlist,
+    removeSetlist,
+    setSelectedSong,
+    setActiveView,
+    setPreviousView,
+    setActiveTab,
+    setPerformanceMode,
+    setLoading,
+    setShowFirstTimeSetup,
+    setUserPreferences,
+  } = useAppStore();
 
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        setIsLoading(false);
+        setLoading(false);
       } catch (error) {
         console.error("Failed to initialize", error);
       }
     };
 
     initializeApp();
-  }, []);
+  }, [setLoading]);
 
   useEffect(() => {
     const hasCompletedSetup = storage.isFirstTimeSetupComplete();
     if (!hasCompletedSetup) {
       setShowFirstTimeSetup(true);
     }
-  }, []);
+  }, [setShowFirstTimeSetup]);
 
   const handleFirstTimeSetupComplete = (selectedInstruments: TrackTag[], mainInstrument: TrackTag) => {
-    const updatedPreferences = {
-      ...userPreferences,
+    setUserPreferences({
       selectedInstruments,
       mainInstrument,
-    };
-    setUserPreferences(updatedPreferences);
+    });
     storage.setFirstTimeSetupComplete();
     setShowFirstTimeSetup(false);
   };
@@ -87,7 +99,7 @@ function AppContent() {
   }, []);
 
   const handleSongUpdate = (updatedSong: Song) => {
-    setSongs((prev) => prev.map((s) => (s.id === updatedSong.id ? updatedSong : s)));
+    updateSong(updatedSong);
     if (selectedSong && updatedSong.id === selectedSong.id) {
         setSelectedSong(updatedSong);
     }
@@ -101,38 +113,35 @@ function AppContent() {
       items: songId ? [{ type: 'song', id: songId }] : [],
       createdBy: 'user-1',
     };
-    setSetlists((prev) => [...prev, newSetlist]);
+    addSetlist(newSetlist);
   };
 
   const handleAddToSetlist = (setlistId: string, songId: string) => {
-    setSetlists((prev) =>
-      prev.map((setlist) => {
-        if (setlist.id === setlistId) {
-          const songAlreadyExists = setlist.items.some(
-            (item) => item.type === 'song' && item.id === songId
-          );
-          if (songAlreadyExists) {
-            return setlist;
-          }
-          return { ...setlist, items: [...setlist.items, { type: 'song', id: songId }] };
-        }
-        return setlist;
-      })
+    const setlist = setlists.find(s => s.id === setlistId);
+    if (!setlist) return;
+    
+    const songAlreadyExists = setlist.items.some(
+      (item) => item.type === 'song' && item.id === songId
     );
+    
+    if (!songAlreadyExists) {
+      updateSetlist({
+        ...setlist,
+        items: [...setlist.items, { type: 'song', id: songId }]
+      });
+    }
   };
 
   const handleUpdateSetlist = (updatedSetlist: Setlist) => {
-    setSetlists((prev) =>
-      prev.map((setlist) => (setlist.id === updatedSetlist.id ? updatedSetlist : setlist))
-    );
+    updateSetlist(updatedSetlist);
   };
 
   const handleDeleteSetlist = (setlistId: string) => {
-    setSetlists((prev) => prev.filter((setlist) => setlist.id !== setlistId));
+    removeSetlist(setlistId);
   };
 
   const handleReorderSetlists = (reorderedSetlists: Setlist[]) => {
-    setSetlists(reorderedSetlists);
+    useAppStore.setState({ setlists: reorderedSetlists });
   };
 
   /**
@@ -140,13 +149,12 @@ function AppContent() {
    */
   const handleImportProject = async (file: File) => {
     try {
-      setIsLoading(true);
-      setLoadingMessage('Loading project...');
+      setLoading(true, 0, 'Loading project...');
       
       const loadedSong = await ProjectService.loadProject(file);
       
       // Adiciona à biblioteca e seleciona
-      setSongs(prev => [loadedSong, ...prev]);
+      useAppStore.setState((state) => ({ songs: [loadedSong, ...state.songs] }));
       setSelectedSong(loadedSong);
       setActiveView('player');
       
@@ -155,7 +163,7 @@ function AppContent() {
       console.error('Error importing project:', error);
       toast.error('Failed to load project. Please check if the file is valid.');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -163,8 +171,7 @@ function AppContent() {
    * Exporta o projeto atual como .gmtk
    */
   const handleExportProject = async (song: Song) => {
-    setIsLoading(true);
-    setLoadingMessage('Packaging project files... this may take a moment.');
+    setLoading(true, 0, 'Packaging project files... this may take a moment.');
     
     try {
       await ProjectService.saveProject(song);
@@ -173,7 +180,7 @@ function AppContent() {
       console.error('Error exporting project:', error);
       toast.error('Failed to save project');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -259,7 +266,7 @@ function AppContent() {
       };
     });
 
-    setSongs(prev => [...newSongs, ...prev]);
+    useAppStore.setState((state) => ({ songs: [...newSongs, ...state.songs] }));
     toast.success(`${newSongs.length} song(s) imported`);
     if (songFileInputRef.current) songFileInputRef.current.value = '';
   };
@@ -344,7 +351,7 @@ function AppContent() {
         createdBy: 'user-1',
       };
 
-      setSongs((prev) => [newProject, ...prev]);
+      useAppStore.setState((state) => ({ songs: [newProject, ...state.songs] }));
       setSelectedSong(newProject);
       setPreviousView(activeView as any);
       setActiveView('player');
