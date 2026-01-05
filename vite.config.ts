@@ -52,6 +52,62 @@
     build: {
       target: 'esnext',
       outDir: 'build',
+      rollupOptions: {
+        output: {
+          manualChunks: (id) => {
+            // React core
+            if (id.includes('node_modules/react') || 
+                id.includes('node_modules/react-dom') || 
+                id.includes('node_modules/scheduler')) {
+              return 'react-vendor';
+            }
+            
+            // Radix UI components
+            if (id.includes('@radix-ui')) {
+              return 'ui-vendor';
+            }
+            
+            // Icons
+            if (id.includes('lucide-react')) {
+              return 'icons-vendor';
+            }
+            
+            // Toast notifications
+            if (id.includes('sonner')) {
+              return 'toast-vendor';
+            }
+            
+            // Utilities (class-variance-authority, clsx, tailwind-merge)
+            if (id.includes('class-variance-authority') || 
+                id.includes('clsx') || 
+                id.includes('tailwind-merge')) {
+              return 'utils-vendor';
+            }
+            
+            // Audio processing workers and utilities
+            if (id.includes('src/workers') || 
+                id.includes('src/features/player/utils/audioUtils')) {
+              return 'audio-processing';
+            }
+            
+            // Player feature (large component)
+            if (id.includes('src/features/player')) {
+              return 'player-feature';
+            }
+            
+            // Library feature
+            if (id.includes('src/features/library')) {
+              return 'library-feature';
+            }
+            
+            // Setlist feature
+            if (id.includes('src/features/setlist')) {
+              return 'setlist-feature';
+            }
+          },
+        },
+      },
+      chunkSizeWarningLimit: 600,
     },
     server: {
       port: 3000,

@@ -1,13 +1,14 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { Music, ListMusic, Settings, Play } from 'lucide-react';
 
+// Lazy load heavy components for code splitting
 const DAWPlayer = React.lazy(() => import('./features/player/components/DAWPlayer').then(module => ({ default: module.DAWPlayer })));
 const SettingsPanel = React.lazy(() => import('./components/SettingsPanel').then(module => ({ default: module.SettingsPanel })));
+const SongLibrary = React.lazy(() => import('./features/library/components/SongLibrary').then(module => ({ default: module.SongLibrary })));
+const SetlistManager = React.lazy(() => import('./features/setlist/components/SetlistManager').then(module => ({ default: module.SetlistManager })));
+const PerformanceMode = React.lazy(() => import('./components/PerformanceMode').then(module => ({ default: module.PerformanceMode })));
+const FirstTimeSetup = React.lazy(() => import('./components/FirstTimeSetup').then(module => ({ default: module.FirstTimeSetup })));
 
-import { SongLibrary } from './features/library/components/SongLibrary';
-import { SetlistManager } from './features/setlist/components/SetlistManager';
-import { PerformanceMode } from './components/PerformanceMode';
-import { FirstTimeSetup } from './components/FirstTimeSetup';
 import { LoadingScreen } from './components/shared/LoadingScreen';
 import { MobileNav } from './components/layout/MobileNav';
 import { Button } from './components/ui/button';
