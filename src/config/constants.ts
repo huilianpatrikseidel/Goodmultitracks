@@ -30,8 +30,6 @@ export const ZOOM = {
 // ============ TIMELINE DIMENSIONS ============
 export const TIMELINE = {
   RULER_HEIGHT: 32, // Unified height for all rulers (was inconsistent 28-40px)
-  CHORD_RULER_HEIGHT: 32,
-  SECTION_RULER_HEIGHT: 32,
   SCROLLBAR_HEIGHT: 12,
   MIN_WIDTH: 800,
 } as const;
@@ -182,7 +180,7 @@ export const LAYOUT = {
   SIDEBAR_WIDTH: 280,
   TRANSPORT_HEIGHT: 64,
   BOTTOM_BAR_HEIGHT: 32,
-  RULER_HEIGHT: 80, // Overrides TIMELINE.RULER_HEIGHT for DAW
+  RULER_HEIGHT: 32, // Altura unificada das réguas
   MOBILE_BREAKPOINT: 768,
 } as const;
 

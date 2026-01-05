@@ -1,15 +1,13 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useRef, useEffect } from 'react';
 import { Volume2, VolumeX, Music2, Trash2, ChevronDown, ChevronUp, Pin } from 'lucide-react';
-import { AudioTrack } from '../types';
+import { AudioTrack, TrackTag } from '../types';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { useState, useRef, useEffect } from 'react';
 import { Badge } from './ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { gainToDb, gainToSlider, sliderToGain, formatDb, parseDbInput, hexToRgba, sliderToDb } from '../features/player/utils/audioUtils';
 import { LAYOUT } from '../config/constants';
 import { Button } from './ui/button';
 import { Slider } from './ui/slider';
-import { TrackTag } from '../types';
 
 interface TrackListSidebarProps {
   tracks: AudioTrack[];
