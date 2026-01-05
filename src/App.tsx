@@ -404,6 +404,46 @@ function AppContent() {
     };
   }, [selectedSong, cleanupSongResources]);
 
+  // Revoke object URLs from songs that were removed or had tracks/thumbnails replaced
+  const prevSongsRef = React.useRef<Song[]>([]);
+  React.useEffect(() => {
+    const prev = prevSongsRef.current;
+
+    // Build maps for quick lookup
+    const prevMap = new Map(prev.map(s => [s.id, s] as const));
+    const currMap = new Map(songs.map(s => [s.id, s] as const));
+
+    // 1) Songs removed entirely -> revoke resources
+    for (const [id, prevSong] of prevMap.entries()) {
+      if (!currMap.has(id)) {
+        cleanupSongResources(prevSong);
+      }
+    }
+
+    // 2) Songs present in both but with removed tracks or changed thumbnails
+    for (const [id, currSong] of currMap.entries()) {
+      const prevSong = prevMap.get(id);
+      if (!prevSong) continue;
+
+      const prevTrackUrls = new Set(prevSong.tracks.map(t => t.url).filter(Boolean));
+      const currTrackUrls = new Set(currSong.tracks.map(t => t.url).filter(Boolean));
+
+      // Revoke any track urls that existed before but not now
+      for (const url of prevTrackUrls) {
+        if (!currTrackUrls.has(url) && typeof url === 'string' && url.startsWith('blob:')) {
+          try { URL.revokeObjectURL(url); } catch (e) { console.warn('Failed to revoke track url', e); }
+        }
+      }
+
+      // Thumbnail changed or removed
+      if (prevSong.thumbnailUrl && prevSong.thumbnailUrl !== currSong.thumbnailUrl && prevSong.thumbnailUrl.startsWith('blob:')) {
+        try { URL.revokeObjectURL(prevSong.thumbnailUrl); } catch (e) { console.warn('Failed to revoke thumbnail url', e); }
+      }
+    }
+
+    prevSongsRef.current = songs;
+  }, [songs, cleanupSongResources]);
+
   if (isLoading) {
     return <LoadingScreen progress={loadingProgress} message={loadingMessage} />;
   }
