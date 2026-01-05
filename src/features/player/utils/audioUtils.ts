@@ -133,9 +133,9 @@ export function parseDbInput(input: string): number | null {
  * 
  * @param file - Audio file to process
  * @param samples - Number of samples (optional, calculated from duration if not provided)
- * @returns Promise<{ waveform: number[], waveformOverview: number[], duration: number }>
+ * @returns Promise<{ waveform: number[], waveformMedium: number[], waveformOverview: number[], duration: number }>
  */
-export async function generateWaveformFromFile(file: File, samples?: number): Promise<{ waveform: number[], waveformOverview: number[], duration: number }> {
+export async function generateWaveformFromFile(file: File, samples?: number): Promise<{ waveform: number[], waveformMedium: number[], waveformOverview: number[], duration: number }> {
   try {
     // Tenta usar o Pool de Workers
     const { getAudioWorkerPool } = await import('../../../workers/audioWorkerPool');
@@ -156,40 +156,48 @@ export async function generateWaveformFromFile(file: File, samples?: number): Pr
       const rawData = audioBuffer.getChannelData(0);
       const duration = audioBuffer.duration;
       
-      // CORREÇÃO RESOLUÇÃO (26/11/2025): Fallback espelha lógica do Worker
-      // Densidade fixa de 500 samples/segundo, removido hard cap de 10k
-      const SAMPLES_PER_SECOND = 500;
-      const targetSamples = samples || Math.ceil(duration * SAMPLES_PER_SECOND);
-      const blockSize = Math.max(1, Math.floor(rawData.length / targetSamples));
-      const waveform: number[] = [];
-      
-      for (let i = 0; i < targetSamples; i++) {
-        const start = blockSize * i;
-        let max = 0;
-        // Otimização: step adaptativo baseado no blockSize
-        const step = blockSize > 500 ? 10 : 1;
-        for (let j = 0; j < blockSize && start + j < rawData.length; j += step) {
-          const val = Math.abs(rawData[start + j]);
-          if (val > max) max = val;
+      // MULTI-LEVEL LOD FALLBACK (05/01/2026): Generate 3 levels like Worker
+      const generateWaveformLevel = (targetSamples: number): number[] => {
+        const blockSize = Math.max(1, Math.floor(rawData.length / targetSamples));
+        const result: number[] = [];
+        
+        for (let i = 0; i < targetSamples; i++) {
+          const start = blockSize * i;
+          let max = 0;
+          const step = blockSize > 500 ? 10 : 1;
+          for (let j = 0; j < blockSize && start + j < rawData.length; j += step) {
+            const val = Math.abs(rawData[start + j]);
+            if (val > max) max = val;
+          }
+          result.push(max);
         }
-        waveform.push(max);
-      }
+        return result;
+      };
       
-      // Normalizar
-      // CRITICAL FIX (26/11/2025): Math.max(...waveform) causa Stack Overflow
-      // Usa reduce para arrays grandes (150k+ samples)
-      const maxVal = waveform.reduce((a, b) => Math.max(a, b), 0.001);
-      const normalized = waveform.map(v => v / maxVal);
+      // Generate all 3 LOD levels
+      const SAMPLES_PER_SECOND = 500;
+      const detailSamples = samples || Math.ceil(duration * SAMPLES_PER_SECOND);
+      
+      const waveform = generateWaveformLevel(detailSamples);     // High detail
+      const waveformMedium = generateWaveformLevel(20000);       // Medium detail
+      const waveformOverview = generateWaveformLevel(2000);      // Low detail
+      
+      // Normalize all levels (use reduce to avoid stack overflow)
+      const normalize = (arr: number[]): number[] => {
+        const maxVal = arr.reduce((a, b) => Math.max(a, b), 0.001);
+        return arr.map(v => v / maxVal);
+      };
       
       return {
-        waveform: normalized,
-        waveformOverview: normalized, // Reusa o mesmo array no fallback
+        waveform: normalize(waveform),
+        waveformMedium: normalize(waveformMedium),
+        waveformOverview: normalize(waveformOverview),
         duration
       };
       
     } catch (mainThreadError) {
       console.error('Critical: Failed to generate waveform on main thread:', mainThreadError);
-      return { waveform: [], waveformOverview: [], duration: 0 };
+      return { waveform: [], waveformMedium: [], waveformOverview: [], duration: 0 };
     }
   }
 }

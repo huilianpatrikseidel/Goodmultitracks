@@ -284,6 +284,9 @@ function AppContent() {
             const result = await generateWaveformFromFile(track.file);
             
             waveformStore.setWaveform(track.id, result.waveform);
+            if (result.waveformMedium) {
+              waveformStore.setMedium(track.id, result.waveformMedium);
+            }
             if (result.waveformOverview) {
               waveformStore.setOverview(track.id, result.waveformOverview);
             }

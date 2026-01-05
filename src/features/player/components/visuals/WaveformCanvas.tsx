@@ -50,6 +50,8 @@ export function WaveformCanvas({
   }, [scrollContainerRef]);
 
   const draw = useCallback(() => {
+    const renderStart = performance.now();
+    
     const canvas = canvasRef.current;
     const scrollContainer = scrollContainerRef.current;
     
@@ -195,6 +197,15 @@ export function WaveformCanvas({
 
     ctx.closePath();
     ctx.fill();
+    
+    // Performance monitoring
+    const renderTime = performance.now() - renderStart;
+    if (renderTime > 16) {
+      console.warn(
+        `[LOD Performance Main] Slow render: ${renderTime.toFixed(2)}ms | ` +
+        `Step: ${step} | Points: ${safeEnd - safeStart} | Zoom: ${zoom.toFixed(2)}`
+      );
+    }
 
     rafRef.current = requestAnimationFrame(draw);
   }, [data, width, height, fill, opacity, zoom, scrollContainerRef]);

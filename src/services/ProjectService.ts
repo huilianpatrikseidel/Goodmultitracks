@@ -214,8 +214,11 @@ export class ProjectService {
             // Regenera waveform com alta densidade (500 samples/seg)
             const result = await generateWaveformFromFile(audioFile);
             
-            // ARCHITECTURE CHANGE (QA 26/11/2025): Store in WaveformStore
+            // ARCHITECTURE CHANGE (QA 26/11/2025): Store all LOD levels in WaveformStore
             waveformStore.setWaveform(track.id, result.waveform);
+            if (result.waveformMedium) {
+              waveformStore.setMedium(track.id, result.waveformMedium);
+            }
             if (result.waveformOverview) {
               waveformStore.setOverview(track.id, result.waveformOverview);
             }

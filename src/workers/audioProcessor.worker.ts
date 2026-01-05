@@ -7,9 +7,10 @@
  * - CORREÇÃO WAVEFORM (26/11/2025): Removido hard-cap de 10k samples
  *   * Densidade fixa: 500 samples/segundo (precisão de 2ms)
  *   * Super-amostragem permite zoom sem visual "esticado"
- * - NOVO: Gera múltiplos níveis de detalhe (LOD) para otimizar renderização
- *   * Overview: Array reduzido para visão geral (zoom out)
- *   * Detail: Array completo para zoom detalhado
+ * - MULTI-LEVEL LOD (05/01/2026): Sistema de 3 níveis para melhor performance
+ *   * Overview (Low): 2k samples - visão distante
+ *   * Medium: 20k samples - edição normal
+ *   * Detail (High): 150k+ samples - zoom máximo
  */
 
 interface WaveformRequest {
@@ -20,8 +21,9 @@ interface WaveformRequest {
 
 interface WaveformResponse {
   type: 'waveformComplete';
-  waveform: number[];
-  waveformOverview: number[]; // LOD: Array simplificado para zoom distante
+  waveform: number[];         // High detail LOD
+  waveformMedium: number[];   // Medium detail LOD
+  waveformOverview: number[]; // Low detail LOD
   duration: number;
   error?: string;
 }
@@ -97,25 +99,25 @@ self.onmessage = async (e: MessageEvent<any>) => {
          throw new Error("Worker expects rawData (Float32Array) decoded by main thread.");
       }
 
-      // CORREÇÃO DE RESOLUÇÃO (Nov 2025):
-      // Removido hard cap de 10k. Densidade fixa de 500 samples/segundo.
-      // Música de 5min = 150k pontos (~600KB), garante precisão de 2ms no zoom máximo.
-      const SAMPLES_PER_SECOND = 500;
+      // MULTI-LEVEL LOD GENERATION (05/01/2026):
+      // Generates 3 levels of detail for optimal performance at different zoom levels
+      const SAMPLES_PER_SECOND = 500; // High detail: 2ms precision
       const targetDetailSamples = samples || Math.ceil(duration * SAMPLES_PER_SECOND);
       
-      // Gera waveform detalhada (super-amostragem)
-      const waveform = generateWaveformArray(rawData, targetDetailSamples);
+      // Generate all 3 LOD levels
+      const waveform = generateWaveformArray(rawData, targetDetailSamples);  // High: ~150k for 5min
+      const waveformMedium = generateWaveformArray(rawData, 20000);          // Medium: 20k samples
+      const waveformOverview = generateWaveformArray(rawData, 2000);         // Low: 2k samples
       
-      // Gera overview (LOD) - fixo em 2000 pontos para barra de navegação
-      const waveformOverview = generateWaveformArray(rawData, 2000);
-      
-      // Normaliza
+      // Normalize all levels
       const normalizedWaveform = normalizeWaveform(waveform);
+      const normalizedMedium = normalizeWaveform(waveformMedium);
       const normalizedOverview = normalizeWaveform(waveformOverview);
 
       self.postMessage({
         type: 'waveformComplete',
         waveform: normalizedWaveform,
+        waveformMedium: normalizedMedium,
         waveformOverview: normalizedOverview,
         duration
       } as WaveformResponse);
@@ -124,6 +126,7 @@ self.onmessage = async (e: MessageEvent<any>) => {
       self.postMessage({
         type: 'waveformComplete',
         waveform: [],
+        waveformMedium: [],
         waveformOverview: [],
         duration: 0,
         error: error instanceof Error ? error.message : 'Unknown error'

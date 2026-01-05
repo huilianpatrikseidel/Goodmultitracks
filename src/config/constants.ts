@@ -58,6 +58,31 @@ export const WAVEFORM = {
   OPACITY: 0.8,
 } as const;
 
+// ============ LOD (LEVEL OF DETAIL) ============
+/**
+ * Multi-level LOD system for waveform rendering optimization
+ * 
+ * Performance targets:
+ * - Low: <1ms render (overview navigation)
+ * - Medium: <5ms render (normal editing)
+ * - High: <16ms render (zoomed detail, 60fps)
+ */
+export const LOD = {
+  // Zoom thresholds for automatic LOD switching
+  LOW_ZOOM_THRESHOLD: 0.3,      // Below this: use overview (2k samples)
+  MEDIUM_ZOOM_THRESHOLD: 1.5,   // Below this: use medium (20k samples)
+  // Above medium threshold: use high detail (150k+ samples)
+  
+  // Sample counts for each LOD level
+  OVERVIEW_SAMPLES: 2000,           // Low detail for distant view
+  MEDIUM_SAMPLES: 20000,            // Medium detail for normal editing
+  DETAIL_SAMPLES_PER_SECOND: 500,  // High detail: 500 samples/sec
+  
+  // Performance monitoring
+  PERFORMANCE_WARNING_MS: 16,    // Warn if render takes > 1 frame (60fps)
+  PERFORMANCE_LOG_ENABLED: false, // Toggle performance logging
+} as const;
+
 // ============ GRID LINES ============
 export const GRID = {
   MEASURE_OPACITY: 1.0,

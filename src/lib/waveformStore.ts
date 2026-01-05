@@ -16,8 +16,9 @@ type Listener = () => void;
 
 class WaveformStore {
   private static instance: WaveformStore;
-  private waveforms: Map<string, number[]> = new Map();
-  private overviews: Map<string, number[]> = new Map();
+  private waveforms: Map<string, number[]> = new Map();      // High detail LOD
+  private mediums: Map<string, number[]> = new Map();        // Medium detail LOD
+  private overviews: Map<string, number[]> = new Map();      // Low detail LOD
   private listeners: Set<Listener> = new Set();
   private notifyTimeout: NodeJS.Timeout | null = null;
 
@@ -78,8 +79,18 @@ class WaveformStore {
     return this.overviews.get(trackId);
   }
 
+  public setMedium(trackId: string, data: number[]): void {
+    this.mediums.set(trackId, data);
+    this.notify(); // Trigger React re-render
+  }
+
+  public getMedium(trackId: string): number[] | undefined {
+    return this.mediums.get(trackId);
+  }
+
   public clear(): void {
     this.waveforms.clear();
+    this.mediums.clear();
     this.overviews.clear();
     this.notify(); // Trigger React re-render
   }
@@ -90,6 +101,7 @@ class WaveformStore {
   
   public delete(trackId: string): void {
       this.waveforms.delete(trackId);
+      this.mediums.delete(trackId);
       this.overviews.delete(trackId);
       this.notify(); // Trigger React re-render
   }

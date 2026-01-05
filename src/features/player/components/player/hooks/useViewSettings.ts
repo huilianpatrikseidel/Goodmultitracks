@@ -14,6 +14,25 @@ interface ViewSettings {
 
 const ALL_RULER_IDS = ['time', 'measures', 'sections', 'chords', 'tempo'];
 
+/**
+ * ZOOM LEVELS AND LOD INTEGRATION:
+ * 
+ * Zoom Range: 0.5 (min) to 8.0 (max)
+ * 
+ * LOD Automatic Switching:
+ * - 0.5 - 0.3: Overview LOD (2,000 samples) - Distant view, entire project visible
+ * - 0.3 - 1.5: Medium LOD (20,000 samples) - Normal editing, balanced detail
+ * - 1.5 - 8.0: Detail LOD (150k+ samples) - Zoomed detail, sample-level precision
+ * 
+ * Additional optimizations:
+ * - Viewport culling: Only renders visible portion
+ * - Dynamic step: Adapts render density to pixel ratio
+ * - Peak detection: Preserves transients when downsampling
+ * 
+ * See: src/config/constants.ts (LOD thresholds)
+ *      src/features/player/hooks/useTrackWaveform.ts (LOD selection logic)
+ */
+
 export const useViewSettings = () => {
   // Track Height
   const [trackHeight, setTrackHeight] = useState<'small' | 'medium' | 'large'>(() => {
@@ -62,17 +81,19 @@ export const useViewSettings = () => {
     });
   }, []);
 
-  // Zoom controls
+  // Zoom controls (0.5 = min, 8.0 = max)
+  // Increments: 0.5 per step
+  // LOD switches automatically at 0.3 and 1.5 thresholds
   const handleZoomIn = useCallback(() => {
-    setZoom((prev) => Math.min(prev + 0.5, 8));
+    setZoom((prev) => Math.min(prev + 0.5, 8)); // Max: 8.0
   }, []);
 
   const handleZoomOut = useCallback(() => {
-    setZoom((prev) => Math.max(prev - 0.5, 0.5));
+    setZoom((prev) => Math.max(prev - 0.5, 0.5)); // Min: 0.5
   }, []);
 
   const handleZoomChange = useCallback((newZoom: number) => {
-    setZoom(Math.max(0.5, Math.min(8, newZoom)));
+    setZoom(Math.max(0.5, Math.min(8, newZoom))); // Clamp: [0.5, 8.0]
   }, []);
 
   const getTrackHeightPx = useCallback(() => {

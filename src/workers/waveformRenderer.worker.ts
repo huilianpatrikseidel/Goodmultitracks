@@ -11,6 +11,10 @@
  * - Peak detection inteligente preserva transientes em zoom out
  * - Step dinâmico baseado em pointsPerPixel para performance
  * - Trabalha em conjunto com super-amostragem (500 samples/seg)
+ * 
+ * PERFORMANCE MONITORING (05/01/2026):
+ * - Tracks render time and warns if exceeding 16ms (60fps target)
+ * - Logs step size and data point count for optimization analysis
  */
 
 interface RenderRequest {
@@ -67,6 +71,8 @@ function updateMetrics(newWidth: number, newHeight: number) {
  * Renderiza a waveform baseado nos parâmetros da viewport
  */
 function render(viewportWidth: number, scrollLeft: number, zoom: number) {
+  const renderStart = performance.now();
+  
   if (!ctx || !offscreenCanvas || waveformData.length === 0) return;
   
   // Safety check: viewportWidth deve ser válido
@@ -143,6 +149,18 @@ function render(viewportWidth: number, scrollLeft: number, zoom: number) {
   
   ctx.fill();
   ctx.globalAlpha = 1;
+  
+  // Performance monitoring
+  const renderTime = performance.now() - renderStart;
+  
+  // Warn if render exceeds 16ms (below 60fps)
+  if (renderTime > 16) {
+    console.warn(
+      `[LOD Performance] Slow render: ${renderTime.toFixed(2)}ms | ` +
+      `Step: ${step} | Points in view: ${dataPointsInView} | ` +
+      `Zoom: ${zoom.toFixed(2)}`
+    );
+  }
   
   // Notifica thread principal que renderização está completa
   self.postMessage({ type: 'renderComplete' });

@@ -10,12 +10,12 @@
 interface WorkerTask {
   file: File;
   samples?: number;
-  resolve: (result: { waveform: number[]; waveformOverview: number[]; duration: number }) => void;
+  resolve: (result: { waveform: number[]; waveformMedium: number[]; waveformOverview: number[]; duration: number }) => void;
   reject: (error: Error) => void;
 }
 
 interface PendingTask {
-  resolve: (result: { waveform: number[]; waveformOverview: number[]; duration: number }) => void;
+  resolve: (result: { waveform: number[]; waveformMedium: number[]; waveformOverview: number[]; duration: number }) => void;
   reject: (error: Error) => void;
   timeout: NodeJS.Timeout;
 }
@@ -47,12 +47,12 @@ class AudioWorkerPool {
     clearTimeout(pending.timeout);
     this.pendingTasks.delete(worker);
 
-    const { waveform, waveformOverview, duration, error } = e.data;
+    const { waveform, waveformMedium, waveformOverview, duration, error } = e.data;
 
     if (error) {
       pending.reject(new Error(error));
     } else {
-      pending.resolve({ waveform, waveformOverview, duration });
+      pending.resolve({ waveform, waveformMedium, waveformOverview, duration });
     }
 
     this.returnWorkerToPool(worker);
@@ -72,7 +72,7 @@ class AudioWorkerPool {
   /**
    * Processa arquivo de áudio usando worker disponível
    */
-  async processAudio(file: File, samples?: number): Promise<{ waveform: number[]; waveformOverview: number[]; duration: number }> {
+  async processAudio(file: File, samples?: number): Promise<{ waveform: number[]; waveformMedium: number[]; waveformOverview: number[]; duration: number }> {
     // FALLBACK: If no workers available (disabled), process on main thread
     if (this.workers.length === 0) {
       return this.processAudioMainThread(file, samples);
@@ -92,8 +92,9 @@ class AudioWorkerPool {
 
   /**
    * Process audio on main thread (fallback when Workers are disabled)
+   * Generates 3 LOD levels: high detail, medium, and overview
    */
-  private async processAudioMainThread(file: File, samples: number = 500): Promise<{ waveform: number[]; waveformOverview: number[]; duration: number }> {
+  private async processAudioMainThread(file: File, samples: number = 500): Promise<{ waveform: number[]; waveformMedium: number[]; waveformOverview: number[]; duration: number }> {
     const arrayBuffer = await file.arrayBuffer();
     
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
@@ -104,42 +105,34 @@ class AudioWorkerPool {
       const rawData = audioBuffer.getChannelData(0);
       const duration = audioBuffer.duration;
       
-      // Generate waveform - same logic as worker
-      const samplesPerPixel = Math.floor(rawData.length / samples);
-      const waveform: number[] = [];
-      
-      for (let i = 0; i < samples; i++) {
-        const start = i * samplesPerPixel;
-        const end = start + samplesPerPixel;
-        let max = 0;
+      // Helper function to generate waveform array
+      const generateWaveform = (targetSamples: number): number[] => {
+        const samplesPerPixel = Math.floor(rawData.length / targetSamples);
+        const result: number[] = [];
         
-        for (let j = start; j < end && j < rawData.length; j++) {
-          const abs = Math.abs(rawData[j]);
-          if (abs > max) max = abs;
+        for (let i = 0; i < targetSamples; i++) {
+          const start = i * samplesPerPixel;
+          const end = start + samplesPerPixel;
+          let max = 0;
+          
+          for (let j = start; j < end && j < rawData.length; j++) {
+            const abs = Math.abs(rawData[j]);
+            if (abs > max) max = abs;
+          }
+          
+          result.push(max);
         }
         
-        waveform.push(max);
-      }
+        return result;
+      };
       
-      // Generate overview (lower resolution for zoom-out view)
-      const overviewSamples = 1000;
-      const overviewSamplesPerPixel = Math.floor(rawData.length / overviewSamples);
-      const waveformOverview: number[] = [];
+      // Generate all 3 LOD levels
+      const detailSamples = Math.ceil(duration * 500); // High detail: 500 samples/sec
+      const waveform = generateWaveform(detailSamples);          // High: ~150k for 5min
+      const waveformMedium = generateWaveform(20000);            // Medium: 20k samples
+      const waveformOverview = generateWaveform(2000);           // Low: 2k samples
       
-      for (let i = 0; i < overviewSamples; i++) {
-        const start = i * overviewSamplesPerPixel;
-        const end = start + overviewSamplesPerPixel;
-        let max = 0;
-        
-        for (let j = start; j < end && j < rawData.length; j++) {
-          const abs = Math.abs(rawData[j]);
-          if (abs > max) max = abs;
-        }
-        
-        waveformOverview.push(max);
-      }
-      
-      return { waveform, waveformOverview, duration };
+      return { waveform, waveformMedium, waveformOverview, duration };
       
     } finally {
       if (decodingContext.state !== 'closed') {

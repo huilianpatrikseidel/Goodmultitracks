@@ -5,27 +5,38 @@
  * Connects React components to WaveformStore updates.
  * Automatically re-renders when async Worker processing completes.
  * 
- * LOD OPTIMIZATION:
- * - zoom < 0.5: Uses overview array (2000 points, lightweight)
- * - zoom >= 0.5: Uses full waveform (150k points, high detail)
+ * MULTI-LEVEL LOD OPTIMIZATION (05/01/2026):
+ * - zoom < 0.3: Overview array (2k points) - distant view, <1ms render
+ * - zoom < 1.5: Medium array (20k points) - normal editing, <5ms render
+ * - zoom >= 1.5: Detail array (150k points) - zoomed detail, <16ms render
+ * 
+ * Thresholds are configurable in constants.ts (LOD.LOW_ZOOM_THRESHOLD, etc.)
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import { waveformStore } from '../../../lib/waveformStore';
+import { LOD } from '../../../config/constants';
 
 export function useTrackWaveform(trackId: string, zoom: number = 1): number[] {
-  // LOD: Decide qual array usar baseado no zoom
-  // Zoom < 0.5 = muito distante, usa overview
+  // MULTI-LEVEL LOD: Select appropriate detail level based on zoom
   const getData = useCallback(() => {
-    const useOverview = zoom < 0.5;
-    if (useOverview) {
+    // Level 1: Low detail (distant view)
+    if (zoom < LOD.LOW_ZOOM_THRESHOLD) {
       const overview = waveformStore.getOverview(trackId);
       if (overview && overview.length > 0) {
         return overview;
       }
     }
     
-    // Fallback para waveform completa
+    // Level 2: Medium detail (normal editing)
+    if (zoom < LOD.MEDIUM_ZOOM_THRESHOLD) {
+      const medium = waveformStore.getMedium(trackId);
+      if (medium && medium.length > 0) {
+        return medium;
+      }
+    }
+    
+    // Level 3: High detail (zoomed in) - fallback to full waveform
     return waveformStore.getWaveform(trackId) || [];
   }, [trackId, zoom]);
 
