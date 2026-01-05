@@ -176,6 +176,96 @@ function AppContent() {
     }
   };
 
+  // Import setlist (opens hidden file selector)
+  const setlistFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleImportSetlist = () => {
+    setlistFileInputRef.current?.click();
+  };
+
+  const handleSetlistFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      // Support either a single setlist or an array of setlists
+      const imported = Array.isArray(parsed) ? parsed : [parsed];
+      const normalized = imported.map((s: any, idx: number) => ({
+        id: s.id || `setlist-${Date.now()}-${idx}`,
+        name: s.name || s.title || 'Imported Setlist',
+        items: Array.isArray(s.items) ? s.items : [],
+        createdBy: s.createdBy || 'imported',
+      }));
+      setSetlists(prev => [...prev, ...normalized]);
+      toast.success('Setlist(s) imported successfully');
+    } catch (error) {
+      console.error('Failed to import setlist:', error);
+      toast.error('Failed to import setlist. Make sure the file is valid JSON.');
+    } finally {
+      if (setlistFileInputRef.current) setlistFileInputRef.current.value = '';
+    }
+  };
+
+  // Import song(s) — opens hidden file selector
+  const songFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleImportSong = () => {
+    songFileInputRef.current?.click();
+  };
+
+  const handleSongFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const newSongs: Song[] = files.map((file, idx) => {
+      const id = `song-${Date.now()}-${idx}`;
+      const url = URL.createObjectURL(file);
+      return {
+        id,
+        title: file.name.replace(/\.[^/.]+$/, ''),
+        artist: '',
+        duration: 0,
+        key: '',
+        tempo: 120,
+        version: '1.0',
+        thumbnailUrl: '',
+        tracks: [{
+          id: `track-${id}-0`,
+          name: file.name,
+          type: 'other' as const,
+          volume: 1.0,
+          muted: false,
+          solo: false,
+          color: '#60a5fa',
+          output: 1,
+          file,
+          filename: file.name,
+          url,
+        }],
+        markers: [],
+        chords: [],
+        chordMarkers: [],
+        loops: [],
+        mixPresets: [],
+        notes: [],
+        tags: [],
+        tempoChanges: [{ time: 0, tempo: 120, timeSignature: '4/4' }],
+        permissions: { canEdit: true, canShare: true, canDelete: true },
+        source: 'imported',
+        lastModified: new Date(),
+        createdBy: 'user-1',
+      };
+    });
+
+    setSongs(prev => [...newSongs, ...prev]);
+    toast.success(`${newSongs.length} song(s) imported`);
+    if (songFileInputRef.current) songFileInputRef.current.value = '';
+  };
+
+  // Wrapper for create project so child prop names stay consistent
+  const handleCreateNewProject = async (projectData: any) => handleCreateProject(projectData);
+
   const handleCreateProject = async (projectData: any) => {
     const colors = ['#60a5fa', '#ef4444', '#22c55e', '#f59e0b', '#a855f7', '#ec4899', '#14b8a6', '#f97316'];
     
@@ -331,6 +421,9 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col h-screen">
+      {/* Hidden inputs for imports */}
+      <input ref={setlistFileInputRef} type="file" accept=".json" onChange={handleSetlistFileSelected} className="hidden" />
+      <input ref={songFileInputRef} type="file" accept="audio/*" onChange={handleSongFileSelected} multiple className="hidden" />
       {activeView !== 'player' && (
         <header className="bg-background border-b sticky top-0 z-30 hidden md:block flex-shrink-0">
           <div className="px-6 py-3">
