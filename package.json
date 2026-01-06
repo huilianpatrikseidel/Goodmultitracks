@@ -1,6 +1,7 @@
 {
       "name": "GoodMultitracks",
       "version": "0.1.0",
+      "type": "module",
       "private": true,
       "dependencies": {
             "@capacitor/cli": "^8.0.0",
@@ -57,6 +58,7 @@
       },
       "scripts": {
             "dev": "vite",
-            "build": "vite build"
+            "build": "node scripts/increment-build.js && vite build",
+            "build:no-increment": "vite build"
       }
 }

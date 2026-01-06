@@ -48,13 +48,13 @@ export const useTimelineEditing = ({ song, onSongUpdate, editMode }: UseTimeline
 
       case 'chord':
         if (action === 'delete' && editingMarker) {
-          updatedSong.chords = song.chords?.filter((c) => c.time !== editingMarker.time) || [];
+          updatedSong.chordMarkers = song.chordMarkers?.filter((c) => c.time !== editingMarker.time) || [];
         } else if (action === 'update' && editingMarker) {
-          updatedSong.chords = song.chords?.map((c) =>
+          updatedSong.chordMarkers = song.chordMarkers?.map((c) =>
             c.time === editingMarker.time ? { ...c, ...data } : c
           ) || [];
         } else {
-          updatedSong.chords = [...(song.chords || []), data];
+          updatedSong.chordMarkers = [...(song.chordMarkers || []), data];
         }
         break;
 

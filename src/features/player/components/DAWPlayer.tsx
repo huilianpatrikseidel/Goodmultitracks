@@ -48,7 +48,6 @@ import { useTrackActions } from './player/hooks/useTrackActions';
 import { TimelineContainer } from './player/TimelineContainer';
 import { TransportHeader } from './player/TransportHeader';
 import { TrackListSidebar } from '../../../components/TrackListSidebar';
-import { BetaWarningBanner } from './BetaWarningBanner';
 import { RulerSidebarHeaders } from './player/RulerSidebarHeaders';
 import { ZoomControls } from './player/ZoomControls';
 import { BottomToolbar } from './player/BottomToolbar';
@@ -445,6 +444,10 @@ function DAWPlayerContent({ song, onSongUpdate, onPerformanceMode, onBack, onExp
     openEditor('tempo', undefined, time);
   };
 
+  const handleChordAdd = (time: number) => {
+    openEditor('chord', undefined, time);
+  };
+
   // P1 OPTIMIZATION: Provide isolated track state and actions via context
   const projectContextValue = {
     song,
@@ -529,9 +532,6 @@ function DAWPlayerContent({ song, onSongUpdate, onPerformanceMode, onBack, onExp
             onToolChange={handleToolChange}
           />
 
-          {/* Beta Warning Banner */}
-          <BetaWarningBanner />
-
           {/* Main Content Area */}
           <div className="flex-1 flex flex-col overflow-hidden relative">
             
@@ -564,6 +564,7 @@ function DAWPlayerContent({ song, onSongUpdate, onPerformanceMode, onBack, onExp
                     onMarkerEdit={(marker: any, type: 'tempo' | 'timesig' | 'section' | 'chord') => openEditor(type, marker)}
                     onMarkerDelete={(id: string, type: 'tempo' | 'timesig' | 'section' | 'chord') => {}} // Implement delete if needed
                     onTempoMarkerAdd={activeTool === 'marker' ? handleTempoMarkerAdd : undefined}
+                    onChordAdd={activeTool === 'marker' ? handleChordAdd : undefined}
                     editMode={activeTool === 'marker'}
                     keyShift={keyShift}
                     warpMode={warpMode}

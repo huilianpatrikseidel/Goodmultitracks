@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings, Music, Languages, Sliders } from 'lucide-react';
+import { Settings, Music, Languages, Sliders, Info } from 'lucide-react';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -10,6 +10,7 @@ import { useLanguage } from '../lib/LanguageContext';
 import { useTheme } from '../lib/ThemeContext';
 import { getMetronomeFrequencies, setMetronomeFrequencies, resetMetronomeFrequencies } from '../features/player/engine/metronome';
 import { storage } from '../lib/localStorageManager';
+import { VERSION, BUILD_NUMBER, BUILD_DATE } from '../version';
 
 // Metronome Sound Settings Component
 function MetronomeSoundSettings() {
@@ -294,13 +295,32 @@ export function SettingsPanel() {
        <Card>
            <CardHeader>
                <CardTitle className="flex items-center gap-2 text-lg">
-                   <Settings className="w-5 h-5" />
+                   <Info className="w-5 h-5" />
                    {t.about}
                </CardTitle>
            </CardHeader>
-           <CardContent className="pt-4 text-sm text-gray-700 space-y-1">
-                <p><strong>GoodMultitracks</strong></p>
-                <p>{t.version}: 0.1.0</p>
+           <CardContent className="pt-4 space-y-3">
+                <div className="space-y-1">
+                  <p className="text-lg font-semibold">GoodMultitracks</p>
+                  <p className="text-sm text-gray-600">Professional Multi-Track Player</p>
+                </div>
+                <div className="space-y-1 text-sm">
+                  <p className="flex justify-between">
+                    <span className="text-gray-600">{t.version}:</span>
+                    <span className="font-mono font-semibold">{VERSION}</span>
+                  </p>
+                  <p className="flex justify-between">
+                    <span className="text-gray-600">Build:</span>
+                    <span className="font-mono">{BUILD_NUMBER}</span>
+                  </p>
+                  <p className="flex justify-between">
+                    <span className="text-gray-600">Build Date:</span>
+                    <span className="font-mono text-xs">{new Date(BUILD_DATE).toLocaleDateString()}</span>
+                  </p>
+                </div>
+                <div className="pt-2 border-t text-xs text-gray-500">
+                  <p>© 2026 GoodMultitracks. All rights reserved.</p>
+                </div>
            </CardContent>
        </Card>
 
