@@ -51,7 +51,12 @@ export function setMetronomeFrequencies(frequencies: typeof DEFAULT_FREQUENCIES)
  */
 export function resetMetronomeFrequencies() {
   try {
-    localStorage.removeItem(STORAGE_KEY);
+    // Use the storage module to reset to defaults
+    storage.setMetronomeFrequencies({
+      strongBeat: 1000,
+      normalBeat: 800,
+      subdivision: 600,
+    });
   } catch (e) {
     console.warn('Failed to reset metronome frequencies');
   }
@@ -162,13 +167,12 @@ export function shouldPlayClick(
 
 /**
  * Resume audio context (needed for some browsers that require user interaction)
+ * 
+ * DEPRECATED: This function was removed. Use AudioContextProvider instead:
+ * const { getAudioContext } = useAudioContext();
+ * const ctx = getAudioContext();
+ * if (ctx.state === 'suspended') ctx.resume();
  */
-export function resumeAudioContext() {
-  const ctx = getAudioContext();
-  if (ctx.state === 'suspended') {
-    ctx.resume();
-  }
-}
 
 /**
  * Parse subdivision pattern (e.g., "2+3" or "3+2+2")

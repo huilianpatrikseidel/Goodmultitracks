@@ -229,8 +229,8 @@ export function PlayerViewSettings({
                   </div>
                   <Switch 
                     checked={ruler.visible} 
-                    onCheckedChange={(checked) => handleRulerToggle(ruler.id, checked)}
-                    onClick={(e) => e.stopPropagation()}
+                    onCheckedChange={(checked: boolean) => handleRulerToggle(ruler.id, checked)}
+                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
                   />
                 </div>
               ))}

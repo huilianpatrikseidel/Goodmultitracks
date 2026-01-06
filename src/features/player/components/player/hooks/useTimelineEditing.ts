@@ -24,26 +24,32 @@ export const useTimelineEditing = ({ song, onSongUpdate, editMode }: UseTimeline
     setClickedTime(time);
   }, [editMode]);
 
-  const handleTimelineItemSubmit = useCallback((type: 'tempo' | 'timesig' | 'section' | 'chord', data: any) => {
+  const handleTimelineItemSubmit = useCallback((action: 'add' | 'update' | 'delete', data: any) => {
     if (!onSongUpdate) return;
 
     let updatedSong = { ...song };
 
+    // Determine type from data or editorType
+    const type = editorType;
+
     switch (type) {
       case 'section':
-        if (editingMarker && 'name' in editingMarker) {
-          // Edit existing
-          updatedSong.sections = song.sections?.map((s) =>
+        if (action === 'delete' && editingMarker) {
+          updatedSong.markers = song.markers?.filter((s) => s.time !== editingMarker.time) || [];
+        } else if (action === 'update' && editingMarker) {
+          updatedSong.markers = song.markers?.map((s) =>
             s.time === editingMarker.time ? { ...s, ...data } : s
           ) || [];
         } else {
           // Add new
-          updatedSong.sections = [...(song.sections || []), data];
+          updatedSong.markers = [...(song.markers || []), data];
         }
         break;
 
       case 'chord':
-        if (editingMarker && 'chord' in editingMarker) {
+        if (action === 'delete' && editingMarker) {
+          updatedSong.chords = song.chords?.filter((c) => c.time !== editingMarker.time) || [];
+        } else if (action === 'update' && editingMarker) {
           updatedSong.chords = song.chords?.map((c) =>
             c.time === editingMarker.time ? { ...c, ...data } : c
           ) || [];
@@ -53,7 +59,9 @@ export const useTimelineEditing = ({ song, onSongUpdate, editMode }: UseTimeline
         break;
 
       case 'tempo':
-        if (editingMarker && 'tempo' in editingMarker) {
+        if (action === 'delete' && editingMarker) {
+          updatedSong.tempoChanges = song.tempoChanges?.filter((t) => t.time !== editingMarker.time) || [];
+        } else if (action === 'update' && editingMarker) {
           updatedSong.tempoChanges = song.tempoChanges?.map((t) =>
             t.time === editingMarker.time ? { ...t, ...data } : t
           ) || [];
@@ -66,7 +74,7 @@ export const useTimelineEditing = ({ song, onSongUpdate, editMode }: UseTimeline
     onSongUpdate(updatedSong);
     setEditorOpen(false);
     setEditingMarker(null);
-  }, [song, onSongUpdate, editingMarker]);
+  }, [song, onSongUpdate, editingMarker, editorType]);
 
   const openEditor = useCallback((
     type: 'tempo' | 'timesig' | 'section' | 'chord',

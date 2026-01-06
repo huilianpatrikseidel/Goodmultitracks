@@ -169,7 +169,7 @@ export function TimelineEditorDialog({
                     const dbData = CHORD_DATABASE[baseChord];
                     setGuitarFrets(dbData?.guitar?.frets || [-1,-1,-1,-1,-1,-1]);
                     setGuitarFingers(dbData?.guitar?.fingers || [0,0,0,0,0,0]);
-                    setGuitarStartFret(dbData?.guitar?.baseFret || 1);
+                    setGuitarStartFret(dbData?.guitar?.startFret || 1);
                     setUkuleleFrets(dbData?.ukulele?.frets || [0,0,0,0]);
                     setUkuleleFingers(dbData?.ukulele?.fingers || [0,0,0,0]);
                     setUkuleleStartFret(1);
@@ -233,7 +233,7 @@ export function TimelineEditorDialog({
       if (chordData) {
         setGuitarFrets(chordData.guitar?.frets || [-1,-1,-1,-1,-1,-1]);
         setGuitarFingers(chordData.guitar?.fingers || [0,0,0,0,0,0]);
-        setGuitarStartFret(chordData.guitar?.baseFret || 1);
+        setGuitarStartFret(chordData.guitar?.startFret || 1);
         setUkuleleFrets(chordData.ukulele?.frets || [0,0,0,0]);
         setUkuleleFingers(chordData.ukulele?.fingers || [0,0,0,0]);
         setUkuleleStartFret(1);

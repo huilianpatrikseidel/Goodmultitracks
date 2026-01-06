@@ -16,7 +16,7 @@ interface DAWDialogsProps {
   selectedTrackForNotes: AudioTrack | null;
   onCreateProjectOpenChange: (open: boolean) => void;
   onEditorOpenChange: (open: boolean) => void;
-  onTimelineItemSubmit: (type: 'tempo' | 'timesig' | 'section' | 'chord', data: any) => void;
+  onTimelineItemSubmit: (action: 'add' | 'update' | 'delete', data: any) => void;
   onChordClose: () => void;
   onTrackNotesOpenChange: (open: boolean) => void;
   onTrackNotesAdd: (trackId: string, note: string) => void;
@@ -74,10 +74,9 @@ export const DAWDialogs: React.FC<DAWDialogsProps> = ({
           onOpenChange={(open) => {
             if (!open) onTrackNotesOpenChange(false);
           }}
-          track={selectedTrackForNotes}
-          notes={trackNotes}
-          onAddNote={(note) => onTrackNotesAdd(selectedTrackForNotes.id, note)}
-          onDeleteNote={(noteId) => onTrackNotesDelete(selectedTrackForNotes.id, noteId)}
+          trackName={selectedTrackForNotes.name}
+          notes={selectedTrackForNotes.notes || ''}
+          onSave={(notes) => onTrackNotesAdd(selectedTrackForNotes.id, notes)}
         />
       )}
     </>

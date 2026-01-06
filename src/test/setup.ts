@@ -1,5 +1,8 @@
 import '@testing-library/jest-dom';
 
+// Type declaration for jest
+declare const jest: any;
+
 // Mock Web Audio API
 global.AudioContext = jest.fn().mockImplementation(() => ({
   createGain: jest.fn(() => ({

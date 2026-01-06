@@ -63,7 +63,13 @@ export function DAWHeader(props: DAWHeaderProps) {
       onTempoChange={props.onTempoChange}
       onKeyShiftChange={props.onKeyShiftChange}
       onTrackHeightChange={props.onTrackHeightChange}
-      onRulerVisibilityChange={props.onRulerVisibilityChange}
+      onRulerVisibilityChange={(visibility) => {
+        // Note: This loses granularity - the Record overwrites all values
+        // A better implementation would track which ruler changed
+        Object.entries(visibility).forEach(([ruler, visible]) => {
+          props.onRulerVisibilityChange(ruler, visible);
+        });
+      }}
       onRulerOrderChange={props.onRulerOrderChange}
       onSnapToggle={props.onSnapToggle}
       onSnapModeChange={props.onSnapModeChange}

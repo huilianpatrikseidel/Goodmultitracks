@@ -4,8 +4,8 @@ import { ZOOM } from '../../../../../config/constants';
 interface UseDAWScrollSyncProps {
   zoom: number;
   setZoom: (zoom: number) => void;
-  timelineRef: React.RefObject<HTMLDivElement>;
-  rulerRef: React.RefObject<HTMLDivElement>;
+  timelineRef: React.RefObject<HTMLDivElement | null>;
+  rulerRef: React.RefObject<HTMLDivElement | null>;
   currentTime: number;
 }
 

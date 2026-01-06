@@ -25,6 +25,7 @@ const TAG_LABELS: Record<TrackTag, string> = {
   'acoustic-guitar': 'Acoustic Guitar',
   'bass': 'Bass',
   'electric-guitar': 'Electric Guitar',
+  'keys': 'Keys',
   'keyboard-piano': 'Keyboard/Piano',
   'percussion': 'Percussion',
   'cajon': 'Cajón',

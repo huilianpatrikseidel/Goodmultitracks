@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Song, TempoChange } from '../types';
+import { Song, TempoChange, AudioTrack } from '../../../types';
 import { audioTimeToGridTime, getWarpedTime as utilsGetWarpedTime } from '../utils/warpUtils';
 import { playMetronomeClick, getMainBeats, parseSubdivision, getSubdivisionInfo } from '../engine/metronome';
 import { useAudioContext } from '../context/AudioContextProvider';
@@ -156,9 +156,9 @@ export const usePlaybackEngine = ({
   useEffect(() => {
     if (!song) return;
 
-    const isAnySolo = song.tracks.some(t => t.solo);
+    const isAnySolo = song.tracks.some((t: AudioTrack) => t.solo);
 
-    song.tracks.forEach(track => {
+    song.tracks.forEach((track: AudioTrack) => {
       const nodes = audioNodesRef.current.get(track.id);
       if (!nodes) return;
 

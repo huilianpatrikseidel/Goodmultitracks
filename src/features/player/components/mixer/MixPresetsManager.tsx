@@ -21,13 +21,13 @@ import {
   SelectValue,
 } from '../../../../components/ui/select';
 import { AudioTrack, MixPreset } from '../../../../types';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface MixPresetsManagerProps {
   tracks: AudioTrack[];
   presets: MixPreset[];
   onSavePreset: (name: string) => void;
-  onLoadPreset: (presetId: string) => void;
+  onLoadPreset: (preset: MixPreset) => void;
   onDeletePreset: (presetId: string) => void;
 }
 
@@ -60,9 +60,14 @@ export function MixPresetsManager({
       return;
     }
 
-    onLoadPreset(selectedPreset);
     const preset = presets.find(p => p.id === selectedPreset);
-    toast.success(`Mix preset "${preset?.name}" loaded successfully`);
+    if (!preset) {
+      toast.error('Preset not found');
+      return;
+    }
+
+    onLoadPreset(preset);
+    toast.success(`Mix preset "${preset.name}" loaded successfully`);
   };
 
   const handleDeletePreset = (presetId: string) => {

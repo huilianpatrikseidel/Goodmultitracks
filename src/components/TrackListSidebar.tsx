@@ -4,7 +4,7 @@ import { AudioTrack, TrackTag } from '../types';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Badge } from './ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
-import { gainToDb, gainToSlider, sliderToGain, formatDb, parseDbInput, hexToRgba, sliderToDb } from '../features/player/utils/audioUtils';
+import { gainToDb, gainToSlider, sliderToGain, formatDb, parseDbInput, sliderToDb } from '../features/player/utils/audioUtils';
 import { LAYOUT } from '../config/constants';
 import { Button } from './ui/button';
 import { Slider } from './ui/slider';

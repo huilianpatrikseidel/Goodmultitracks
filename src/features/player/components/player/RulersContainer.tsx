@@ -1,6 +1,6 @@
 import React from 'react';
 import { Ruler } from '../timeline/Ruler';
-import { Song, ChordMarker, TempoChange } from '../../types';
+import { Song, ChordMarker, TempoChange } from '../../../../types';
 
 interface RulersContainerProps {
   song: Song;

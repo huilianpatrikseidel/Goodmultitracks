@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { Song } from '../../../types';
+import { Song } from '../../../../../types';
 
 interface TimelineInteractionsProps {
   song: Song;

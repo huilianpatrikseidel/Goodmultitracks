@@ -7,7 +7,6 @@ import { Checkbox } from './ui/checkbox';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { useLanguage } from '../lib/LanguageContext';
-import { Language } from '../lib/translations';
 import { useTheme } from '../lib/ThemeContext';
 import { getMetronomeFrequencies, setMetronomeFrequencies, resetMetronomeFrequencies } from '../features/player/engine/metronome';
 import { storage } from '../lib/localStorageManager';
@@ -98,8 +97,9 @@ function MetronomeSoundSettings() {
 }
 
 export function SettingsPanel() {
-  const { t, language, setLanguage } = useLanguage();
+  const { t } = useLanguage();
   const { theme, setTheme } = useTheme();
+  const [language, setLanguage] = React.useState('en');
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
@@ -134,7 +134,7 @@ export function SettingsPanel() {
 
           <div className="space-y-1.5">
             <Label htmlFor="language-select">{t.language}</Label>
-            <Select value={language} onValueChange={(value) => setLanguage(value as Language)}>
+            <Select value={language} onValueChange={(value: string) => setLanguage(value)}>
               <SelectTrigger id="language-select">
                 <SelectValue />
               </SelectTrigger>
@@ -213,7 +213,7 @@ export function SettingsPanel() {
             <Label htmlFor="track-height-select">Track Height</Label>
             <Select 
               defaultValue={storage.getTrackHeight()}
-              onValueChange={(value) => {
+              onValueChange={(value: string) => {
                 storage.setTrackHeight(value);
                 window.dispatchEvent(new Event('storage'));
               }}
@@ -235,7 +235,7 @@ export function SettingsPanel() {
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <Checkbox
                   defaultChecked={storage.getRulerVisibility('time')}
-                  onCheckedChange={(checked) => {
+                  onCheckedChange={(checked: boolean) => {
                     storage.setRulerVisibility('time', !!checked);
                     window.dispatchEvent(new Event('storage'));
                   }}
@@ -245,7 +245,7 @@ export function SettingsPanel() {
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <Checkbox
                   defaultChecked={storage.getRulerVisibility('measures')}
-                  onCheckedChange={(checked) => {
+                  onCheckedChange={(checked: boolean) => {
                     storage.setRulerVisibility('measures', !!checked);
                     window.dispatchEvent(new Event('storage'));
                   }}
@@ -255,7 +255,7 @@ export function SettingsPanel() {
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <Checkbox
                   defaultChecked={storage.getRulerVisibility('sections')}
-                  onCheckedChange={(checked) => {
+                  onCheckedChange={(checked: boolean) => {
                     storage.setRulerVisibility('sections', !!checked);
                     window.dispatchEvent(new Event('storage'));
                   }}
@@ -265,7 +265,7 @@ export function SettingsPanel() {
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <Checkbox
                   defaultChecked={storage.getRulerVisibility('chords')}
-                  onCheckedChange={(checked) => {
+                  onCheckedChange={(checked: boolean) => {
                     storage.setRulerVisibility('chords', !!checked);
                     window.dispatchEvent(new Event('storage'));
                   }}
@@ -275,7 +275,7 @@ export function SettingsPanel() {
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <Checkbox
                   defaultChecked={storage.getRulerVisibility('tempo')}
-                  onCheckedChange={(checked) => {
+                  onCheckedChange={(checked: boolean) => {
                     storage.setRulerVisibility('tempo', !!checked);
                     window.dispatchEvent(new Event('storage'));
                   }}

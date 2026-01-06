@@ -613,7 +613,6 @@ function DAWPlayerContent({ song, onSongUpdate, onPerformanceMode, onBack, onExp
                 loopStart={loopStart}
                 loopEnd={loopEnd}
                 trackHeightPx={getTrackHeightPx()}
-                isPlaying={isPlaying}
                 onTimelineMouseDown={handleTimelineClick}
                 onTimelineMouseMove={noOpMouseMove}
                 onTimelineMouseUp={handleTimelineMouseUp}
@@ -637,7 +636,9 @@ function DAWPlayerContent({ song, onSongUpdate, onPerformanceMode, onBack, onExp
             notesPanelVisible={notesPanelVisible}
             orderedTracks={orderedTracks}
             song={song}
-            trackActions={trackActions}
+            onTrackVolumeChange={trackActions.handleTrackVolumeChange}
+            onTrackMuteToggle={trackActions.handleTrackMuteToggle}
+            onTrackSoloToggle={trackActions.handleTrackSoloToggle}
             onCloseMixerDock={handleCloseMixerDock}
             onCloseNotesPanel={() => setNotesPanelVisible(false)}
             onAddNote={handleAddSongNote}
@@ -675,7 +676,7 @@ function DAWPlayerContent({ song, onSongUpdate, onPerformanceMode, onBack, onExp
             onToggleSidebar={() => setSidebarVisible(!sidebarVisible)}
             onToggleMixer={() => setMixerDockVisible(!mixerDockVisible)}
             onToggleNotes={() => setNotesPanelVisible(!notesPanelVisible)}
-            onPerformanceMode={onPerformanceMode}
+            onPerformanceMode={onPerformanceMode || (() => {})}
             onMixPresetsOpenChange={setMixPresetsPopoverOpen}
             onSaveMixPreset={handleSaveMixPreset}
             onLoadMixPreset={handleLoadMixPreset}
@@ -715,7 +716,7 @@ function DAWPlayerContent({ song, onSongUpdate, onPerformanceMode, onBack, onExp
               }}
               trackName={selectedTrackForNotes.name}
               notes={selectedTrackForNotes.notes || ''}
-              onSave={handleSaveTrackNotes}
+              onSave={(notes) => handleSaveTrackNotes(notes, selectedTrackForNotes.id)}
             />
           )}
 

@@ -4,7 +4,7 @@ import { Song } from '../../../../../types';
 
 interface UseZoomControlsProps {
   zoom: number;
-  setZoom: (zoom: number) => void;
+  setZoom: React.Dispatch<React.SetStateAction<number>>;
   song: Song | null;
   containerWidth: number;
 }

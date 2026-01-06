@@ -20,7 +20,6 @@ export { useTrackManager } from './hooks/useTrackManager';
 // Utils
 export * from './utils/audioUtils';
 export * from './utils/warpUtils';
-export * from './utils/warpGridUtils';
 export * from './utils/gridUtils';
 
 // Engine

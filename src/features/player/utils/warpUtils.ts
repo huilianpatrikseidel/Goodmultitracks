@@ -1,4 +1,4 @@
-import { TempoChange } from '../types';
+import { TempoChange } from '../../../types';
 
 // QA FIX 3.1: Cache for O(log N) warp calculations
 // Maps the tempoChanges array object to a pre-calculated map of accumulated times

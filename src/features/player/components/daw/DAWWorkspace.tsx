@@ -205,7 +205,7 @@ export function DAWWorkspace(props: DAWWorkspaceProps) {
               onEditingTrackIdChange={onEditingTrackIdChange}
               onTrackNameInputChange={onTrackNameInputChange}
               onPinnedTracksChange={onPinnedTracksChange}
-              onScroll={onSidebarScroll}
+              onScroll={(scrollTop) => onSidebarScroll({ currentTarget: { scrollTop } } as React.UIEvent<HTMLDivElement>)}
             />
           )}
 
@@ -220,18 +220,18 @@ export function DAWWorkspace(props: DAWWorkspaceProps) {
             loopStart={loopStart}
             loopEnd={loopEnd}
             trackHeightPx={trackHeightPx}
-            isPlaying={isPlaying}
-            onTimelineMouseDown={onTimelineClick}
-            onTimelineMouseMove={onTimelineMouseMove}
+            onTimelineMouseDown={(e) => onTimelineClick(e as React.MouseEvent<HTMLDivElement>)}
+            onTimelineMouseMove={(e) => onTimelineMouseMove(e as React.MouseEvent<HTMLDivElement>)}
             onTimelineMouseUp={onTimelineMouseUp}
-            onScroll={onTimelineScroll}
+            onScroll={(scrollLeft) => onTimelineScroll({ currentTarget: { scrollLeft } } as React.UIEvent<HTMLDivElement>)}
           />
 
           {/* Vertical Scrollbar */}
           <div className="w-4 flex-shrink-0" style={{ backgroundColor: 'var(--daw-bg-contrast)' }}>
             <VerticalScrollbar
-              {...getVerticalScrollRange()}
-              onChange={onVerticalScrollbarChange}
+              start={getVerticalScrollRange().position}
+              end={getVerticalScrollRange().position + getVerticalScrollRange().viewportSize}
+              onChange={(range) => onVerticalScrollbarChange(range.start)}
               minHeight={0.05}
             />
           </div>

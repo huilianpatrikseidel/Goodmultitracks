@@ -11,9 +11,8 @@ interface DAWSidePanelsProps {
   currentUser: { id: string; name: string };
   onCloseMixerDock: () => void;
   onTrackVolumeChange: (trackId: string, volume: number) => void;
-  onTrackPanChange: (trackId: string, pan: number) => void;
-  onTrackSoloChange: (trackId: string, solo: boolean) => void;
-  onTrackMuteChange: (trackId: string, mute: boolean) => void;
+  onTrackSoloChange: (trackId: string) => void;
+  onTrackMuteChange: (trackId: string) => void;
   onAddNote: (text: string) => void;
   onDeleteNote: (noteId: string) => void;
 }
@@ -26,7 +25,6 @@ export const DAWSidePanels: React.FC<DAWSidePanelsProps> = ({
   currentUser,
   onCloseMixerDock,
   onTrackVolumeChange,
-  onTrackPanChange,
   onTrackSoloChange,
   onTrackMuteChange,
   onAddNote,
@@ -40,9 +38,8 @@ export const DAWSidePanels: React.FC<DAWSidePanelsProps> = ({
             tracks={tracks}
             onClose={onCloseMixerDock}
             onTrackVolumeChange={onTrackVolumeChange}
-            onTrackPanChange={onTrackPanChange}
-            onTrackSoloChange={onTrackSoloChange}
-            onTrackMuteChange={onTrackMuteChange}
+            onTrackSoloToggle={onTrackSoloChange}
+            onTrackMuteToggle={onTrackMuteChange}
           />
         </div>
       )}
@@ -52,7 +49,13 @@ export const DAWSidePanels: React.FC<DAWSidePanelsProps> = ({
           <div className="flex flex-col h-full">
             <div className="flex-1 overflow-y-auto px-3 py-3" style={{ backgroundColor: 'var(--daw-bg-contrast)' }}>
               <NotesPanel
-                notes={notes}
+                notes={notes.map(n => ({
+                  id: n.id,
+                  userId: n.userId,
+                  content: n.text,
+                  isPrivate: false,
+                  time: n.timestamp
+                }))}
                 currentUser={currentUser}
                 onAddNote={onAddNote}
                 onDeleteNote={onDeleteNote}

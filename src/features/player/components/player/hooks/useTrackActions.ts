@@ -1,5 +1,5 @@
 import { useTrackManager } from '../../../hooks/useTrackManager';
-import { Song, AudioTrack, TrackTag } from '../../../types';
+import { Song, AudioTrack, TrackTag } from '../../../../../types';
 
 interface UseTrackActionsProps {
   song: Song | null;

@@ -198,7 +198,7 @@ export function DAWFooter(props: DAWFooterProps) {
                 tracks={orderedTracks}
                 presets={mixPresets}
                 onSavePreset={onSaveMixPreset}
-                onLoadPreset={onLoadMixPreset}
+                onLoadPreset={(preset) => onLoadMixPreset(preset.id)}
                 onDeletePreset={onDeleteMixPreset}
               />
             </PopoverContent>

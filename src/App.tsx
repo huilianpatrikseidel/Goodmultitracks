@@ -43,6 +43,7 @@ function AppContent() {
     userPreferences,
     setSongs,
     updateSong,
+    setSetlists,
     addSetlist,
     updateSetlist,
     removeSetlist,
@@ -205,7 +206,7 @@ function AppContent() {
         items: Array.isArray(s.items) ? s.items : [],
         createdBy: s.createdBy || 'imported',
       }));
-      setSetlists(prev => [...prev, ...normalized]);
+      setSetlists([...setlists, ...normalized]);
       toast.success('Setlist(s) imported successfully');
     } catch (error) {
       console.error('Failed to import setlist:', error);
@@ -508,7 +509,7 @@ function AppContent() {
                     Setlists
                   </Button>
                   <Button
-                    variant={activeView === 'player' ? 'default' : 'ghost'}
+                    variant="ghost"
                     onClick={() => {
                       setPreviousView(activeView as any);
                       setActiveView('player');

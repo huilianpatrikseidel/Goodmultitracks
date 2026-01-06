@@ -130,7 +130,7 @@ export function SongLibrary({
       <CardContent className="p-4 space-y-2">
         <div><h3 className="truncate font-medium">{song.title}</h3><p className="text-sm text-gray-600 truncate">{song.artist}</p></div>
         <div className="flex items-center gap-2 text-sm text-gray-600 flex-wrap"><Badge variant="outline">{song.key}</Badge><Badge variant="outline">{song.tempo} BPM</Badge><Badge variant="outline">{formatDuration(song.duration)}</Badge></div>
-        <Button variant="outline" size="sm" className="w-full mt-3" onClick={(e) => { e.stopPropagation(); setSelectedSongForSetlist(song); setAddToSetlistDialogOpen(true); }}><ListPlus className="w-4 h-4 mr-2" />Add to Setlist</Button>
+        <Button variant="outline" size="sm" className="w-full mt-3" onClick={(e: React.MouseEvent) => { e.stopPropagation(); setSelectedSongForSetlist(song); setAddToSetlistDialogOpen(true); }}><ListPlus className="w-4 h-4 mr-2" />Add to Setlist</Button>
       </CardContent>
     </Card>
   );
@@ -139,7 +139,7 @@ export function SongLibrary({
         <CardContent className="p-3 space-y-1.5">
           <div><h3 className="truncate font-medium text-sm">{song.title}</h3><p className="text-xs text-gray-500 truncate">{song.artist}</p></div>
           <div className="flex items-center gap-1.5 text-xs text-gray-500 flex-wrap"><Badge variant="secondary" className="px-1.5 py-0.5 text-[10px]">{song.key}</Badge><Badge variant="secondary" className="px-1.5 py-0.5 text-[10px]">{song.tempo} BPM</Badge><Badge variant="secondary" className="px-1.5 py-0.5 text-[10px]">{formatDuration(song.duration)}</Badge></div>
-          <Button variant="ghost" size="sm" className="w-full mt-2 h-7 text-xs" onClick={(e) => { e.stopPropagation(); setSelectedSongForSetlist(song); setAddToSetlistDialogOpen(true); }}><ListPlus className="w-3 h-3 mr-1" />Add to Setlist</Button>
+          <Button variant="ghost" size="sm" className="w-full mt-2 h-7 text-xs" onClick={(e: React.MouseEvent) => { e.stopPropagation(); setSelectedSongForSetlist(song); setAddToSetlistDialogOpen(true); }}><ListPlus className="w-3 h-3 mr-1" />Add to Setlist</Button>
         </CardContent>
       </Card>
   );
@@ -148,7 +148,7 @@ export function SongLibrary({
       <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">{song.thumbnailUrl ? (<img src={song.thumbnailUrl} alt={song.title} className="w-full h-full object-cover rounded" />) : (<Music className="w-5 h-5 text-gray-400" />)}</div>
       <div className="flex-1 min-w-0"><p className="truncate font-medium">{song.title}</p><p className="text-sm text-gray-500 truncate">{song.artist}</p></div>
       <div className="hidden sm:flex items-center gap-3 text-sm text-gray-600 w-48 flex-shrink-0 justify-end"><Badge variant="outline" className="w-16 justify-center truncate">{song.key}</Badge><span className="w-16 text-right truncate">{song.tempo} BPM</span><span className="w-12 text-right">{formatDuration(song.duration)}</span></div>
-      <div className="flex-shrink-0"><Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); setSelectedSongForSetlist(song); setAddToSetlistDialogOpen(true); }} aria-label={`Add ${song.title} to setlist`}><ListPlus className="w-4 h-4" /></Button></div>
+      <div className="flex-shrink-0"><Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e: React.MouseEvent) => { e.stopPropagation(); setSelectedSongForSetlist(song); setAddToSetlistDialogOpen(true); }} aria-label={`Add ${song.title} to setlist`}><ListPlus className="w-4 h-4" /></Button></div>
     </div>
   );
   // ---- Fim dos Componentes de Renderização ----
@@ -186,13 +186,13 @@ export function SongLibrary({
         </div>
         {/* Lado Direito */}
         <div className="flex items-center gap-2">
-          <Select value={sortOrder} onValueChange={(value)=>setSortOrder(value as SortOption)}><SelectTrigger className="w-[180px] h-9 text-xs sm:text-sm"><SelectValue placeholder="Sort by..."/></SelectTrigger><SelectContent><SelectItem value="date_desc"><Clock className="w-4 h-4 mr-2 inline"/>Date Added (Newest)</SelectItem><SelectItem value="date_asc"><Clock className="w-4 h-4 mr-2 inline"/>Date Added (Oldest)</SelectItem><SelectItem value="title_asc"><ArrowDownAZ className="w-4 h-4 mr-2 inline"/>Title (A-Z)</SelectItem><SelectItem value="title_desc"><ArrowUpAZ className="w-4 h-4 mr-2 inline"/>Title (Z-A)</SelectItem><SelectItem value="artist_asc"><ArrowDownAZ className="w-4 h-4 mr-2 inline"/>Artist (A-Z)</SelectItem><SelectItem value="artist_desc"><ArrowUpAZ className="w-4 h-4 mr-2 inline"/>Artist (Z-A)</SelectItem></SelectContent></Select>
+          <Select value={sortOrder} onValueChange={(value: string)=>setSortOrder(value as SortOption)}><SelectTrigger className="w-[180px] h-9 text-xs sm:text-sm"><SelectValue placeholder="Sort by..."/></SelectTrigger><SelectContent><SelectItem value="date_desc"><Clock className="w-4 h-4 mr-2 inline"/>Date Added (Newest)</SelectItem><SelectItem value="date_asc"><Clock className="w-4 h-4 mr-2 inline"/>Date Added (Oldest)</SelectItem><SelectItem value="title_asc"><ArrowDownAZ className="w-4 h-4 mr-2 inline"/>Title (A-Z)</SelectItem><SelectItem value="title_desc"><ArrowUpAZ className="w-4 h-4 mr-2 inline"/>Title (Z-A)</SelectItem><SelectItem value="artist_asc"><ArrowDownAZ className="w-4 h-4 mr-2 inline"/>Artist (A-Z)</SelectItem><SelectItem value="artist_desc"><ArrowUpAZ className="w-4 h-4 mr-2 inline"/>Artist (Z-A)</SelectItem></SelectContent></Select>
           <ToggleGroup type="single" value={viewMode} onValueChange={(v)=>{if(v)setViewMode(v as ViewMode)}} className="h-9"><ToggleGroupItem value="grid-image" className="px-2"><Grid className="w-4 h-4"/></ToggleGroupItem><ToggleGroupItem value="grid-compact" className="px-2"><ImageOff className="w-4 h-4"/></ToggleGroupItem><ToggleGroupItem value="list" className="px-2"><List className="w-4 h-4"/></ToggleGroupItem></ToggleGroup>
         </div>
       </div>
 
       {/* Abas e Conteúdo (flex-1) */}
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'imported' | 'projects')} className="w-full flex flex-col flex-1 overflow-hidden">
+      <Tabs value={activeTab} onValueChange={(value: string) => setActiveTab(value as 'imported' | 'projects')} className="w-full flex flex-col flex-1 overflow-hidden">
         {/* Lista de Abas (shrink-0) */}
         <TabsList className="w-full justify-start flex-shrink-0">
           <TabsTrigger value="imported" className="flex items-center gap-1.5">
@@ -227,7 +227,7 @@ export function SongLibrary({
 
       {/* Dialogs (mantidos no final) */}
       {selectedSongForSetlist && ( <AddToSetlistDialog open={addToSetlistDialogOpen} onOpenChange={setAddToSetlistDialogOpen} song={selectedSongForSetlist} setlists={setlists} songs={songs} onAddToSetlist={onAddToSetlist} onCreateSetlist={onCreateSetlist} onImportSetlist={onImportSetlist} /> )}
-      <CreateProjectDialog open={createProjectDialogOpen} onOpenChange={setCreateProjectDialogOpen} onCreateProject={onCreateProject} />
+      <CreateProjectDialog open={createProjectDialogOpen} onOpenChange={setCreateProjectDialogOpen} onCreateProject={async (data) => onCreateProject(data)} />
     </div>
   );
 }

@@ -2,7 +2,7 @@ import React, { useEffect, useCallback } from 'react';
 import { ZOOM } from '../../../../../config/constants';
 
 interface UseContainerResizeProps {
-  timelineRef: React.RefObject<HTMLDivElement>;
+  timelineRef: React.RefObject<HTMLDivElement | null>;
   setContainerWidth: (width: number) => void;
   song: any;
   containerWidth: number;

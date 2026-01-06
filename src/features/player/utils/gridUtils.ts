@@ -10,7 +10,7 @@
  * - Maintainability (single source of truth for grid math)
  */
 
-import { TempoChange } from '../types';
+import { TempoChange } from '../../../types';
 import { secondsToMeasure } from '../../../lib/timeUtils';
 
 export interface MeasureBar {

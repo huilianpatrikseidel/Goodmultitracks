@@ -13,12 +13,10 @@ export const useMixPresets = ({ song, onSongUpdate }: UseMixPresetsProps) => {
     const preset: MixPreset = {
       id: `preset-${Date.now()}`,
       name,
-      trackSettings: song.tracks.map((track) => ({
+      tracks: song.tracks.map((track) => ({
         trackId: track.id,
         volume: track.volume ?? 1,
-        pan: track.pan ?? 0,
-        solo: track.solo ?? false,
-        mute: track.mute ?? false,
+        muted: track.muted ?? false,
       })),
     };
 
@@ -29,15 +27,13 @@ export const useMixPresets = ({ song, onSongUpdate }: UseMixPresetsProps) => {
     if (!onSongUpdate) return;
 
     const updatedTracks = song.tracks.map((track) => {
-      const setting = preset.trackSettings.find((s) => s.trackId === track.id);
+      const setting = preset.tracks.find((s) => s.trackId === track.id);
       if (!setting) return track;
 
       return {
         ...track,
         volume: setting.volume,
-        pan: setting.pan,
-        solo: setting.solo,
-        mute: setting.mute,
+        muted: setting.muted,
       };
     });
 
