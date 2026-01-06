@@ -65,6 +65,34 @@ export const GUITAR_TUNINGS: Record<string, string[]> = {
   'half-step-down': ['Eb', 'Ab', 'Db', 'Gb', 'Bb', 'Eb'],
 };
 
+/**
+ * Bass tunings dictionary
+ */
+export const BASS_TUNINGS: Record<string, string[]> = {
+  '4-string-standard': ['E', 'A', 'D', 'G'],
+  '5-string-standard': ['B', 'E', 'A', 'D', 'G'],
+  '6-string-standard': ['B', 'E', 'A', 'D', 'G', 'C'],
+  '4-string-drop-d': ['D', 'A', 'D', 'G'],
+  '5-string-drop-a': ['A', 'E', 'A', 'D', 'G'],
+};
+
+/**
+ * Banjo tunings dictionary
+ */
+export const BANJO_TUNINGS: Record<string, string[]> = {
+  '5-string-open-g': ['G', 'D', 'G', 'B', 'D'], // 5th string is high G (drone)
+  '5-string-double-c': ['G', 'C', 'G', 'C', 'D'],
+  '4-string-tenor-standard': ['C', 'G', 'D', 'A'], // Tenor banjo (Irish)
+  '4-string-tenor-irish': ['G', 'D', 'A', 'E'],
+};
+
+/**
+ * Mandolin tunings dictionary
+ */
+export const MANDOLIN_TUNINGS: Record<string, string[]> = {
+  'standard': ['G', 'D', 'A', 'E'], // Same as violin
+};
+
 // ============================================================================
 // ALGORITHMIC VOICING ENGINE - CORE FUNCTIONS
 // ============================================================================
@@ -565,8 +593,290 @@ export function generateUkuleleVoicing(
 }
 
 /**
+ * Generate bass voicing from chord notes
+ * 
+ * Bass voicings typically emphasize root notes and 5ths.
+ * For extended chords, includes 3rds and 7ths.
+ * 
+ * @param notes - Array of note names in the chord
+ * @param options - Voicing options (tuning, position)
+ * @returns Bass fingering data or null if impossible to voice
+ * 
+ * @example
+ * generateBassVoicing(['C', 'E', 'G'])
+ * → { frets: [-1, 3, 2, 0], fingers: [0, 3, 2, 1] }
+ * 
+ * generateBassVoicing(['E', 'G#', 'B'], { tuning: BASS_TUNINGS['5-string-standard'] })
+ * → { frets: [0, 2, 2, 1, -1], fingers: [0, 2, 3, 1, 0] }
+ */
+export function generateBassVoicing(
+  notes: string[], 
+  options?: { 
+    tuning?: string[]; 
+    preferredPosition?: number;
+    bassNote?: string;
+    maxFret?: number;
+  }
+): { frets: number[]; fingers?: number[]; startFret?: number } | null {
+  const tuning = options?.tuning || BASS_TUNINGS['4-string-standard'];
+  
+  // ALGORITHMIC GENERATION for bass
+  const voicings = generateAllVoicings(notes, tuning, {
+    maxFret: options?.maxFret || 12, // Bass typically uses lower positions
+    preferredPosition: options?.preferredPosition,
+    bassNote: options?.bassNote || notes[0], // Bass emphasizes root
+    maxResults: 5
+  });
+  
+  if (voicings.length === 0) {
+    console.warn(`generateBassVoicing: Could not generate any valid voicings for notes:`, notes);
+    return null;
+  }
+  
+  // Get best voicing (lowest score)
+  const best = voicings[0];
+  const fingers = assignFingers(best.frets);
+  
+  // Determine startFret for display
+  const activeFrets = best.frets.filter(f => f > 0);
+  const startFret = activeFrets.length > 0 ? Math.min(...activeFrets) : undefined;
+  
+  return {
+    frets: best.frets,
+    fingers: fingers,
+    startFret: startFret && startFret > 1 ? startFret : undefined
+  };
+}
+
+/**
+ * Generate banjo voicing from chord notes
+ * 
+ * Banjo voicings take into account the high 5th string (drone).
+ * 5-string banjo: String 5 is a high G (or other note) that doesn't get fretted.
+ * 4-string tenor: Tuned like mandola/viola (CGDA or GDAE).
+ * 
+ * @param notes - Array of note names in the chord
+ * @param options - Voicing options (tuning, position)
+ * @returns Banjo fingering data or null if impossible to voice
+ * 
+ * @example
+ * generateBanjoVoicing(['G', 'B', 'D'], { tuning: BANJO_TUNINGS['5-string-open-g'] })
+ * → { frets: [0, 0, 0, 0, 0], fingers: [0, 0, 0, 0, 0] } // Open G chord
+ * 
+ * generateBanjoVoicing(['C', 'E', 'G'], { tuning: BANJO_TUNINGS['4-string-tenor-standard'] })
+ * → { frets: [0, 0, 0, 3], fingers: [0, 0, 0, 3] }
+ */
+export function generateBanjoVoicing(
+  notes: string[], 
+  options?: { 
+    tuning?: string[]; 
+    preferredPosition?: number;
+    bassNote?: string;
+    maxFret?: number;
+  }
+): { frets: number[]; fingers?: number[]; startFret?: number } | null {
+  const tuning = options?.tuning || BANJO_TUNINGS['5-string-open-g'];
+  
+  // ALGORITHMIC GENERATION for banjo
+  const voicings = generateAllVoicings(notes, tuning, {
+    maxFret: options?.maxFret || 12,
+    preferredPosition: options?.preferredPosition,
+    bassNote: options?.bassNote || notes[0],
+    maxResults: 5
+  });
+  
+  if (voicings.length === 0) {
+    console.warn(`generateBanjoVoicing: Could not generate any valid voicings for notes:`, notes);
+    return null;
+  }
+  
+  // Get best voicing (lowest score)
+  const best = voicings[0];
+  const fingers = assignFingers(best.frets);
+  
+  // Determine startFret for display
+  const activeFrets = best.frets.filter(f => f > 0);
+  const startFret = activeFrets.length > 0 ? Math.min(...activeFrets) : undefined;
+  
+  return {
+    frets: best.frets,
+    fingers: fingers,
+    startFret: startFret && startFret > 1 ? startFret : undefined
+  };
+}
+
+/**
+ * Generate mandolin voicing from chord notes
+ * 
+ * Mandolin uses same tuning as violin (GDAE) with doubled strings.
+ * Voicings are compact due to short scale length.
+ * 
+ * @param notes - Array of note names in the chord
+ * @param options - Voicing options (position, max fret)
+ * @returns Mandolin fingering data or null if impossible to voice
+ * 
+ * @example
+ * generateMandolinVoicing(['G', 'B', 'D'])
+ * → { frets: [0, 2, 3, 2], fingers: [0, 1, 3, 2] }
+ * 
+ * generateMandolinVoicing(['C', 'E', 'G'])
+ * → { frets: [-1, 2, 0, 1], fingers: [0, 2, 0, 1] }
+ */
+export function generateMandolinVoicing(
+  notes: string[], 
+  options?: { 
+    preferredPosition?: number;
+    bassNote?: string;
+    maxFret?: number;
+  }
+): { frets: number[]; fingers?: number[]; startFret?: number } | null {
+  const tuning = MANDOLIN_TUNINGS['standard'];
+  
+  // ALGORITHMIC GENERATION for mandolin
+  const voicings = generateAllVoicings(notes, tuning, {
+    maxFret: options?.maxFret || 12,
+    preferredPosition: options?.preferredPosition,
+    bassNote: options?.bassNote || notes[0],
+    maxResults: 5
+  });
+  
+  if (voicings.length === 0) {
+    console.warn(`generateMandolinVoicing: Could not generate any valid voicings for notes:`, notes);
+    return null;
+  }
+  
+  // Get best voicing (lowest score)
+  const best = voicings[0];
+  const fingers = assignFingers(best.frets);
+  
+  // Determine startFret for display
+  const activeFrets = best.frets.filter(f => f > 0);
+  const startFret = activeFrets.length > 0 ? Math.min(...activeFrets) : undefined;
+  
+  return {
+    frets: best.frets,
+    fingers: fingers,
+    startFret: startFret && startFret > 1 ? startFret : undefined
+  };
+}
+
+/**
  * Optimize piano voicing
  */
 export function optimizePianoVoicing(notes: string[]): { keys: string[] } {
   return { keys: notes };
+}
+
+/**
+ * Generate extended piano voicing with 10ths
+ * 
+ * 10th voicings spread the root and 3rd across an octave + 3rd,
+ * creating a fuller, more open sound commonly used in jazz and contemporary piano.
+ * 
+ * @param notes - Array of note names in the chord
+ * @param options - Voicing options
+ * @returns Piano voicing with 10th intervals
+ * 
+ * @example
+ * generatePianoVoicing10th(['C', 'E', 'G', 'B']) // Cmaj7
+ * → { 
+ *     leftHand: ['C2', 'G2'],           // Root + 5th in bass
+ *     rightHand: ['E4', 'B4', 'D5']     // 10th voicing (3rd, 7th, 9th)
+ *   }
+ */
+export function generatePianoVoicing10th(
+  notes: string[],
+  options?: {
+    rootOctave?: number;
+    voicingOctave?: number;
+  }
+): { leftHand: string[]; rightHand: string[] } {
+  const rootOctave = options?.rootOctave || 2;
+  const voicingOctave = options?.voicingOctave || 4;
+  
+  if (notes.length === 0) {
+    return { leftHand: [], rightHand: [] };
+  }
+  
+  // Left hand: Root and 5th (if available)
+  const leftHand: string[] = [];
+  leftHand.push(`${notes[0]}${rootOctave}`); // Root
+  
+  if (notes.length >= 3) {
+    // Add 5th (typically 3rd note in triad)
+    leftHand.push(`${notes[2] || notes[1]}${rootOctave}`);
+  }
+  
+  // Right hand: 10th voicing (3rd in higher octave, then other extensions)
+  const rightHand: string[] = [];
+  
+  if (notes.length >= 2) {
+    // 10th: 3rd played an octave higher
+    rightHand.push(`${notes[1]}${voicingOctave}`);
+  }
+  
+  // Add 7th, 9th, 11th, 13th if present
+  for (let i = 3; i < notes.length; i++) {
+    rightHand.push(`${notes[i]}${voicingOctave + (i > 5 ? 1 : 0)}`);
+  }
+  
+  // If only 3-note chord, add root on top
+  if (notes.length === 3) {
+    rightHand.push(`${notes[0]}${voicingOctave + 1}`);
+  }
+  
+  return { leftHand, rightHand };
+}
+
+/**
+ * Generate rootless piano voicing
+ * 
+ * Rootless voicings omit the root note, allowing the bass to define harmony.
+ * Common in jazz comping when playing with a bass player.
+ * Uses guide tones (3rd and 7th) plus color tones (9th, 11th, 13th).
+ * 
+ * @param notes - Array of note names in the chord
+ * @param options - Voicing options
+ * @returns Piano voicing without root
+ * 
+ * @example
+ * generatePianoVoicingRootless(['C', 'E', 'G', 'Bb', 'D']) // C9
+ * → { keys: ['E4', 'Bb4', 'D5', 'G5'] } // 3rd, 7th, 9th, 5th
+ * 
+ * generatePianoVoicingRootless(['D', 'F', 'A', 'C']) // Dm7
+ * → { keys: ['F4', 'C5', 'E5', 'A5'] } // 3rd, 7th, 9th, 5th
+ */
+export function generatePianoVoicingRootless(
+  notes: string[],
+  options?: {
+    octave?: number;
+    voicingType?: 'A' | 'B'; // Two common rootless voicing types
+  }
+): { keys: string[] } {
+  const octave = options?.octave || 4;
+  const voicingType = options?.voicingType || 'A';
+  
+  if (notes.length < 3) {
+    // Need at least root, 3rd, 5th to create rootless voicing
+    return { keys: notes.map(n => `${n}${octave}`) };
+  }
+  
+  const keys: string[] = [];
+  
+  // Rootless voicing always includes 3rd and 7th (guide tones)
+  if (voicingType === 'A') {
+    // Type A: 3rd, 5th/6th, 7th, 9th (bottom to top)
+    if (notes.length >= 2) keys.push(`${notes[1]}${octave}`);     // 3rd
+    if (notes.length >= 3) keys.push(`${notes[2]}${octave}`);     // 5th
+    if (notes.length >= 4) keys.push(`${notes[3]}${octave + 1}`); // 7th
+    if (notes.length >= 5) keys.push(`${notes[4]}${octave + 1}`); // 9th
+  } else {
+    // Type B: 7th, 9th, 3rd, 5th/6th (bottom to top)
+    if (notes.length >= 4) keys.push(`${notes[3]}${octave}`);     // 7th
+    if (notes.length >= 5) keys.push(`${notes[4]}${octave}`);     // 9th
+    if (notes.length >= 2) keys.push(`${notes[1]}${octave + 1}`); // 3rd
+    if (notes.length >= 3) keys.push(`${notes[2]}${octave + 1}`); // 5th
+  }
+  
+  return { keys };
 }

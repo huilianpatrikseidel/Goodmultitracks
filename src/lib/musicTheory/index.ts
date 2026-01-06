@@ -79,8 +79,16 @@ export {
   getChordVoicing,
   generateGuitarVoicing,
   generateUkuleleVoicing,
+  generateBassVoicing,
+  generateBanjoVoicing,
+  generateMandolinVoicing,
   optimizePianoVoicing,
+  generatePianoVoicing10th,
+  generatePianoVoicingRootless,
   GUITAR_TUNINGS,
+  BASS_TUNINGS,
+  BANJO_TUNINGS,
+  MANDOLIN_TUNINGS,
 } from './voicings';
 
 // Analysis exports
