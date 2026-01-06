@@ -74,10 +74,18 @@ export const analyzeTimeSignature = (numerator: number, denominator: number, sub
     grouping = subdivision.split('+').map(Number);
     beatsPerMeasure = grouping.length;
     beatUnit = getNoteValueFromDenominator(denominator);
-  } else if (denominator === 8 && numerator % 3 === 0 && numerator >= 6) {
+  } else if (numerator % 3 === 0 && numerator >= 6 && numerator <= 15) {
+    // Compound meter: numerator divisible by 3, creates dotted beat units
+    // Works for 6/8, 9/8, 12/8, 6/4, 9/4, 12/16, etc.
     type = 'compound';
     beatsPerMeasure = numerator / 3;
-    beatUnit = 'dotted-quarter';
+    
+    // Determine dotted beat unit based on denominator
+    if (denominator === 8) beatUnit = 'dotted-quarter';
+    else if (denominator === 4) beatUnit = 'dotted-half';
+    else if (denominator === 16) beatUnit = 'dotted-eighth';
+    else beatUnit = getNoteValueFromDenominator(denominator); // fallback
+    
     grouping = Array(beatsPerMeasure).fill(3);
   } else {
     type = 'simple';

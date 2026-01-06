@@ -101,3 +101,44 @@ export function getAccidentalString(value: number): string {
   if (value === -2) return 'bb';
   return value > 0 ? '#'.repeat(value) : 'b'.repeat(Math.abs(value));
 }
+
+/**
+ * Calculate the semitone value of a note
+ * Used for enharmonic comparisons
+ * @example noteToSemitone('C') → 0
+ * @example noteToSemitone('C#') → 1
+ * @example noteToSemitone('Db') → 1
+ * @example noteToSemitone('F') → 5
+ */
+export function noteToSemitone(note: string): number {
+  const { letter, accidentalValue } = parseNoteComponents(note);
+  const letterIndex = NOTE_TO_INDEX[letter];
+  const naturalSemitone = NATURAL_NOTE_SEMITONES[letterIndex];
+  return (naturalSemitone + accidentalValue + 12) % 12;
+}
+
+/**
+ * Check if two notes are enharmonic equivalents
+ * E.g., C# and Db, E# and F, Cb and B
+ * 
+ * @param noteA - First note (e.g., 'C#', 'Ex', 'Dbb')
+ * @param noteB - Second note (e.g., 'Db', 'F', 'C')
+ * @returns true if notes represent the same pitch
+ * 
+ * @example
+ * areNotesEnharmonic('C#', 'Db') → true
+ * areNotesEnharmonic('E#', 'F') → true
+ * areNotesEnharmonic('B#', 'C') → true
+ * areNotesEnharmonic('C', 'D') → false
+ */
+export function areNotesEnharmonic(noteA: string, noteB: string): boolean {
+  // Remove octave numbers for comparison
+  const cleanA = noteA.replace(/\d+$/, '');
+  const cleanB = noteB.replace(/\d+$/, '');
+  
+  // If notes are exactly the same, they're enharmonic
+  if (cleanA === cleanB) return true;
+  
+  // Compare semitone values
+  return noteToSemitone(cleanA) === noteToSemitone(cleanB);
+}

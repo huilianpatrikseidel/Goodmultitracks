@@ -22,6 +22,8 @@ export {
   INTERVAL_DEFINITIONS,
   parseNoteComponents,
   getAccidentalString,
+  noteToSemitone,
+  areNotesEnharmonic,
   type IntervalObject,
 } from './core';
 
@@ -35,12 +37,15 @@ export {
 export {
   CHORD_INTERVALS,
   buildChord,
+  buildChordArray,
+  buildChordWithBass,
   parseChordName,
   generateChordName,
   ACCIDENTALS,
   QUALITIES,
   EXTENSIONS,
   type ParsedChord,
+  type ChordResult,
 } from './chords';
 
 // Scale exports
@@ -48,6 +53,7 @@ export {
   SCALE_PATTERNS,
   getScaleNotes,
   isChordInKey,
+  getKeySignature,
 } from './scales';
 
 // Database exports

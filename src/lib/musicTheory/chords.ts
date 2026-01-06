@@ -30,6 +30,7 @@ export const CHORD_INTERVALS: Record<string, IntervalObject[]> = {
   'm7b5': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.m3, INTERVAL_DEFINITIONS.d5, INTERVAL_DEFINITIONS.m7],
   'aug7': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M3, INTERVAL_DEFINITIONS.A5, INTERVAL_DEFINITIONS.m7],
   'mMaj7': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.m3, INTERVAL_DEFINITIONS.P5, INTERVAL_DEFINITIONS.M7],
+  '7sus4': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.P4, INTERVAL_DEFINITIONS.P5, INTERVAL_DEFINITIONS.m7],
   
   // Extended Chords (9ths)
   '9': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M3, INTERVAL_DEFINITIONS.P5, INTERVAL_DEFINITIONS.m7, INTERVAL_DEFINITIONS['9']],
@@ -40,8 +41,10 @@ export const CHORD_INTERVALS: Record<string, IntervalObject[]> = {
   
   // Extended Chords (11ths)
   '11': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M3, INTERVAL_DEFINITIONS.P5, INTERVAL_DEFINITIONS.m7, INTERVAL_DEFINITIONS['9'], INTERVAL_DEFINITIONS['11']],
+  'm11': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.m3, INTERVAL_DEFINITIONS.P5, INTERVAL_DEFINITIONS.m7, INTERVAL_DEFINITIONS['9'], INTERVAL_DEFINITIONS['11']],
   '7#11': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M3, INTERVAL_DEFINITIONS.P5, INTERVAL_DEFINITIONS.m7, INTERVAL_DEFINITIONS['#11']],
   'maj7#11': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M3, INTERVAL_DEFINITIONS.P5, INTERVAL_DEFINITIONS.M7, INTERVAL_DEFINITIONS['#11']],
+  'alt': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M3, INTERVAL_DEFINITIONS.d5, INTERVAL_DEFINITIONS.m7, INTERVAL_DEFINITIONS.b9],
   
   // Extended Chords (13ths)
   '13': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M3, INTERVAL_DEFINITIONS.P5, INTERVAL_DEFINITIONS.m7, INTERVAL_DEFINITIONS['9'], INTERVAL_DEFINITIONS['13']],
@@ -58,28 +61,95 @@ export const CHORD_INTERVALS: Record<string, IntervalObject[]> = {
 };
 
 /**
- * BUILD CHORD v2.0
+ * Result of chord building with optional bass note for inversions
+ */
+export interface ChordResult {
+  notes: string[];
+  bass?: string;
+}
+
+/**
+ * BUILD CHORD v3.0
  * Constructs chord notes using the new transposeNote function.
  * Guarantees correct enharmonic spellings for all chord types.
  * 
+ * OVERLOADED SIGNATURES:
+ * - buildChord(root, qualityString) - New format: 'maj7', 'm7', etc.
+ * - buildChord(root, quality, extension) - Legacy format: 'major', '7'
+ * 
  * @param root - Root note of the chord (e.g., 'C', 'F#', 'Bb')
- * @param quality - Chord quality/extension (e.g., '', 'm', '7', 'maj7', 'dim7')
+ * @param quality - Chord quality (new: combined string like 'maj7'; old: 'major', 'minor')
+ * @param extension - Legacy parameter: extension string ('7', 'maj7', '9', etc.)
  * @returns Array of note names with correct enharmonic spelling
  * 
  * @example
- * buildChord('F#', '') → ['F#', 'A#', 'C#'] (not ['F#', 'Bb', 'Db'])
- * buildChord('C#', 'dim7') → ['C#', 'E', 'G', 'Bb']
- * buildChord('B#', 'maj7') → ['B#', 'Dx', 'Fx', 'Ax']
+ * // New format
+ * buildChord('F#', '') → ['F#', 'A#', 'C#']
+ * buildChord('C', 'maj7') → ['C', 'E', 'G', 'B']
+ * 
+ * // Legacy format (backward compatible)
+ * buildChord('C', 'major', 'maj7') → ['C', 'E', 'G', 'B']
+ * buildChord('A', 'minor', '7') → ['A', 'C', 'E', 'G']
  */
-export function buildChord(root: string, quality: string = ''): string[] {
-  const intervals = CHORD_INTERVALS[quality];
+export function buildChord(
+  root: string, 
+  quality: string = '', 
+  extension?: string
+): string[] {
+  let chordQuality = quality;
+  
+  // Handle legacy 3-parameter format: buildChord('C', 'major', '7')
+  if (extension) {
+    // Legacy format: combine quality + extension
+    // Map legacy quality names to chord suffix
+    const qualityMap: Record<string, string> = {
+      'major': '',
+      'minor': 'm',
+      'diminished': 'dim',
+      'augmented': 'aug',
+      'sus2': 'sus2',
+      'sus4': 'sus4',
+    };
+    
+    const qualitySuffix = qualityMap[quality.toLowerCase()] ?? quality;
+    chordQuality = qualitySuffix + extension;
+  }
+  
+  const intervals = CHORD_INTERVALS[chordQuality];
   
   if (!intervals) {
-    console.warn(`Unknown chord quality: ${quality}. Defaulting to major triad.`);
+    console.warn(`Unknown chord quality: ${chordQuality}. Defaulting to major triad.`);
     return buildChord(root, '');
   }
   
   return intervals.map(interval => transposeNote(root, interval));
+}
+
+/**
+ * BUILD CHORD WITH BASS v3.0
+ * Extended version that supports inversions with bass note specification
+ * 
+ * @param root - Root note of the chord (e.g., 'C', 'F#', 'Bb')
+ * @param quality - Chord quality/extension (e.g., '', 'm', '7', 'maj7', 'dim7')
+ * @param bassNote - Bass note for inversions (e.g., 'E' for C/E)
+ * @returns ChordResult with notes array and bass note
+ * 
+ * @example
+ * buildChordWithBass('C', '', 'E') → { notes: ['C', 'E', 'G'], bass: 'E' }
+ * buildChordWithBass('Am7', 'm7', 'G') → { notes: ['A', 'C', 'E', 'G'], bass: 'G' }
+ */
+export function buildChordWithBass(root: string, quality: string = '', bassNote: string): ChordResult {
+  const notes = buildChord(root, quality);
+  return { notes, bass: bassNote };
+}
+
+/**
+ * BUILD CHORD (Legacy - Array Return)
+ * @deprecated Use buildChord which now returns arrays by default
+ * Kept for backward compatibility
+ */
+export function buildChordArray(root: string, quality: string = ''): string[] {
+  return buildChord(root, quality);
 }
 
 /**
