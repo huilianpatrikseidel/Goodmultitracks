@@ -226,38 +226,76 @@
 
 ---
 
-## 🚧 Future Enhancements (Optional)
+## ✅ Phase 3.2 - Advanced Harmonic Analysis (COMPLETED!)
 
-### Phase 3.2 - Advanced Analysis
+**Status:** ✅ Fully Implemented  
+**Build:** #350  
+**Implementation Date:** 06/01/2026
 
-**Priority:** Low  
-**Complexity:** Medium  
-**Estimated Effort:** 16-24 hours
+### Features Implemented:
 
-#### Features:
-1. **Chord Function Analysis**
+1. **✅ Chord Function Analysis**
    ```typescript
-   function analyzeFunction(chord: string, key: string): ChordFunction {
-     // Return: 'tonic' | 'subdominant' | 'dominant' | 'borrowed' | 'secondary'
-   }
+   analyzeChordFunction('Dm7', 'C', 'major')
+   // → { 
+   //     function: 'subdominant', 
+   //     romanNumeral: 'ii7', 
+   //     scaleDegree: 2,
+   //     isDiatonic: true 
+   //   }
    ```
 
-2. **Borrowed Chords Detection**
+   **Identifies:**
+   - Tonic function (I, i, vi, VI)
+   - Subdominant function (IV, iv, ii, ii°)
+   - Dominant function (V, V7, vii°)
+   - Borrowed chords (from parallel key)
+   - Secondary dominants/leading tones
+   - Chromatic chords
+
+2. **✅ Borrowed Chord Detection**
    ```typescript
-   function isBorrowedChord(chord: string, key: string): {
-     borrowed: boolean;
-     sourceKey?: string;
-   }
+   isBorrowedChord('Fm', 'C', 'major')
+   // → { 
+   //     isBorrowed: true, 
+   //     sourceKey: 'C', 
+   //     sourceMode: 'minor',
+   //     explanation: 'iv from parallel minor'
+   //   }
    ```
 
-3. **Secondary Dominants**
+   **Detects:**
+   - Parallel key borrowing (major ↔ minor)
+   - Relative key borrowing
+   - Common modal interchange chords (iv, bVI, bVII, bIII)
+
+3. **✅ Secondary Dominant Analysis**
    ```typescript
-   function getSecondaryDominant(targetChord: string, key: string): string {
-     // e.g., D7 in key of C → "V7/V" (secondary dominant of G)
-   }
+   analyzeSecondaryDominant('D7', 'C', 'major')
+   // → { 
+   //     isSecondary: true, 
+   //     targetChord: 'G', 
+   //     targetDegree: 5,
+   //     romanNumeral: 'V7/V',
+   //     type: 'dominant'
+   //   }
    ```
+
+4. **✅ Secondary Dominant Generator**
+   ```typescript
+   getSecondaryDominant('G', 'C')   // → 'D7'
+   getSecondaryDominant('Dm', 'C')  // → 'A7'
+   ```
+
+### Real-World Use Cases:
+- Jazz progression analysis (ii-V-I with tonicizations)
+- Modal interchange detection
+- Reharmonization suggestions
+- Music theory education tools
 
 ---
+
+## 🚧 Future Enhancements (Optional)
 
 ### Phase 3.3 - Extended Instrument Support
 
@@ -281,7 +319,7 @@
 | Enharmonic Accuracy | ✅ Complete | 100% |
 | Chord Construction | ✅ Complete | 100% |
 | **Scale Generation** | ✅ Complete | **100% (25 scales)** |
-| Harmonic Analysis | ✅ Complete | 100% |
+| **Harmonic Analysis** | ✅ Complete | **100% (advanced functions)** |
 | Time Signatures | ✅ Complete | 100% |
 | Rhythm Analysis | ✅ Complete | 100% |
 | **Database Voicings** | ✅ Complete | 100% (30+ common chords) |

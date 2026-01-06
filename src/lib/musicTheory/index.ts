@@ -89,6 +89,15 @@ export {
   getInterval,
   isChordDiatonic,
   getEnharmonicEquivalent,
+  // Phase 3.2 - Advanced Analysis
+  analyzeChordFunction,
+  isBorrowedChord,
+  analyzeSecondaryDominant,
+  getSecondaryDominant,
+  type ChordFunction,
+  type ChordFunctionAnalysis,
+  type BorrowedChordInfo,
+  type SecondaryDominantInfo,
 } from './analysis';
 
 // Rhythm exports
