@@ -1,3 +1,5 @@
+[Português](./README.md) | [English](./README.en.md) | [Español](./README.es.md) | [Deutsch](./README.de.md) | [Italiano](./README.it.md) | [Français](./README.fr.md)
+
 # GoodMultitracks
 
 > **Nota:** Este projeto está atualmente em **fase ativa de desenvolvimento (Alpha)**. Funcionalidades podem mudar e instabilidade é esperada. Ainda não há uma versão oficial de lançamento.
@@ -25,15 +27,15 @@ A ideia central é fornecer uma ferramenta onde o músico possa carregar um arqu
 * **Visualização Instrumental:** Diagramas interativos para Guitarra, Piano e Ukulele
 * **Gerenciamento de Setlist:** Organização de músicas para estudo ou (futuramente) performance.
 * **Ambiente atual:** Execução focada em **Web (navegador)** durante o desenvolvimento.
-* **Compilações:** Ainda não estamos trabalhando em compilações/empacotamento (desktop/mobile). A prioridade atual é a experiência web.
-* **Plataformas previstas:** Alvo multiplataforma no futuro — **Desktop (Windows, macOS, Linux)** e **Mobile (Android, iOS)**.
+* **Compilações:** Ainda não estamos trabalhando em compilações/empacotamento (desktop/mobile). 
+* **Plataformas previstas:** Alvo multiplataforma — **Desktop (Windows, macOS, Linux)** e **Mobile (Android, iOS)**.
 
 ### Roadmap 🗺️
 - [ ] Otimização do motor de áudio para baixa latência.
 - [ ] Modo "Performance" dedicado para uso como VS Player ao vivo.
 - [ ] Melhorias na detecção e sincronia de grades de tempo (Grid).
 - [ ] Suporte expandido a formatos de arquivo.
-- [ ] Empacotamento multiplataforma (Desktop/Mobile) — definir estratégia e pipeline.
+- [ ] Empacotamento multiplataforma (Desktop/Mobile) — Tauri/Capacitor.
 
 ## 🛠️ Tecnologias Utilizadas
 
