@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BravuraSymbols } from '../lib/bravuraUtils';
 import {
   Dialog,
   DialogContent,
@@ -18,7 +19,7 @@ import {
 } from './ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Switch } from './ui/switch';
-import { Plus, Edit3, Trash2 } from 'lucide-react'; // Adicionado Trash2
+import { Plus, Edit3, Trash2 } from './icons/Icon'; // Adicionado Trash2
 import { InteractiveGuitarDiagram } from './InteractiveGuitarDiagram';
 import { InteractiveUkuleleDiagram } from './InteractiveUkuleleDiagram';
 import { InteractivePianoDiagram } from './InteractivePianoDiagram';
@@ -470,7 +471,7 @@ export function TimelineEditorDialog({
                       <div className="flex items-center justify-between">
                         <p className="text-muted-foreground text-xs">Curve Preview:</p>
                         {parseInt(tempo) > parseInt(targetTempo) ? (
-                          <span className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                          <span className="text-xs px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
                             Rallentando (slowing down)
                           </span>
                         ) : parseInt(tempo) < parseInt(targetTempo) ? (
@@ -561,7 +562,7 @@ export function TimelineEditorDialog({
                         </svg>
                         
                         {/* Tempo labels */}
-                        <div className="absolute top-1 left-2 text-[10px] text-green-400">
+                        <div className="absolute top-1 left-2 text-[10px] text-yellow-400">
                           {tempo} BPM
                         </div>
                         <div className="absolute top-1 right-2 text-[10px] text-red-400">
@@ -741,14 +742,14 @@ export function TimelineEditorDialog({
                    {/* Root/Accidental */}
                    <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1"><Label htmlFor="root-note" className="text-xs text-muted-foreground">Root</Label><Select value={rootNote} onValueChange={setRootNote}><SelectTrigger id="root-note"><SelectValue/></SelectTrigger><SelectContent>{ROOT_NOTES.map(n=>(<SelectItem key={n} value={n}>{n}</SelectItem>))}</SelectContent></Select></div>
-                      <div className="space-y-1"><Label htmlFor="accidental" className="text-xs text-muted-foreground">Accidental</Label><Select value={accidental} onValueChange={setAccidental}><SelectTrigger id="accidental"><SelectValue/></SelectTrigger><SelectContent>{ACCIDENTALS.map(a=>(<SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>))}</SelectContent></Select></div>
+                      <div className="space-y-1"><Label htmlFor="accidental" className="text-xs text-muted-foreground">Accidental</Label><Select value={accidental} onValueChange={setAccidental}><SelectTrigger id="accidental" className="music-notation"><SelectValue/></SelectTrigger><SelectContent>{ACCIDENTALS.map(a=>(<SelectItem key={a.value} value={a.value} className="music-notation">{a.label}</SelectItem>))}</SelectContent></Select></div>
                    </div>
                    {/* Quality */}
                    <div className="space-y-1"><Label htmlFor="quality" className="text-xs text-muted-foreground">Quality</Label><Select value={quality} onValueChange={setQuality}><SelectTrigger id="quality"><SelectValue/></SelectTrigger><SelectContent>{QUALITIES.map(q=>(<SelectItem key={q.value} value={q.value}>{q.label}</SelectItem>))}</SelectContent></Select></div>
                    {/* Extension */}
                    <div className="space-y-1"><Label htmlFor="extension" className="text-xs text-muted-foreground">Extension</Label><Select value={extension} onValueChange={setExtension}><SelectTrigger id="extension"><SelectValue/></SelectTrigger><SelectContent>{EXTENSIONS.map(e=>(<SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>))}</SelectContent></Select></div>
                    {/* Bass Note */}
-                   <div className="space-y-1"><Label htmlFor="bass-note" className="text-xs text-muted-foreground">Bass Note</Label><Select value={bassNote||'none'} onValueChange={(v: string)=>setBassNote(v==='none'?'':v)}><SelectTrigger id="bass-note"><SelectValue placeholder="None"/></SelectTrigger><SelectContent><SelectItem value="none">None</SelectItem>{ROOT_NOTES.map(n=>(<React.Fragment key={n}><SelectItem value={n}>{n}</SelectItem><SelectItem value={`${n}#`}>{`${n}♯`}</SelectItem><SelectItem value={`${n}b`}>{`${n}♭`}</SelectItem></React.Fragment>))}</SelectContent></Select></div>
+                   <div className="space-y-1"><Label htmlFor="bass-note" className="text-xs text-muted-foreground">Bass Note</Label><Select value={bassNote||'none'} onValueChange={(v: string)=>setBassNote(v==='none'?'':v)}><SelectTrigger id="bass-note"><SelectValue placeholder="None"/></SelectTrigger><SelectContent><SelectItem value="none">None</SelectItem>{ROOT_NOTES.map(n=>(<React.Fragment key={n}><SelectItem value={n}>{n}</SelectItem><SelectItem value={`${n}#`} className="music-notation">{`${n}${BravuraSymbols.accidentalSharp}`}</SelectItem><SelectItem value={`${n}b`} className="music-notation">{`${n}${BravuraSymbols.accidentalFlat}`}</SelectItem></React.Fragment>))}</SelectContent></Select></div>
                    {/* Generated Chord */}
                    <div className="pt-2"><Label className="text-xs text-muted-foreground">Generated Chord</Label><p className="text-lg font-semibold">{chord || '-'}</p></div>
                </div>
@@ -891,8 +892,8 @@ const TimeSignatureVisualizer = ({
                   flex items-center justify-center gap-1 px-4 py-3 rounded-lg border-2
                   transition-all duration-200 select-none
                   ${draggedIndex === index 
-                    ? 'opacity-40 scale-95 border-blue-500/50 bg-blue-500/10' 
-                    : 'opacity-100 scale-100 border-[#333] bg-[#1F1F1F] hover:border-blue-500/30 hover:bg-[#252525]'
+                    ? 'opacity-40 scale-95 border-yellow-500/50 bg-yellow-500/10' 
+                    : 'opacity-100 scale-100 border-[#333] bg-[#1F1F1F] hover:border-yellow-500/30 hover:bg-[#252525]'
                   }
                   cursor-move
                 `}

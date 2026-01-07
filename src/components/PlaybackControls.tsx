@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Music, Guitar } from 'lucide-react';
+import { Music, Guitar } from './icons/Icon';
 import { PlaybackSettingsIcon } from './icons/CustomIcons';
 import { Button } from './ui/button';
 import { Slider } from './ui/slider';

@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useRef, useEffect } from 'react';
-import { Volume2, VolumeX, Music2, Trash2, ChevronDown, ChevronUp, Pin } from 'lucide-react';
+import { Volume2, VolumeX, Music2, Trash2, ChevronDown, ChevronUp, Pin } from './icons/Icon';
 import { AudioTrack, TrackTag } from '../types';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Badge } from './ui/badge';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play } from 'lucide-react';
+import { Play } from './icons/Icon';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Button } from './ui/button';
@@ -347,7 +347,7 @@ export function ChordDiagram({ chord, isOpen, onClose, customDiagram }: ChordDia
           </DialogTitle>
           <DialogDescription>
             View chord diagrams for guitar, piano, and ukulele
-            {customDiagram && <span className="ml-2 text-blue-600">(Custom)</span>}
+            {customDiagram && <span className="ml-2 text-yellow-600">(Custom)</span>}
           </DialogDescription>
         </DialogHeader>
         <Tabs defaultValue="guitar" className="w-full">

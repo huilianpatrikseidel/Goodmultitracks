@@ -1,5 +1,5 @@
 import React from 'react';
-import { ZoomIn, ZoomOut, Maximize2, PanelLeftClose, PanelLeft, Sliders, StickyNote } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, PanelLeftClose, PanelLeft, Sliders, StickyNote } from '../../../../components/icons/Icon';
 import { Button } from '../../../../components/ui/button';
 import {
   Popover,

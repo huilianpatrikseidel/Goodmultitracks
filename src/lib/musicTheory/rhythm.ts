@@ -8,20 +8,122 @@
 import { TimeSignatureInfo } from './timeSignatures';
 
 /**
+ * Hierarchical metronome click structure
+ * Provides both macro beats (main tactus) and all subdivisions with accent levels
+ */
+export interface MetronomeClickStructure {
+  /** Main beat positions (macro beats) */
+  macroBeats: number[];
+  /** All pulse subdivisions (including macro beats) */
+  allPulses: number[];
+  /** Accent level for each pulse (0 = weak, 1 = group start, 2 = downbeat) */
+  accentLevels: number[];
+}
+
+/**
+ * Get hierarchical metronome click structure
+ * Returns both macro beats AND all subdivisions with accent levels
+ * 
+ * This addresses the QA requirement for irregular meter practice where musicians
+ * need to hear all pulses but with different accent levels.
+ * 
+ * @param timeSignature - Analyzed time signature info
+ * @returns Hierarchical click structure with accents
+ * 
+ * @example
+ * // For 5/8 [3+2]
+ * getMetronomeClickStructure(info) → {
+ *   macroBeats: [0, 3],
+ *   allPulses: [0, 1, 2, 3, 4],
+ *   accentLevels: [2, 0, 0, 1, 0]
+ * }
+ */
+export function getMetronomeClickStructure(timeSignature: TimeSignatureInfo): MetronomeClickStructure {
+  const macroBeats: number[] = [];
+  const allPulses: number[] = [];
+  const accentLevels: number[] = [];
+  
+  // Generate all pulse positions
+  for (let i = 0; i < timeSignature.pulsesPerMeasure; i++) {
+    allPulses.push(i);
+  }
+  
+  if (timeSignature.type === 'compound') {
+    const beatsPerMeasure = timeSignature.beatsPerMeasure;
+    const subdivisions = timeSignature.numerator / beatsPerMeasure;
+    
+    for (let i = 0; i < beatsPerMeasure; i++) {
+      macroBeats.push(i * subdivisions);
+    }
+    
+    // Accent levels: 2 for downbeat, 1 for macro beats, 0 for subdivisions
+    for (let i = 0; i < timeSignature.pulsesPerMeasure; i++) {
+      if (i === 0) accentLevels.push(2); // Downbeat
+      else if (macroBeats.includes(i)) accentLevels.push(1); // Macro beat
+      else accentLevels.push(0); // Subdivision
+    }
+  } else if (timeSignature.type === 'irregular') {
+    let position = 0;
+    for (const groupSize of timeSignature.grouping) {
+      macroBeats.push(position);
+      position += groupSize;
+    }
+    
+    // Accent levels: 2 for downbeat, 1 for group starts, 0 for internal pulses
+    for (let i = 0; i < timeSignature.pulsesPerMeasure; i++) {
+      if (i === 0) accentLevels.push(2); // Downbeat
+      else if (macroBeats.includes(i)) accentLevels.push(1); // Group start
+      else accentLevels.push(0); // Internal pulse
+    }
+  } else {
+    // Simple meters
+    for (let i = 0; i < timeSignature.beatsPerMeasure; i++) {
+      macroBeats.push(i);
+    }
+    
+    // Traditional accent pattern
+    for (let i = 0; i < timeSignature.pulsesPerMeasure; i++) {
+      if (i === 0) accentLevels.push(2);
+      else if (timeSignature.beatsPerMeasure === 4 && i === 2) accentLevels.push(1);
+      else accentLevels.push(0);
+    }
+  }
+  
+  return { macroBeats, allPulses, accentLevels };
+}
+
+/**
  * Get metronome beat positions for a time signature
  * Returns array of beat positions (0-based) that should be clicked
  * 
  * @param timeSignature - Analyzed time signature info
+ * @param resolution - Click density ('macro' = main beats only, 'micro' = all subdivisions)
  * @returns Array of beat positions
  * 
  * @example
  * // For 4/4 time
- * getMetronomeBeatPositions(info) → [0, 1, 2, 3]
+ * getMetronomeBeatPositions(info, 'macro') → [0, 1, 2, 3]
  * 
- * // For 6/8 time (compound)
- * getMetronomeBeatPositions(info) → [0, 3] (2 dotted quarter beats)
+ * // For 6/8 time (compound) - macro vs micro
+ * getMetronomeBeatPositions(info, 'macro') → [0, 3] (2 dotted quarter beats)
+ * getMetronomeBeatPositions(info, 'micro') → [0, 1, 2, 3, 4, 5] (all eighth notes)
+ * 
+ * // For Largo 6/8 practice, use 'micro' to hear every eighth note
  */
-export function getMetronomeBeatPositions(timeSignature: TimeSignatureInfo): number[] {
+export function getMetronomeBeatPositions(
+  timeSignature: TimeSignatureInfo,
+  resolution: 'macro' | 'micro' = 'macro'
+): number[] {
+  // Micro resolution: return ALL pulses
+  if (resolution === 'micro') {
+    const allPulses: number[] = [];
+    for (let i = 0; i < timeSignature.pulsesPerMeasure; i++) {
+      allPulses.push(i);
+    }
+    return allPulses;
+  }
+  
+  // Macro resolution: main beats only (existing logic)
   const positions: number[] = [];
   
   if (timeSignature.type === 'compound') {

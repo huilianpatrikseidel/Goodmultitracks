@@ -10,6 +10,64 @@ import { INTERVAL_DEFINITIONS, IntervalObject, areNotesEnharmonic } from './core
 import { transposeNote } from './transposition';
 
 /**
+ * CIRCLE OF FIFTHS MAP
+ * Maps keys to their position on the Circle of Fifths for O(1) key signature lookup.
+ * Positive values = number of sharps, Negative values = number of flats
+ * 
+ * Major keys arranged by fifths: C(0) → G(1) → D(2) → A(3) → E(4) → B(5) → F#(6) → C#(7)
+ * Flat keys: F(-1) → Bb(-2) → Eb(-3) → Ab(-4) → Db(-5) → Gb(-6) → Cb(-7)
+ */
+const CIRCLE_OF_FIFTHS_MAJOR: Record<string, number> = {
+  'C': 0,   // No sharps or flats
+  'G': 1,   // 1 sharp (F#)
+  'D': 2,   // 2 sharps (F#, C#)
+  'A': 3,   // 3 sharps (F#, C#, G#)
+  'E': 4,   // 4 sharps (F#, C#, G#, D#)
+  'B': 5,   // 5 sharps (F#, C#, G#, D#, A#)
+  'F#': 6,  // 6 sharps
+  'C#': 7,  // 7 sharps
+  'F': -1,  // 1 flat (Bb)
+  'Bb': -2, // 2 flats (Bb, Eb)
+  'Eb': -3, // 3 flats (Bb, Eb, Ab)
+  'Ab': -4, // 4 flats (Bb, Eb, Ab, Db)
+  'Db': -5, // 5 flats (Bb, Eb, Ab, Db, Gb)
+  'Gb': -6, // 6 flats
+  'Cb': -7, // 7 flats
+};
+
+/**
+ * Circle of Fifths for Natural Minor keys (relative to major)
+ * Each minor key is 3 semitones below its relative major
+ */
+const CIRCLE_OF_FIFTHS_MINOR: Record<string, number> = {
+  'A': 0,   // Relative to C major
+  'E': 1,   // Relative to G major
+  'B': 2,   // Relative to D major
+  'F#': 3,  // Relative to A major
+  'C#': 4,  // Relative to E major
+  'G#': 5,  // Relative to B major
+  'D#': 6,  // Relative to F# major
+  'A#': 7,  // Relative to C# major
+  'D': -1,  // Relative to F major
+  'G': -2,  // Relative to Bb major
+  'C': -3,  // Relative to Eb major
+  'F': -4,  // Relative to Ab major
+  'Bb': -5, // Relative to Db major
+  'Eb': -6, // Relative to Gb major
+  'Ab': -7, // Relative to Cb major
+};
+
+/**
+ * Order of sharps (for major keys)
+ */
+const SHARP_ORDER = ['F#', 'C#', 'G#', 'D#', 'A#', 'E#', 'B#'];
+
+/**
+ * Order of flats (for major keys)
+ */
+const FLAT_ORDER = ['Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb', 'Fb'];
+
+/**
  * Scale patterns defined by interval sequences
  * Each scale is an array of IntervalObjects from the root
  */
@@ -252,6 +310,7 @@ export function getScaleNotes(root: string, scale: string = 'major'): string[] {
 
 /**
  * Get the key signature (number of sharps or flats) for a given key
+ * OPTIMIZED v3.0: Uses Circle of Fifths lookup for O(1) performance
  * 
  * @param root - Root note of the key (e.g., 'C', 'F#', 'Bb')
  * @param scale - Scale type (default: 'major')
@@ -261,8 +320,48 @@ export function getScaleNotes(root: string, scale: string = 'major'): string[] {
  * getKeySignature('C', 'major') → { sharps: 0, flats: 0, accidentals: [] }
  * getKeySignature('D', 'major') → { sharps: 2, flats: 0, accidentals: ['F#', 'C#'] }
  * getKeySignature('Bb', 'major') → { sharps: 0, flats: 2, accidentals: ['Bb', 'Eb'] }
+ * getKeySignature('A', 'minor') → { sharps: 0, flats: 0, accidentals: [] }
+ * getKeySignature('E', 'minor') → { sharps: 1, flats: 0, accidentals: ['F#'] }
  */
 export function getKeySignature(root: string, scale: string = 'major'): { sharps: number; flats: number; accidentals: string[] } {
+  const cleanRoot = root.replace(/\d+$/, ''); // Remove octave if present
+  
+  // Determine which Circle of Fifths map to use
+  const isMinorVariant = scale === 'minor' || scale === 'harmonic-minor' || scale === 'melodic-minor-asc';
+  const circleMap = isMinorVariant ? CIRCLE_OF_FIFTHS_MINOR : CIRCLE_OF_FIFTHS_MAJOR;
+  
+  // Get position on Circle of Fifths
+  const position = circleMap[cleanRoot];
+  
+  // If not in map, fall back to scale generation method
+  if (position === undefined) {
+    console.warn(`Key ${cleanRoot} not in Circle of Fifths. Using scale analysis.`);
+    return getKeySignatureFromScale(cleanRoot, scale);
+  }
+  
+  // Calculate sharps or flats from position
+  if (position > 0) {
+    // Sharp keys
+    const accidentals = SHARP_ORDER.slice(0, position);
+    return { sharps: position, flats: 0, accidentals };
+  } else if (position < 0) {
+    // Flat keys
+    const numFlats = Math.abs(position);
+    const accidentals = FLAT_ORDER.slice(0, numFlats);
+    return { sharps: 0, flats: numFlats, accidentals };
+  } else {
+    // C major or A minor (no accidentals)
+    return { sharps: 0, flats: 0, accidentals: [] };
+  }
+}
+
+/**
+ * Fallback method: Get key signature by generating scale and counting accidentals
+ * Used for non-standard scales or keys not in Circle of Fifths map
+ * 
+ * @internal
+ */
+function getKeySignatureFromScale(root: string, scale: string): { sharps: number; flats: number; accidentals: string[] } {
   const scaleNotes = getScaleNotes(root, scale);
   
   const sharps: string[] = [];

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { Upload, FolderOpen, Plus, Music, Trash2, Image as ImageIcon } from 'lucide-react';
+import { Upload, FolderOpen, Plus, Music, Trash2, Image as ImageIcon } from '../../../components/icons/Icon';
+import { BravuraSymbols, toBravuraAccidental } from '../../../lib/bravuraUtils';
 import {
   Dialog,
   DialogContent,
@@ -50,9 +51,9 @@ interface CreateProjectDialogProps {
 
 const KEY_NAMES = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 const ACCIDENTALS = [
-  { value: 'natural', label: '♮' },
-  { value: 'sharp', label: '♯' },
-  { value: 'flat', label: '♭' },
+  { value: 'natural', label: BravuraSymbols.accidentalNatural },
+  { value: 'sharp', label: BravuraSymbols.accidentalSharp },
+  { value: 'flat', label: BravuraSymbols.accidentalFlat },
 ];
 const MODES = [
   'Major',
@@ -176,8 +177,8 @@ export function CreateProjectDialog({
     }
 
     const accidentalSymbol = 
-      accidental === 'sharp' ? '♯' : 
-      accidental === 'flat' ? '♭' : '';
+      accidental === 'sharp' ? BravuraSymbols.accidentalSharp : 
+      accidental === 'flat' ? BravuraSymbols.accidentalFlat : '';
     
     const fullKey = `${keyName}${accidentalSymbol} ${mode}`;
 
@@ -486,12 +487,12 @@ export function CreateProjectDialog({
                 </Select>
 
                 <Select value={accidental} onValueChange={setAccidental}>
-                  <SelectTrigger>
+                  <SelectTrigger className="music-notation">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {ACCIDENTALS.map((acc) => (
-                      <SelectItem key={acc.value} value={acc.value}>
+                      <SelectItem key={acc.value} value={acc.value} className="music-notation">
                         {acc.label}
                       </SelectItem>
                     ))}

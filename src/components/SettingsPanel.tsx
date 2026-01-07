@@ -1,5 +1,7 @@
 import React from 'react';
-import { Settings, Music, Languages, Sliders, Info } from 'lucide-react';
+import { Settings, Music, Languages, Sliders, Info } from './icons/Icon';
+import LogoLight from '../assets/brand/logo-icons/logo-application-light.svg';
+import LogoDark from '../assets/brand/logo-icons/logo-application-dark.svg';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -300,9 +302,16 @@ export function SettingsPanel() {
                </CardTitle>
            </CardHeader>
            <CardContent className="pt-4 space-y-3">
-                <div className="space-y-1">
-                  <p className="text-lg font-semibold">GoodMultitracks</p>
-                  <p className="text-sm text-gray-600">Professional Multi-Track Player</p>
+                <div className="flex items-center gap-3">
+                  <img 
+                    src={theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? LogoDark : LogoLight} 
+                    alt="GoodMultitracks Logo" 
+                    className="w-12 h-12"
+                  />
+                  <div className="space-y-1">
+                    <p className="text-lg font-semibold">GoodMultitracks</p>
+                    <p className="text-sm text-gray-600">Professional Multi-Track Player</p>
+                  </div>
                 </div>
                 <div className="space-y-1 text-sm">
                   <p className="flex justify-between">

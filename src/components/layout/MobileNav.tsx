@@ -1,5 +1,5 @@
 import React from 'react';
-import { Music, ListMusic, Settings, User, Play } from 'lucide-react';
+import { Music, ListMusic, Settings, User, Play } from '../icons/Icon';
 import { Button } from '../ui/button';
 
 interface MobileNavProps {
@@ -27,7 +27,7 @@ export function MobileNav({ activeTab, onTabChange }: MobileNavProps) {
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={`flex flex-col items-center gap-1 px-4 py-2 transition-colors ${
-                isActive ? 'text-blue-600' : 'text-gray-600'
+                isActive ? 'text-yellow-600' : 'text-gray-600'
               }`}
             >
               <Icon className={`w-5 h-5 ${isActive ? 'scale-110' : ''}`} />

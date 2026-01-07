@@ -1,5 +1,7 @@
 import React from 'react';
-import { Loader2, Music } from 'lucide-react';
+import { Loader2, Music } from '../icons/Icon';
+import LogoLight from '../../assets/brand/logo-icons/logo-application-light.svg';
+import LogoDark from '../../assets/brand/logo-icons/logo-application-dark.svg';
 
 interface LoadingScreenProps {
   progress?: number;
@@ -7,13 +9,19 @@ interface LoadingScreenProps {
 }
 
 export function LoadingScreen({ progress = 0, message = 'Loading...' }: LoadingScreenProps) {
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  
   return (
     <div className="fixed inset-0 bg-[#171717] flex items-center justify-center z-50">
       <div className="flex flex-col items-center gap-6 max-w-md w-full px-6">
         {/* Logo/Icon */}
         <div className="relative">
-          <Music className="w-16 h-16 text-blue-500" />
-          <Loader2 className="w-16 h-16 text-blue-400 animate-spin absolute inset-0" />
+          <img 
+            src={isDark ? LogoDark : LogoLight} 
+            alt="GoodMultitracks Logo" 
+            className="w-16 h-16"
+          />
+          <Loader2 className="w-16 h-16 text-yellow-400 animate-spin absolute inset-0" />
         </div>
 
         {/* App Name */}
@@ -27,7 +35,7 @@ export function LoadingScreen({ progress = 0, message = 'Loading...' }: LoadingS
           <div className="w-full space-y-2">
             <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
               <div
-                className="h-full bg-blue-500 transition-all duration-300 ease-out"
+                className="h-full bg-yellow-500 transition-all duration-300 ease-out"
                 style={{ width: `${progress}%` }}
               />
             </div>

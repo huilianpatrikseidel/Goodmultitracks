@@ -1,5 +1,5 @@
 import React from 'react';
-import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2 } from '../../../../components/icons/Icon';
 import { Button } from '../../../../components/ui/button';
 import {
   Tooltip,

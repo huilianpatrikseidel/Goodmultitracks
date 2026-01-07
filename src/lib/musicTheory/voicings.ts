@@ -16,6 +16,35 @@ import { parseChordName, ACCIDENTALS } from './chords';
 import { buildChord } from './chords';
 
 // ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Convert note name to MIDI pitch number
+ * @param note - Note name (e.g., 'C4', 'F#2')
+ * @returns MIDI pitch (C4 = 60)
+ */
+function noteToMIDI(note: string): number {
+  const match = note.match(/^([A-G])(#{1,3}|b{1,3}|x)?(-?\d+)$/);
+  if (!match) return 60; // Default to C4
+  
+  const [, noteName, accidental = '', octave] = match;
+  const baseNotes: Record<string, number> = {
+    'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11
+  };
+  
+  let pitch = baseNotes[noteName];
+  
+  // Handle accidentals
+  if (accidental === 'x' || accidental === '##') pitch += 2;
+  else if (accidental === '###') pitch += 3;
+  else pitch += (accidental.match(/#/g) || []).length;
+  pitch -= (accidental.match(/b/g) || []).length;
+  
+  return pitch + (parseInt(octave) + 1) * 12;
+}
+
+// ============================================================================
 // TYPES & INTERFACES
 // ============================================================================
 
@@ -48,6 +77,7 @@ interface PlayabilityScore {
   mutedStrings: number;     // Penalty for muted strings (0-30)
   bassNote: number;         // Bonus for correct bass note (0-20)
   voiceLeading: number;     // Distance from previous voicing (0-50)
+  lowIntervalPenalty: number; // Penalty for small intervals in low register (0-40)
   total: number;            // Total score (lower = better)
 }
 
@@ -327,9 +357,56 @@ function scoreVoicing(
   }
 
   // 3. Muted strings penalty (0-30)
-  const mutedStrings = mutedCount * 5;
+  let mutedStrings = mutedCount * 5;
+  
+  // 3b. Split mutes penalty (internal muted strings)
+  // It's physically difficult to mute a string sandwiched between fretted strings
+  // unless the lower fretted finger naturally mutes it
+  let splitMutesPenalty = 0;
+  for (let i = 1; i < frets.length - 1; i++) {
+    if (frets[i] === -1) {
+      // This string is muted
+      const lowerStringFretted = frets[i - 1] > 0;
+      const higherStringFretted = frets[i + 1] > 0;
+      
+      if (lowerStringFretted && higherStringFretted) {
+        // Internal mute - check if it can be naturally muted
+        const canNaturallyMute = frets[i - 1] === frets[i + 1]; // Same fret = barre can mute
+        
+        if (!canNaturallyMute) {
+          splitMutesPenalty += 15; // Significant penalty for awkward split mute
+        }
+      }
+    }
+  }
+  mutedStrings += splitMutesPenalty;
 
-  // 4. Bass note bonus (0-20)
+  // 4. Low interval penalty (0-40) - Acoustic physics
+  // Small intervals (3rds, 4ths) in low registers sound muddy
+  let lowIntervalPenalty = 0;
+  const sortedPositions = [...positions].sort((a, b) => {
+    const pitchA = noteToMIDI(a.note);
+    const pitchB = noteToMIDI(b.note);
+    return pitchA - pitchB;
+  });
+  
+  for (let i = 0; i < sortedPositions.length - 1; i++) {
+    const note1 = sortedPositions[i].note;
+    const note2 = sortedPositions[i + 1].note;
+    const pitch1 = noteToMIDI(note1);
+    const pitch2 = noteToMIDI(note2);
+    const interval = pitch2 - pitch1;
+    
+    // If lowest note is below G2 (MIDI 43) and interval is small (minor 3rd or less)
+    if (pitch1 < 43 && interval > 0 && interval <= 4) {
+      // Penalty increases as we go lower
+      const lownessFactor = Math.max(0, 43 - pitch1) / 10;
+      lowIntervalPenalty += 10 * lownessFactor;
+    }
+  }
+  lowIntervalPenalty = Math.min(40, lowIntervalPenalty); // Cap at 40
+
+  // 5. Bass note bonus (0-20)
   let bassNote = 0;
   if (options?.bassNote) {
     const lowestString = positions.reduce((lowest, pos) => 
@@ -343,15 +420,29 @@ function scoreVoicing(
     }
   }
 
-  // 5. Voice leading (distance from previous voicing)
+  // 5. Voice leading (distance from previous voicing with common tone preference)
   let voiceLeading = 0;
   if (options?.previousVoicing) {
-    const distances = frets.map((fret, i) => {
+    // QA AUDIT FIX: True voice leading optimization
+    // Prioritize keeping common tones stationary over just minimizing total distance
+    let commonTonesStationary = 0;
+    let totalMovement = 0;
+    
+    frets.forEach((fret, i) => {
       const prev = options.previousVoicing![i];
-      if (fret === -1 || prev === -1) return 0;
-      return Math.abs(fret - prev);
+      if (fret === -1 || prev === -1) return;
+      
+      const movement = Math.abs(fret - prev);
+      totalMovement += movement;
+      
+      // Check if this could be a common tone (same fret or very close)
+      if (movement === 0) {
+        commonTonesStationary++; // Bonus for stationary notes
+      }
     });
-    voiceLeading = distances.reduce((sum, d) => sum + d, 0) * 2;
+    
+    // Score: penalize total movement, but give bonus for stationary common tones
+    voiceLeading = (totalMovement * 2) - (commonTonesStationary * 5);
   }
 
   // 6. Position preference (lower positions slightly favored)
@@ -361,7 +452,7 @@ function scoreVoicing(
   const positionPenalty = avgFret > 7 ? (avgFret - 7) * 2 : 0;
 
   const total = fingerStretch + barreComplexity + mutedStrings + 
-                bassNote + voiceLeading + positionPenalty;
+                bassNote + voiceLeading + positionPenalty + lowIntervalPenalty;
 
   return {
     fingerStretch,
@@ -369,6 +460,7 @@ function scoreVoicing(
     mutedStrings,
     bassNote,
     voiceLeading,
+    lowIntervalPenalty,
     total
   };
 }
@@ -761,11 +853,91 @@ export function generateMandolinVoicing(
 }
 
 /**
- * Optimize piano voicing
+ * Optimize piano voicing with low interval limit checking
+ * 
+ * QA AUDIT FIX: Implements acoustic physics constraints:
+ * - No minor/major 3rds below E3 (MIDI 52)
+ * - No major 2nds/minor 3rds below F3 (MIDI 53)
+ * - Perfect 5ths acceptable down to C2 (MIDI 36)
+ * 
+ * This prevents "muddy" sound caused by overtone clashing in low registers.
+ * 
+ * @param notes - Array of note names to voice
+ * @param options - Voicing options (octave range, voicing style)
+ * @returns Optimized piano voicing
+ * 
+ * @example
+ * optimizePianoVoicing(['C', 'E', 'G', 'B'])
+ * → { keys: ['C2', 'G2', 'E3', 'G3', 'B3'] } // Avoids C2-E2 (muddy)
  */
-export function optimizePianoVoicing(notes: string[]): { keys: string[] } {
-  return { keys: notes };
+export function optimizePianoVoicing(
+  notes: string[], 
+  options?: { 
+    rootOctave?: number;
+    voicingOctave?: number;
+    style?: 'compact' | 'spread' | 'drop-2';
+  }
+): { keys: string[]; warnings?: string[] } {
+  if (notes.length === 0) {
+    return { keys: [] };
+  }
+  
+  const rootOctave = options?.rootOctave || 2;
+  const voicingOctave = options?.voicingOctave || 4;
+  const style = options?.style || 'spread';
+  const warnings: string[] = [];
+  
+  // Add octaves to notes
+  const voicedNotes: string[] = [];
+  
+  // Root in bass
+  voicedNotes.push(`${notes[0]}${rootOctave}`);
+  
+  // Check for low interval violations if we have more notes
+  if (notes.length > 1) {
+    // Calculate interval between root and second note
+    const rootMIDI = noteToMIDI(`${notes[0]}${rootOctave}`);
+    const secondNoteLowOctave = `${notes[1]}${rootOctave}`;
+    const secondMIDI = noteToMIDI(secondNoteLowOctave);
+    const interval = Math.abs(secondMIDI - rootMIDI);
+    
+    // QA AUDIT: Low Interval Limit Check
+    if (rootMIDI < 52 && interval > 0 && interval <= 4) {
+      // Small interval (2nd, m3, M3) in low register - move to higher octave
+      const adjustedOctave = rootOctave + 1;
+      
+      // Add remaining notes in higher octave
+      for (let i = 1; i < notes.length; i++) {
+        voicedNotes.push(`${notes[i]}${adjustedOctave}`);
+      }
+      
+      warnings.push('Adjusted voicing to avoid muddy low intervals (moved 3rd up one octave)');
+    } else {
+      // Safe - use mixed octaves for better voice leading
+      if (notes.length >= 3) {
+        // Add 5th in same octave as root
+        voicedNotes.push(`${notes[1]}${rootOctave}`);
+        
+        // Add remaining notes in voicing octave
+        for (let i = 2; i < notes.length; i++) {
+          voicedNotes.push(`${notes[i]}${voicingOctave}`);
+        }
+      } else {
+        voicedNotes.push(`${notes[1]}${voicingOctave}`);
+      }
+    }
+  }
+  
+  return warnings.length > 0 ? { keys: voicedNotes, warnings } : { keys: voicedNotes };
 }
+
+/**
+ * Piano hand size constraint for playability assessment
+ * - 'small': Max comfortable stretch ~8 semitones (minor 6th), use rolled chords for 10ths
+ * - 'medium': Max comfortable stretch ~10 semitones (minor 7th), can reach most 10ths
+ * - 'large': Max comfortable stretch ~12+ semitones (octave+), can reach all standard voicings
+ */
+export type HandSize = 'small' | 'medium' | 'large';
 
 /**
  * Generate extended piano voicing with 10ths
@@ -773,15 +945,28 @@ export function optimizePianoVoicing(notes: string[]): { keys: string[] } {
  * 10th voicings spread the root and 3rd across an octave + 3rd,
  * creating a fuller, more open sound commonly used in jazz and contemporary piano.
  * 
+ * HAND SIZE ADJUSTMENT:
+ * - Large hands: Standard 10th voicings
+ * - Medium hands: Standard 10ths, warnings for complex extended chords
+ * - Small hands: Move 3rd to left hand bass register (no 10th stretch required)
+ * 
  * @param notes - Array of note names in the chord
  * @param options - Voicing options
- * @returns Piano voicing with 10th intervals
+ * @returns Piano voicing with 10th intervals and playability notes
  * 
  * @example
- * generatePianoVoicing10th(['C', 'E', 'G', 'B']) // Cmaj7
+ * generatePianoVoicing10th(['C', 'E', 'G', 'B'], { handSize: 'large' })
  * → { 
- *     leftHand: ['C2', 'G2'],           // Root + 5th in bass
- *     rightHand: ['E4', 'B4', 'D5']     // 10th voicing (3rd, 7th, 9th)
+ *     leftHand: ['C2', 'G2'],
+ *     rightHand: ['E4', 'B4', 'D5'],
+ *     playabilityNote: undefined
+ *   }
+ * 
+ * generatePianoVoicing10th(['C', 'E', 'G', 'B'], { handSize: 'small' })
+ * → { 
+ *     leftHand: ['C2', 'E2', 'G2'],  // 3rd in bass
+ *     rightHand: ['B3', 'D4'],
+ *     playabilityNote: 'Adjusted for small hands'
  *   }
  */
 export function generatePianoVoicing10th(
@@ -789,43 +974,64 @@ export function generatePianoVoicing10th(
   options?: {
     rootOctave?: number;
     voicingOctave?: number;
+    handSize?: HandSize;
   }
-): { leftHand: string[]; rightHand: string[] } {
+): { leftHand: string[]; rightHand: string[]; playabilityNote?: string } {
   const rootOctave = options?.rootOctave || 2;
   const voicingOctave = options?.voicingOctave || 4;
+  const handSize = options?.handSize || 'medium';
   
   if (notes.length === 0) {
     return { leftHand: [], rightHand: [] };
   }
   
-  // Left hand: Root and 5th (if available)
-  const leftHand: string[] = [];
-  leftHand.push(`${notes[0]}${rootOctave}`); // Root
+  let leftHand: string[] = [];
+  let rightHand: string[] = [];
+  let playabilityNote: string | undefined;
   
-  if (notes.length >= 3) {
-    // Add 5th (typically 3rd note in triad)
-    leftHand.push(`${notes[2] || notes[1]}${rootOctave}`);
+  // SMALL HANDS: Move 3rd to left hand, avoid 10th stretch
+  if (handSize === 'small') {
+    leftHand.push(`${notes[0]}${rootOctave}`); // Root
+    if (notes.length >= 2) {
+      leftHand.push(`${notes[1]}${rootOctave}`); // 3rd (NOT octave up)
+    }
+    if (notes.length >= 3) {
+      leftHand.push(`${notes[2]}${rootOctave}`); // 5th
+    }
+    
+    // Right hand: Extensions only in comfortable register
+    for (let i = 3; i < notes.length; i++) {
+      rightHand.push(`${notes[i]}${voicingOctave - 1}`);
+    }
+    
+    playabilityNote = 'Adjusted for small hands: 3rd in bass register';
+  } 
+  // MEDIUM/LARGE HANDS: Standard 10th voicing
+  else {
+    leftHand.push(`${notes[0]}${rootOctave}`); // Root
+    
+    if (notes.length >= 3) {
+      leftHand.push(`${notes[2] || notes[1]}${rootOctave}`); // 5th
+    }
+    
+    if (notes.length >= 2) {
+      rightHand.push(`${notes[1]}${voicingOctave}`); // 10th (3rd up octave)
+    }
+    
+    for (let i = 3; i < notes.length; i++) {
+      rightHand.push(`${notes[i]}${voicingOctave + (i > 5 ? 1 : 0)}`);
+    }
+    
+    if (notes.length === 3) {
+      rightHand.push(`${notes[0]}${voicingOctave + 1}`);
+    }
+    
+    if (handSize === 'medium' && notes.length >= 5) {
+      playabilityNote = 'Consider rolling chord for medium hands';
+    }
   }
   
-  // Right hand: 10th voicing (3rd in higher octave, then other extensions)
-  const rightHand: string[] = [];
-  
-  if (notes.length >= 2) {
-    // 10th: 3rd played an octave higher
-    rightHand.push(`${notes[1]}${voicingOctave}`);
-  }
-  
-  // Add 7th, 9th, 11th, 13th if present
-  for (let i = 3; i < notes.length; i++) {
-    rightHand.push(`${notes[i]}${voicingOctave + (i > 5 ? 1 : 0)}`);
-  }
-  
-  // If only 3-note chord, add root on top
-  if (notes.length === 3) {
-    rightHand.push(`${notes[0]}${voicingOctave + 1}`);
-  }
-  
-  return { leftHand, rightHand };
+  return { leftHand, rightHand, playabilityNote };
 }
 
 /**

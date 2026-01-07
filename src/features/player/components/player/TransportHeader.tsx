@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, ChevronDown, Play, Pause, Square, Download } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Play, Pause, Square, Download } from '../../../../components/icons/Icon';
 import { MetronomeIcon, SnapGridIcon, LoopIcon, WorkspaceIcon, MarkerEditorIcon, WarpGridIcon, PlayerModeIcon } from '../../../../components/icons/CustomIcons';
 import { Button } from '../../../../components/ui/button';
 import { Slider } from '../../../../components/ui/slider';

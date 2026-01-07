@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Play } from 'lucide-react';
+import { X, Play } from './icons/Icon';
 import { useLanguage } from '../lib/LanguageContext';
 import { playGuitarChord } from '../lib/chordPlayback';
 import { Button } from './ui/button';

@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { Play } from 'lucide-react';
+import { Play } from './icons/Icon';
 import { useLanguage } from '../lib/LanguageContext';
 import { ScrollArea } from './ui/scroll-area';
 import { playChord } from '../lib/chordPlayback';

@@ -5,8 +5,9 @@
  * Handles chord generation, parsing, and naming using interval-based definitions.
  */
 
-import { INTERVAL_DEFINITIONS, IntervalObject } from './core';
+import { INTERVAL_DEFINITIONS, IntervalObject, areNotesEnharmonic } from './core';
 import { transposeNote } from './transposition';
+import { BravuraSymbols } from '../bravuraUtils';
 
 /**
  * CHORD INTERVAL DEFINITIONS
@@ -21,16 +22,20 @@ export const CHORD_INTERVALS: Record<string, IntervalObject[]> = {
   'aug': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M3, INTERVAL_DEFINITIONS.A5],
   'sus2': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M2, INTERVAL_DEFINITIONS.P5],
   'sus4': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.P4, INTERVAL_DEFINITIONS.P5],
+  '7sus2': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M2, INTERVAL_DEFINITIONS.P5, INTERVAL_DEFINITIONS.m7],
+  '7sus4': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.P4, INTERVAL_DEFINITIONS.P5, INTERVAL_DEFINITIONS.m7],
   
   // Seventh Chords
   '7': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M3, INTERVAL_DEFINITIONS.P5, INTERVAL_DEFINITIONS.m7],
   'maj7': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M3, INTERVAL_DEFINITIONS.P5, INTERVAL_DEFINITIONS.M7],
   'm7': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.m3, INTERVAL_DEFINITIONS.P5, INTERVAL_DEFINITIONS.m7],
+  // QA AUDIT NOTE: dim7 uses diminished 7th interval (9 semitones)
+  // For Cdim7: C, Eb, Gb, Bbb (NOT A) - theoretically correct double flat
+  // The transposeNote function maintains proper enharmonic spelling (Bbb vs A)
   'dim7': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.m3, INTERVAL_DEFINITIONS.d5, INTERVAL_DEFINITIONS.dim7],
   'm7b5': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.m3, INTERVAL_DEFINITIONS.d5, INTERVAL_DEFINITIONS.m7],
   'aug7': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M3, INTERVAL_DEFINITIONS.A5, INTERVAL_DEFINITIONS.m7],
   'mMaj7': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.m3, INTERVAL_DEFINITIONS.P5, INTERVAL_DEFINITIONS.M7],
-  '7sus4': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.P4, INTERVAL_DEFINITIONS.P5, INTERVAL_DEFINITIONS.m7],
   
   // Extended Chords (9ths)
   '9': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M3, INTERVAL_DEFINITIONS.P5, INTERVAL_DEFINITIONS.m7, INTERVAL_DEFINITIONS['9']],
@@ -40,11 +45,24 @@ export const CHORD_INTERVALS: Record<string, IntervalObject[]> = {
   '7#9': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M3, INTERVAL_DEFINITIONS.P5, INTERVAL_DEFINITIONS.m7, INTERVAL_DEFINITIONS['#9']],
   
   // Extended Chords (11ths)
-  '11': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M3, INTERVAL_DEFINITIONS.P5, INTERVAL_DEFINITIONS.m7, INTERVAL_DEFINITIONS['9'], INTERVAL_DEFINITIONS['11']],
+  // NOTE: Major 11th chords omit the 3rd to avoid M3+P11 clash (minor 9th interval)
+  // The P11 against M3 creates extreme dissonance. Standard practice uses #11 or omits 3rd.
+  '11': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.P5, INTERVAL_DEFINITIONS.m7, INTERVAL_DEFINITIONS['9'], INTERVAL_DEFINITIONS['11']], // Omit M3
+  '11(no3)': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.P5, INTERVAL_DEFINITIONS.m7, INTERVAL_DEFINITIONS['9'], INTERVAL_DEFINITIONS['11']],
   'm11': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.m3, INTERVAL_DEFINITIONS.P5, INTERVAL_DEFINITIONS.m7, INTERVAL_DEFINITIONS['9'], INTERVAL_DEFINITIONS['11']],
   '7#11': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M3, INTERVAL_DEFINITIONS.P5, INTERVAL_DEFINITIONS.m7, INTERVAL_DEFINITIONS['#11']],
   'maj7#11': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M3, INTERVAL_DEFINITIONS.P5, INTERVAL_DEFINITIONS.M7, INTERVAL_DEFINITIONS['#11']],
-  'alt': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M3, INTERVAL_DEFINITIONS.d5, INTERVAL_DEFINITIONS.m7, INTERVAL_DEFINITIONS.b9],
+  'maj11': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M3, INTERVAL_DEFINITIONS.P5, INTERVAL_DEFINITIONS.M7, INTERVAL_DEFINITIONS['9'], INTERVAL_DEFINITIONS['#11']], // Use #11 for major
+  
+  // Altered Dominant (7alt) - Super Locrian scale
+  // The Altered Scale permits ANY combination of: b5/#5 AND b9/#9
+  // These are the most common voicing variations:
+  'alt': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M3, INTERVAL_DEFINITIONS.d5, INTERVAL_DEFINITIONS.m7, INTERVAL_DEFINITIONS.b9], // Default: 7b5b9
+  '7alt': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M3, INTERVAL_DEFINITIONS.d5, INTERVAL_DEFINITIONS.m7, INTERVAL_DEFINITIONS.b9], // Alias
+  '7b5b9': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M3, INTERVAL_DEFINITIONS.d5, INTERVAL_DEFINITIONS.m7, INTERVAL_DEFINITIONS.b9], // Explicit
+  '7#5#9': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M3, INTERVAL_DEFINITIONS.A5, INTERVAL_DEFINITIONS.m7, INTERVAL_DEFINITIONS['#9']], // Hendrix chord
+  '7b5#9': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M3, INTERVAL_DEFINITIONS.d5, INTERVAL_DEFINITIONS.m7, INTERVAL_DEFINITIONS['#9']], // Hybrid voicing
+  '7#5b9': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M3, INTERVAL_DEFINITIONS.A5, INTERVAL_DEFINITIONS.m7, INTERVAL_DEFINITIONS.b9], // Hybrid voicing
   
   // Extended Chords (13ths)
   '13': [INTERVAL_DEFINITIONS.P1, INTERVAL_DEFINITIONS.M3, INTERVAL_DEFINITIONS.P5, INTERVAL_DEFINITIONS.m7, INTERVAL_DEFINITIONS['9'], INTERVAL_DEFINITIONS['13']],
@@ -144,6 +162,46 @@ export function buildChordWithBass(root: string, quality: string = '', bassNote:
 }
 
 /**
+ * BUILD VOICED CHORD v3.0
+ * Builds a chord and automatically rotates it so the bass note is at index 0.
+ * This is the correct implementation for slash chords where the bass note
+ * should be the lowest note in the voicing.
+ * 
+ * @param root - Root note of the chord (e.g., 'C', 'F#', 'Bb')
+ * @param quality - Chord quality/extension (e.g., '', 'm', '7', 'maj7', 'dim7')
+ * @param bassNote - Bass note for inversions (e.g., 'E' for C/E)
+ * @returns Array of notes with bass note at index 0
+ * 
+ * @example
+ * buildVoicedChord('C', '', 'E') → ['E', 'G', 'C'] (1st inversion)
+ * buildVoicedChord('C', '', 'G') → ['G', 'C', 'E'] (2nd inversion)
+ * buildVoicedChord('Am7', 'm7', 'G') → ['G', 'A', 'C', 'E']
+ * buildVoicedChord('C', '7', 'Bb') → ['Bb', 'C', 'E', 'G']
+ */
+export function buildVoicedChord(root: string, quality: string = '', bassNote?: string): string[] {
+  const notes = buildChord(root, quality);
+  
+  // If no bass note specified, return root position
+  if (!bassNote) return notes;
+  
+  // Find the bass note in the chord (check for enharmonic equivalents)
+  const bassIndex = notes.findIndex(note => {
+    const cleanNote = note.replace(/\\d+$/, '');
+    const cleanBass = bassNote.replace(/\\d+$/, '');
+    return cleanNote === cleanBass || areNotesEnharmonic(cleanNote, cleanBass);
+  });
+  
+  // If bass note not found in chord, just add it at the beginning
+  if (bassIndex === -1) {
+    console.warn(`Bass note ${bassNote} not found in ${root}${quality}. Adding to voicing.`);
+    return [bassNote, ...notes];
+  }
+  
+  // Rotate array so bass note is at index 0
+  return [...notes.slice(bassIndex), ...notes.slice(0, bassIndex)];
+}
+
+/**
  * BUILD CHORD (Legacy - Array Return)
  * @deprecated Use buildChord which now returns arrays by default
  * Kept for backward compatibility
@@ -167,9 +225,9 @@ export interface ParsedChord {
  * Constants for chord parsing/generation
  */
 export const ACCIDENTALS = [
-  { value: 'natural', label: 'Natural', symbol: '' }, 
-  { value: 'sharp', label: '♯ (Sharp)', symbol: '#' },
-  { value: 'flat', label: '♭ (Flat)', symbol: 'b' },
+  { value: 'natural', label: BravuraSymbols.accidentalNatural, symbol: '' }, 
+  { value: 'sharp', label: BravuraSymbols.accidentalSharp, symbol: '#' },
+  { value: 'flat', label: BravuraSymbols.accidentalFlat, symbol: 'b' },
 ];
 
 export const QUALITIES = [
@@ -194,20 +252,54 @@ export const EXTENSIONS = [
 ];
 
 /**
+ * Parsed chord components
+ */
+export interface ParsedChord {
+  root: string;
+  accidental: string;
+  quality: string;
+  extension: string;
+  bassNote: string;
+  isPolychord?: boolean; // True if slash indicates upper structure, not just bass
+  upperChord?: ParsedChord; // If polychord, parsed upper chord
+}
+
+/**
  * Parse a chord name into its components
- * @example parseChordName('Am7/G') → { root: 'A', accidental: 'natural', quality: 'minor', extension: '7', bassNote: 'G' }
+ * Now distinguishes between slash chords (single bass note) and polychords (chord over chord)
+ * 
+ * @example parseChordName('Am7/G') → { root: 'A', quality: 'minor', extension: '7', bassNote: 'G', isPolychord: false }
+ * @example parseChordName('D/C') → { root: 'D', bassNote: 'C', isPolychord: true, upperChord: {...} }
  */
 export const parseChordName = (chordName: string = ''): ParsedChord => {
   if (!chordName) {
-    return { root: 'C', accidental: 'natural', quality: 'major', extension: 'none', bassNote: '' };
+    return { root: 'C', accidental: 'natural', quality: 'major', extension: 'none', bassNote: '', isPolychord: false };
   }
 
-  // Separate bass note (e.g., "Am7/G")
+  // Separate bass/upper part (e.g., "Am7/G" or "D/C")
   const [mainChord, bassPart] = chordName.split('/');
-  const bassNote = bassPart || '';
+  let bassNote = bassPart || '';
+  let isPolychord = false;
+  let upperChord: ParsedChord | undefined;
+  
+  // Check if bassPart is a chord (polychord) or just a note (slash chord)
+  if (bassPart) {
+    const chordRegex = /^([A-G])([#b]?)(maj|m|min|dim|aug|sus2|sus4)?(13|11|9|7|6|add9|maj9|maj7)?(.*)$/;
+    const bassMatch = bassPart.match(chordRegex);
+    
+    // If it has a quality suffix or extension, it's a polychord
+    if (bassMatch && (bassMatch[3] || bassMatch[4])) {
+      isPolychord = true;
+      upperChord = parseChordName(bassPart); // Recursive parse
+    } else {
+      // Just a single note - slash chord
+      bassNote = bassPart;
+    }
+  }
 
   // Robust regex to parse main chord
-  const chordRegex = /^([A-G])([#b]?)(maj|m|min|dim|aug|sus2|sus4)?(13|11|9|7|6|add9|maj9|maj7)?(.*)$/;
+  // Enhanced to handle "C2" as sus2 (Nashville Number System notation)
+  const chordRegex = /^([A-G])([#b]?)(2|maj|m|min|dim|aug|sus2|sus4)?(13|11|9|7|6|add9|maj9|maj7)?(.*)$/;
   const match = mainChord.match(chordRegex);
 
   if (match) {
@@ -220,7 +312,7 @@ export const parseChordName = (chordName: string = ''): ParsedChord => {
     if (qualSuffix === 'm' || qualSuffix === 'min') quality = 'minor';
     else if (qualSuffix === 'dim') quality = 'diminished';
     else if (qualSuffix === 'aug') quality = 'augmented';
-    else if (qualSuffix === 'sus2') quality = 'sus2';
+    else if (qualSuffix === 'sus2' || qualSuffix === '2') quality = 'sus2'; // "C2" maps to sus2
     else if (qualSuffix === 'sus4') quality = 'sus4';
     else if (qualSuffix === 'maj' && !extSuffix?.startsWith('maj')) quality = 'major';
 
@@ -235,10 +327,10 @@ export const parseChordName = (chordName: string = ''): ParsedChord => {
     else if (extSuffix === '6') extension = '6';
     else if (extSuffix === 'add9') extension = 'add9';
 
-    return { root, accidental, quality, extension, bassNote };
+    return { root, accidental, quality, extension, bassNote, isPolychord, upperChord };
   } else {
     console.warn("Could not parse chord name accurately:", chordName);
-    return { root: chordName[0] || 'C', accidental: 'natural', quality: 'major', extension: 'none', bassNote: '' };
+    return { root: chordName[0] || 'C', accidental: 'natural', quality: 'major', extension: 'none', bassNote: '', isPolychord: false };
   }
 };
 

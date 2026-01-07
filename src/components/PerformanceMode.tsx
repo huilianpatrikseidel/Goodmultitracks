@@ -9,7 +9,7 @@ import {
   X,
   Music2,
   Repeat,
-} from 'lucide-react';
+} from './icons/Icon';
 import { Button } from './ui/button';
 import { Slider } from './ui/slider';
 import { Song } from '../types';
@@ -342,7 +342,7 @@ export function PerformanceMode({ song, onClose }: PerformanceModeProps) {
                     className={`w-4 h-4 rounded-full transition-all duration-100 ${
                       isActive
                         ? isFirstBeat
-                          ? 'bg-blue-500 scale-150 shadow-lg shadow-blue-500/50'
+                          ? 'bg-yellow-500 scale-150 shadow-lg shadow-yellow-500/50'
                           : 'bg-gray-400 scale-125 shadow-md shadow-gray-400/50'
                         : 'bg-gray-700'
                     }`}
@@ -380,7 +380,7 @@ export function PerformanceMode({ song, onClose }: PerformanceModeProps) {
                   onClick={() => handleSectionClick(marker)}
                   className={`absolute -translate-x-1/2 px-2 py-1 text-xs rounded transition-all hover:scale-110 ${
                     isActive 
-                      ? 'bg-blue-600 text-white' 
+                      ? 'bg-yellow-600 text-white' 
                       : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                   }`}
                   style={{ left: `${position}%`, bottom: 0 }}
@@ -436,8 +436,8 @@ export function PerformanceMode({ song, onClose }: PerformanceModeProps) {
             size="icon"
             className={`w-24 h-24 rounded-full ${
               isPlaying 
-                ? 'bg-green-500 text-white hover:bg-green-600' 
-                : 'bg-green-800 text-white hover:bg-green-700'
+                ? 'bg-yellow-500 text-white hover:bg-yellow-600' 
+                : 'bg-yellow-800 text-white hover:bg-yellow-700'
             }`}
             onClick={() => playbackActions.togglePlayPause()}
           >
@@ -484,7 +484,7 @@ export function PerformanceMode({ song, onClose }: PerformanceModeProps) {
                   playbackActions.setLoopStart(null);
                   playbackActions.setLoopEnd(null);
                 }}
-                className="gap-2 border-green-600 text-green-500 hover:bg-green-900"
+                className="gap-2 border-yellow-600 text-yellow-500 hover:bg-yellow-900"
               >
                 <Repeat className="w-4 h-4" />
                 Loop: {formatTime(loopStart)} - {formatTime(loopEnd)}
@@ -499,7 +499,7 @@ export function PerformanceMode({ song, onClose }: PerformanceModeProps) {
                   size="icon"
                   className={`w-10 h-10 ${
                     metronomeEnabled 
-                      ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700' 
+                      ? 'bg-yellow-600 border-yellow-600 text-white hover:bg-yellow-700' 
                       : 'border-white text-white hover:bg-gray-800'
                   }`}
                 >

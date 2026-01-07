@@ -22,7 +22,7 @@ import {
   StickyNote,
   X,
   GripVertical,
-} from 'lucide-react';
+} from '../../../components/icons/Icon';
 import { transposeKey } from '../../../lib/musicTheory';
 import { PlayerViewSettings } from '../../../components/PlayerViewSettings';
 import { PlaybackControls } from '../../../components/PlaybackControls';

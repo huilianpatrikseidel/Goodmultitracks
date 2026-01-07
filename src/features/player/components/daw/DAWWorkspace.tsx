@@ -1,5 +1,5 @@
 import React from 'react';
-import { X } from 'lucide-react';
+import { X } from '../../../../components/icons/Icon';
 import { RulerSidebarHeaders } from '../player/RulerSidebarHeaders';
 import { RulersContainer } from '../player/RulersContainer';
 import { TrackListSidebar } from '../../../../components/TrackListSidebar';

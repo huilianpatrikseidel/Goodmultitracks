@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { GripVertical } from 'lucide-react';
+import { GripVertical } from '../../../../components/icons/Icon';
 import { TIMELINE } from '../../../../config/constants';
 
 interface RulerSidebarHeadersProps {

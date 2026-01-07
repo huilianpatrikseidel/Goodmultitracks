@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tag } from 'lucide-react';
+import { Tag } from './icons/Icon';
 import { Button } from './ui/button';
 import { TrackTag, TRACK_TAG_HIERARCHY } from '../types';
 import {

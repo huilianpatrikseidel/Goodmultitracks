@@ -1,0 +1,114 @@
+/**
+ * Bravura Music Font - SMuFL compliant music notation font
+ * Version: 1.392 (master branch)
+ * Copyright © Steinberg Media Technologies GmbH
+ * Licensed under SIL Open Font License 1.1
+ * https://github.com/steinbergmedia/bravura
+ * 
+ * Arquivos locais em: src/fonts/bravura/
+ */
+
+@font-face {
+  font-family: 'Bravura';
+  src: url('../../fonts/bravura/Bravura.woff2') format('woff2'),
+       url('../../fonts/bravura/Bravura.woff') format('woff'),
+       url('../../fonts/bravura/Bravura.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'BravuraText';
+  src: url('../../fonts/bravura/BravuraText.woff2') format('woff2'),
+       url('../../fonts/bravura/BravuraText.woff') format('woff'),
+       url('../../fonts/bravura/BravuraText.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Utility class for music notation elements */
+.music-notation {
+  font-family: 'Bravura', serif;
+  font-feature-settings: 'liga', 'calt';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.music-text {
+  font-family: 'BravuraText', serif;
+  font-feature-settings: 'liga', 'calt';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Common music symbols with Bravura */
+.sharp-symbol::before {
+  content: '\E262';
+  font-family: 'Bravura', serif;
+}
+
+.flat-symbol::before {
+  content: '\E260';
+  font-family: 'Bravura', serif;
+}
+
+.natural-symbol::before {
+  content: '\E261';
+  font-family: 'Bravura', serif;
+}
+
+.double-sharp::before {
+  content: '\E263';
+  font-family: 'Bravura', serif;
+}
+
+.double-flat::before {
+  content: '\E264';
+  font-family: 'Bravura', serif;
+}
+
+/* Time signatures */
+.time-signature {
+  font-family: 'Bravura', serif;
+  font-size: 1.5em;
+  line-height: 1;
+}
+
+/* Clefs */
+.treble-clef::before {
+  content: '\E050';
+  font-family: 'Bravura', serif;
+}
+
+.bass-clef::before {
+  content: '\E062';
+  font-family: 'Bravura', serif;
+}
+
+.alto-clef::before {
+  content: '\E05C';
+  font-family: 'Bravura', serif;
+}
+
+/* Note symbols */
+.quarter-note::before {
+  content: '\E1D5';
+  font-family: 'Bravura', serif;
+}
+
+.half-note::before {
+  content: '\E1D3';
+  font-family: 'Bravura', serif;
+}
+
+.whole-note::before {
+  content: '\E1D2';
+  font-family: 'Bravura', serif;
+}
+
+.eighth-note::before {
+  content: '\E1D7';
+  font-family: 'Bravura', serif;
+}

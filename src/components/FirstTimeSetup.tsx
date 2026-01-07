@@ -11,7 +11,7 @@ import {
 } from './ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { TrackTag, TRACK_TAG_HIERARCHY } from '../types';
-import { Music, Guitar, Mic } from 'lucide-react';
+import { Music, Guitar, Mic } from './icons/Icon';
 
 interface FirstTimeSetupProps {
   onComplete: (selectedInstruments: TrackTag[], mainInstrument: TrackTag) => void;
@@ -137,7 +137,7 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps) {
           <Button
             onClick={handleComplete}
             disabled={!canComplete}
-            className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-neutral-700 text-white"
+            className="w-full bg-yellow-500 hover:bg-yellow-600 disabled:bg-neutral-700 text-white"
             size="lg"
           >
             Get Started

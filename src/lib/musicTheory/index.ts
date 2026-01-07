@@ -22,6 +22,7 @@ export {
   INTERVAL_DEFINITIONS,
   parseNoteComponents,
   getAccidentalString,
+  calculateInterval,
   noteToSemitone,
   areNotesEnharmonic,
   type IntervalObject,
@@ -39,6 +40,7 @@ export {
   buildChord,
   buildChordArray,
   buildChordWithBass,
+  buildVoicedChord,
   parseChordName,
   generateChordName,
   ACCIDENTALS,
@@ -69,9 +71,12 @@ export {
   getNoteValueFromDenominator,
   analyzeTimeSignature,
   getSubdivisionPresets,
+  generateRhythmicPartitions,
   type TimeSignatureType,
   type TimeSignatureInfo,
   type NoteValue,
+  type TempoInterpretation,
+  type GroupingStrategy,
 } from './timeSignatures';
 
 // Voicing exports
@@ -89,14 +94,18 @@ export {
   BASS_TUNINGS,
   BANJO_TUNINGS,
   MANDOLIN_TUNINGS,
+  type HandSize,
 } from './voicings';
 
 // Analysis exports
 export {
   getRomanNumeral,
   getInterval,
+  getIntervalBetweenNotes,
   isChordDiatonic,
   getEnharmonicEquivalent,
+  identifyChord,
+  validateSlashChord,
   // Phase 3.2 - Advanced Analysis
   analyzeChordFunction,
   isBorrowedChord,
@@ -106,11 +115,14 @@ export {
   type ChordFunctionAnalysis,
   type BorrowedChordInfo,
   type SecondaryDominantInfo,
+  type ChordIdentification,
 } from './analysis';
 
 // Rhythm exports
 export {
   getMetronomeBeatPositions,
+  getMetronomeClickStructure,
   getAccentLevel,
   getSubdivisionsPerBeat,
+  type MetronomeClickStructure,
 } from './rhythm';

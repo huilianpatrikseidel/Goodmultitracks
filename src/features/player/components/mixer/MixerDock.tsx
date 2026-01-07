@@ -1,5 +1,5 @@
 import React from 'react';
-import { X } from 'lucide-react';
+import { X } from '../../../../components/icons/Icon';
 import { Button } from '../../../../components/ui/button';
 import { Slider } from '../../../../components/ui/slider';
 import { AudioTrack } from '../../../../types';

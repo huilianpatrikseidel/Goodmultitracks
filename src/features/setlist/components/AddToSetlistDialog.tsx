@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, ListMusic, Download, Search } from 'lucide-react';
+import { Plus, ListMusic, Download, Search } from '../../../components/icons/Icon';
 import {
   Dialog,
   DialogContent,
@@ -124,7 +124,7 @@ export function AddToSetlistDialog({
                             </div>
                           </div>
                           {isAlreadyInSetlist ? (
-                            <Badge variant="outline" className="text-green-600 border-green-600">
+                            <Badge variant="outline" className="text-yellow-600 border-yellow-600">
                               Added
                             </Badge>
                           ) : (

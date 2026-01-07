@@ -1,5 +1,5 @@
 import React from 'react';
-import { PanelLeftClose, PanelLeft, Sliders, StickyNote, Maximize2 } from 'lucide-react';
+import { PanelLeftClose, PanelLeft, Sliders, StickyNote, Maximize2 } from '../../../../components/icons/Icon';
 import { Button } from '../../../../components/ui/button';
 import {
   Popover,

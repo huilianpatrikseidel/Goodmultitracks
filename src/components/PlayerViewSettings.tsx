@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, GripVertical } from 'lucide-react';
+import { Eye, EyeOff, GripVertical } from './icons/Icon';
 import { ViewSettingsIcon } from './icons/CustomIcons';
 import { useLanguage } from '../lib/LanguageContext';
 import { Button } from './ui/button';
@@ -209,7 +209,7 @@ export function PlayerViewSettings({
                     'flex items-center justify-between p-2 rounded transition-all',
                     onRulerOrderChange && 'cursor-move',
                     draggedRulerId === ruler.id ? 'opacity-50 scale-95' : 'opacity-100',
-                    dropTargetId === ruler.id && draggedRulerId !== ruler.id && 'bg-blue-500/30'
+                    dropTargetId === ruler.id && draggedRulerId !== ruler.id && 'bg-yellow-500/30'
                   )}
                   style={{ backgroundColor: 'var(--daw-control)' }}
                 >

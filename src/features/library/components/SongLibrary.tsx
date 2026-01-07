@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Music, Upload, ListPlus, Plus, SortAsc, SortDesc, ArrowDownAZ, ArrowUpAZ, Clock, View, List, Grid, ImageOff } from 'lucide-react';
+import { Search, Music, Upload, ListPlus, Plus, SortAsc, SortDesc, ArrowDownAZ, ArrowUpAZ, Clock, View, List, Grid, ImageOff } from '../../../components/icons/Icon';
 import { Input } from '../../../components/ui/input';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent } from '../../../components/ui/card';
@@ -125,7 +125,7 @@ export function SongLibrary({
 
   // ---- Componentes de Renderização (Sem alteração) ----
   const renderSongCardImage = (song: Song) => (
-    <Card key={song.id} className={cn("cursor-pointer transition-all hover:shadow-md overflow-hidden", selectedSongId === song.id ? 'ring-2 ring-blue-500' : '')} onClick={() => onSongSelect(song)}>
+    <Card key={song.id} className={cn("cursor-pointer transition-all hover:shadow-md overflow-hidden", selectedSongId === song.id ? 'ring-2 ring-yellow-500' : '')} onClick={() => onSongSelect(song)}>
       {song.thumbnailUrl ? (<div className="aspect-video w-full bg-gray-200"><img src={song.thumbnailUrl} alt={song.title} className="w-full h-full object-cover"/></div>) : (<div className="aspect-video w-full bg-gray-100 flex items-center justify-center text-gray-400"><Music className="w-12 h-12" /></div>)}
       <CardContent className="p-4 space-y-2">
         <div><h3 className="truncate font-medium">{song.title}</h3><p className="text-sm text-gray-600 truncate">{song.artist}</p></div>
@@ -135,7 +135,7 @@ export function SongLibrary({
     </Card>
   );
   const renderSongCardCompact = (song: Song) => (
-      <Card key={song.id} className={cn("cursor-pointer transition-all hover:shadow-md", selectedSongId === song.id ? 'ring-2 ring-blue-500' : '')} onClick={() => onSongSelect(song)}>
+      <Card key={song.id} className={cn("cursor-pointer transition-all hover:shadow-md", selectedSongId === song.id ? 'ring-2 ring-yellow-500' : '')} onClick={() => onSongSelect(song)}>
         <CardContent className="p-3 space-y-1.5">
           <div><h3 className="truncate font-medium text-sm">{song.title}</h3><p className="text-xs text-gray-500 truncate">{song.artist}</p></div>
           <div className="flex items-center gap-1.5 text-xs text-gray-500 flex-wrap"><Badge variant="secondary" className="px-1.5 py-0.5 text-[10px]">{song.key}</Badge><Badge variant="secondary" className="px-1.5 py-0.5 text-[10px]">{song.tempo} BPM</Badge><Badge variant="secondary" className="px-1.5 py-0.5 text-[10px]">{formatDuration(song.duration)}</Badge></div>
@@ -144,7 +144,7 @@ export function SongLibrary({
       </Card>
   );
   const renderSongListItem = (song: Song) => (
-    <div key={song.id} className={cn("flex items-center gap-4 p-3 border-b cursor-pointer hover:bg-gray-100 transition-colors", selectedSongId === song.id ? 'bg-blue-50' : '')} onClick={() => onSongSelect(song)}>
+    <div key={song.id} className={cn("flex items-center gap-4 p-3 border-b cursor-pointer hover:bg-gray-100 transition-colors", selectedSongId === song.id ? 'bg-yellow-50' : '')} onClick={() => onSongSelect(song)}>
       <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">{song.thumbnailUrl ? (<img src={song.thumbnailUrl} alt={song.title} className="w-full h-full object-cover rounded" />) : (<Music className="w-5 h-5 text-gray-400" />)}</div>
       <div className="flex-1 min-w-0"><p className="truncate font-medium">{song.title}</p><p className="text-sm text-gray-500 truncate">{song.artist}</p></div>
       <div className="hidden sm:flex items-center gap-3 text-sm text-gray-600 w-48 flex-shrink-0 justify-end"><Badge variant="outline" className="w-16 justify-center truncate">{song.key}</Badge><span className="w-16 text-right truncate">{song.tempo} BPM</span><span className="w-12 text-right">{formatDuration(song.duration)}</span></div>

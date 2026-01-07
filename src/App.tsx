@@ -1,5 +1,7 @@
 import React, { useEffect, Suspense } from 'react';
-import { Music, ListMusic, Settings, Play } from 'lucide-react';
+import { Music, ListMusic, Settings, Play, Loader2 } from './components/icons/Icon';
+import LogoLight from './assets/brand/logo-icons/logo-application-light.svg';
+import LogoDark from './assets/brand/logo-icons/logo-application-dark.svg';
 
 // Lazy load heavy components for code splitting
 const DAWPlayer = React.lazy(() => import('./features/player/components/DAWPlayer').then(module => ({ default: module.DAWPlayer })));
@@ -15,7 +17,7 @@ import { Button } from './components/ui/button';
 import { Separator } from './components/ui/separator';
 import { Song, Setlist, AudioTrack, TrackTag } from './types';
 import { LanguageProvider, useLanguage } from './lib/LanguageContext';
-import { ThemeProvider } from './lib/ThemeContext';
+import { ThemeProvider, useTheme } from './lib/ThemeContext';
 import { AudioContextProvider } from './features/player/context/AudioContextProvider';
 import { storage } from './lib/localStorageManager';
 import { ProjectService } from './services/ProjectService';
@@ -26,6 +28,7 @@ import { useAppStore } from './stores/useAppStore';
 
 function AppContent() {
   const { t } = useLanguage();
+  const { actualTheme } = useTheme();
   
   // Zustand store
   const {
@@ -482,7 +485,11 @@ function AppContent() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-3">
-                  <Music className="w-8 h-8 text-blue-600" />
+                  <img 
+                    src={actualTheme === 'dark' ? LogoDark : LogoLight} 
+                    alt="GoodMultitracks Logo" 
+                    className="w-8 h-8"
+                  />
                   <div>
                     <h1 className="text-xl">GoodMultitracks</h1> 
                     <p className="text-sm text-gray-600">Professional Study Player</p>
@@ -548,7 +555,7 @@ function AppContent() {
         <div className="hidden md:flex h-full"> 
           {activeView === 'player' ? (
             <div className="flex-1 h-full overflow-hidden"> 
-              <Suspense fallback={<LoadingScreen progress={50} message="Loading Player..." />}>
+              <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin text-yellow-500" /></div>}>
                 <DAWPlayer
                   song={selectedSong}
                   onSongUpdate={handleSongUpdate}
@@ -589,7 +596,7 @@ function AppContent() {
               )}
 
               {activeView === 'settings' && (
-                <Suspense fallback={<LoadingScreen progress={50} message="Loading Settings..." />}>
+                <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin text-yellow-500" /></div>}>
                   <SettingsPanel />
                 </Suspense>
               )}
@@ -631,7 +638,7 @@ function AppContent() {
 
           {activeTab === 'player' && (
             <div className="h-full">
-              <Suspense fallback={<LoadingScreen progress={50} message="Loading Player..." />}>
+              <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin text-yellow-500" /></div>}>
                 <DAWPlayer
                   song={selectedSong}
                   onSongUpdate={handleSongUpdate}
@@ -646,7 +653,7 @@ function AppContent() {
 
           {activeTab === 'settings' && (
             <div className="p-4">
-              <Suspense fallback={<LoadingScreen progress={50} message="Loading Settings..." />}>
+              <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin text-yellow-500" /></div>}>
                 <SettingsPanel />
               </Suspense>
             </div>

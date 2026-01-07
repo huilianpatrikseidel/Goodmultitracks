@@ -94,7 +94,7 @@ export function KeyboardShortcutsHelp({ isOpen, onClose }: KeyboardShortcutsHelp
           ))}
         </div>
 
-        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
+        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
           <strong>Tip:</strong> Most shortcuts won't work when typing in text fields
         </div>
       </DialogContent>

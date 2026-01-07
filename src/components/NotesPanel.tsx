@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Lock, Users } from 'lucide-react';
+import { Plus, Trash2, Lock, Users } from './icons/Icon';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Card, CardContent, CardHeader } from './ui/card';

@@ -7,7 +7,15 @@
  */
 
 import { getScaleNotes, isChordInKey } from './scales';
-import { parseNoteComponents, areNotesEnharmonic } from './core';
+import { 
+  parseNoteComponents, 
+  areNotesEnharmonic, 
+  noteToSemitone, 
+  IntervalObject, 
+  calculateInterval,
+  NOTE_TO_INDEX,
+  NATURAL_NOTE_SEMITONES
+} from './core';
 import { parseChordName, buildChord } from './chords';
 import { transposeNote } from './transposition';
 
@@ -58,7 +66,7 @@ export function getRomanNumeral(
 }
 
 /**
- * Calculate the interval between two notes
+ * Calculate the interval between two notes (legacy - returns semitones only)
  * Returns the interval that would transpose noteA to noteB
  * 
  * @param noteA - First note
@@ -86,6 +94,42 @@ export function getInterval(noteA: string, noteB: string): number {
   if (interval < 0) interval += 12;
   
   return interval;
+}
+
+/**
+ * Get complete interval information between two notes (legacy)
+ * 
+ * CRITICAL: Uses BOTH letter distance (degree) AND semitones to determine quality.
+ * This correctly distinguishes C-F# (A4) from C-Gb (d5) even though both are 6 semitones.
+ * 
+ * @param noteA - Starting note (e.g., 'C', 'F#', 'Bbb')
+ * @param noteB - Target note (e.g., 'E', 'Gb', 'Fx')
+ * @returns IntervalObject with correct quality based on letter names
+ * 
+ * @example
+ * getIntervalBetweenNotes('C', 'F#') → { id: 'A4', semitones: 6, degree: 3, quality: 'A' }
+ * getIntervalBetweenNotes('C', 'Gb') → { id: 'd5', semitones: 6, degree: 4, quality: 'd' }
+ * getIntervalBetweenNotes('C', 'E#') → { id: 'A3', semitones: 5, degree: 2, quality: 'A' }
+ * getIntervalBetweenNotes('C', 'Fb') → { id: 'd4', semitones: 4, degree: 3, quality: 'd' }
+ */
+export function getIntervalBetweenNotes(noteA: string, noteB: string): IntervalObject {
+  const { letter: letterA, accidentalValue: accA } = parseNoteComponents(noteA);
+  const { letter: letterB, accidentalValue: accB } = parseNoteComponents(noteB);
+  
+  // Calculate letter distance (diatonic degree)
+  const indexA = NOTE_TO_INDEX[letterA];
+  const indexB = NOTE_TO_INDEX[letterB];
+  let degree = indexB - indexA;
+  if (degree < 0) degree += 7;
+  
+  // Calculate semitone distance
+  const naturalA = NATURAL_NOTE_SEMITONES[indexA];
+  const naturalB = NATURAL_NOTE_SEMITONES[indexB];
+  let semitones = (naturalB - naturalA) + (accB - accA);
+  if (semitones < 0) semitones += 12;
+  
+  // Use calculateInterval to determine quality
+  return calculateInterval(degree, semitones);
 }
 
 /**
@@ -139,6 +183,275 @@ export function getEnharmonicEquivalent(note: string): string {
   };
   
   return simpleNotes[totalSemitones] || note;
+}
+
+/**
+ * Chord identification result
+ */
+export interface ChordIdentification {
+  /** Most likely chord name (e.g., 'Cmaj7', 'Am9/C') */
+  name: string;
+  /** Root note of the identified chord */
+  root: string;
+  /** Chord quality/extension */
+  quality: string;
+  /** Bass note if slash chord */
+  bass?: string;
+  /** Confidence level (0-100) */
+  confidence: number;
+  /** Alternative interpretations */
+  alternatives?: string[];
+}
+
+/**
+ * Identify chord from an array of notes
+ * 
+ * This reverse-engineering function analyzes note combinations and determines
+ * the most likely chord name, prioritizing:
+ * 1. Root position matches
+ * 2. Inversions (slash chords)
+ * 3. Rootless voicings (jazz context)
+ * 
+ * @param notes - Array of note names (e.g., ['C', 'E', 'G', 'B'])
+ * @returns ChordIdentification object with name and alternatives
+ * 
+ * @example
+ * identifyChord(['C', 'E', 'G']) → { name: 'C', root: 'C', quality: '', confidence: 100 }
+ * identifyChord(['C', 'E', 'G', 'B']) → { name: 'Cmaj7', root: 'C', quality: 'maj7', confidence: 100 }
+ * identifyChord(['C', 'E', 'G', 'A', 'D']) → { name: 'C6/9', root: 'C', quality: '6/9', confidence: 90 }
+ * identifyChord(['E', 'G', 'C']) → { name: 'C/E', root: 'C', quality: '', bass: 'E', confidence: 85 }
+ */
+export function identifyChord(notes: string[]): ChordIdentification {
+  if (notes.length === 0) {
+    return { name: 'N.C.', root: '', quality: '', confidence: 0 };
+  }
+  
+  if (notes.length === 1) {
+    return { name: notes[0], root: notes[0], quality: '', confidence: 100 };
+  }
+  
+  // Normalize notes (remove octaves, remove duplicates)
+  const normalizedNotes = [...new Set(notes.map(n => n.replace(/\d+$/, '')))];
+  
+  // Calculate all intervals from each possible root
+  const candidates: Array<{ root: string; quality: string; score: number; bass?: string }> = [];
+  
+  for (let i = 0; i < normalizedNotes.length; i++) {
+    const potentialRoot = normalizedNotes[i];
+    const otherNotes = normalizedNotes.filter((_, idx) => idx !== i);
+    
+    // Calculate intervals from this root
+    const intervals = otherNotes.map(note => getIntervalBetweenNotes(potentialRoot, note));
+    const intervalIds = intervals.map(int => int.id).sort();
+    
+    // Match against known chord patterns
+    const quality = matchChordPattern(intervalIds);
+    
+    if (quality) {
+      const isRootPosition = i === 0;
+      
+      // QA AUDIT FIX: Prioritize inversions of simple chords over complex extensions
+      // If bass is 3rd or 5th of a simple triad/seventh, score it higher than exotic voicings
+      const isSimpleChord = ['', 'm', 'dim', 'aug', '7', 'maj7', 'm7'].includes(quality);
+      const bassPosition = i; // 0 = root, 1 = first note in chord, etc.
+      
+      let score: number;
+      if (isRootPosition) {
+        score = 100; // Highest priority for root position
+      } else if (isSimpleChord && bassPosition <= 3) {
+        // Inversion of simple chord (bass is 3rd, 5th, or 7th)
+        score = 90; // High priority - label as C/E rather than exotic voicing
+      } else {
+        score = 75; // Lower priority for complex slash chords
+      }
+      
+      if (isRootPosition) {
+        candidates.push({ root: potentialRoot, quality, score });
+      } else {
+        // Slash chord (inversion or hybrid)
+        candidates.push({ 
+          root: potentialRoot, 
+          quality, 
+          score, 
+          bass: normalizedNotes[0] 
+        });
+      }
+    }
+  }
+  
+  // Sort by score (highest first)
+  candidates.sort((a, b) => b.score - a.score);
+  
+  if (candidates.length === 0) {
+    // No match - return custom chord
+    return {
+      name: normalizedNotes.join('-'),
+      root: normalizedNotes[0],
+      quality: 'custom',
+      confidence: 50
+    };
+  }
+  
+  const best = candidates[0];
+  const name = best.bass 
+    ? `${best.root}${best.quality}/${best.bass}`
+    : `${best.root}${best.quality}`;
+  
+  const alternatives = candidates.slice(1, 3).map(c => 
+    c.bass ? `${c.root}${c.quality}/${c.bass}` : `${c.root}${c.quality}`
+  );
+  
+  return {
+    name,
+    root: best.root,
+    quality: best.quality,
+    bass: best.bass,
+    confidence: best.score,
+    alternatives: alternatives.length > 0 ? alternatives : undefined
+  };
+}
+
+/**
+ * Match interval pattern to chord quality
+ * Internal helper for chord identification
+ */
+function matchChordPattern(intervalIds: string[]): string | null {
+  const pattern = intervalIds.join(',');
+  
+  // Common chord patterns (sorted interval IDs)
+  const patterns: Record<string, string> = {
+    // Triads
+    'M3,P5': '',           // Major triad
+    'm3,P5': 'm',          // Minor triad
+    'm3,d5': 'dim',        // Diminished triad
+    'M3,A5': 'aug',        // Augmented triad
+    
+    // Seventh chords
+    'M3,P5,M7': 'maj7',    // Major 7th
+    'm3,P5,m7': 'm7',      // Minor 7th
+    'M3,P5,m7': '7',       // Dominant 7th
+    'm3,d5,m7': 'm7b5',    // Half-diminished
+    'm3,d5,dim7': 'dim7',  // Fully diminished
+    
+    // Ninths
+    '9,M3,P5,m7': '9',     // Dominant 9th
+    '9,M3,P5,M7': 'maj9',  // Major 9th
+    '9,m3,P5,m7': 'm9',    // Minor 9th
+    
+    // Sixths
+    'M3,P5,M6': '6',       // Major 6th
+    'm3,P5,M6': 'm6',      // Minor 6th
+    '9,M3,P5,M6': '6/9',   // 6/9 chord
+    
+    // Suspended
+    'M2,P5': 'sus2',       // Sus2
+    'P4,P5': 'sus4',       // Sus4
+    
+    // Add chords
+    '9,M3,P5': 'add9',     // Add9
+  };
+  
+  return patterns[pattern] || null;
+}
+
+/**
+ * SLASH CHORD VALIDATION v3.0
+ * Validates whether a bass note makes theoretical sense for a given chord.
+ * Moved to analysis.ts to avoid circular dependency (analysis imports both chords and scales).
+ * 
+ * Validation Levels:
+ * - 'valid': Bass note is in the chord (normal inversion)
+ * - 'tension': Bass note is diatonic to key but not in chord (valid tension)
+ * - 'chromatic': Bass note is chromatic (borrowed or passing tone)
+ * - 'avoid': Bass note creates theoretically problematic interval
+ * 
+ * @param chordRoot - Root note of the chord (e.g., 'C', 'Am')
+ * @param chordQuality - Chord quality (e.g., '', 'm', '7', 'maj7')
+ * @param bassNote - The bass note (e.g., 'E', 'Bb')
+ * @param keyContext - Optional key context (e.g., 'C', 'F')
+ * @returns Validation result with status and reason
+ * 
+ * @example
+ * validateSlashChord('C', '', 'E') → { status: 'valid', reason: 'Bass note is the 3rd of the chord (1st inversion)' }
+ * validateSlashChord('C', '', 'D', 'C') → { status: 'tension', reason: 'Bass note is diatonic (2nd scale degree)' }
+ * validateSlashChord('C', '', 'F#', 'C') → { status: 'chromatic', reason: 'Bass note is chromatic to C major' }
+ * validateSlashChord('C', '', 'B') → { status: 'avoid', reason: 'Major 7th in bass can be dissonant' }
+ */
+export function validateSlashChord(
+  chordRoot: string,
+  chordQuality: string,
+  bassNote: string,
+  keyContext?: string
+): { status: 'valid' | 'tension' | 'chromatic' | 'avoid'; reason: string } {
+  const cleanBass = bassNote.replace(/\d+$/, '');
+  const chordNotes = buildChord(chordRoot, chordQuality);
+  const cleanChordNotes = chordNotes.map((n: string) => n.replace(/\d+$/, ''));
+
+  // Check if bass note is in the chord
+  const bassInChord = cleanChordNotes.some((note: string) =>
+    note === cleanBass || areNotesEnharmonic(note, cleanBass)
+  );
+
+  if (bassInChord) {
+    const inversionIndex = cleanChordNotes.findIndex((note: string) =>
+      note === cleanBass || areNotesEnharmonic(note, cleanBass)
+    );
+    const inversionNames = ['root position', '1st inversion', '2nd inversion', '3rd inversion', '4th inversion'];
+    const inversionName = inversionNames[inversionIndex] || `${inversionIndex}th inversion`;
+    return {
+      status: 'valid',
+      reason: `Bass note is in the chord (${inversionName})`
+    };
+  }
+
+  // Check if bass note is diatonic to the key context
+  if (keyContext) {
+    const keyScale = getScaleNotes(keyContext, 'major');
+    const cleanKeyNotes = keyScale.map((n: string) => n.replace(/\d+$/, ''));
+    const bassIsDiatonic = cleanKeyNotes.some((note: string) =>
+      note === cleanBass || areNotesEnharmonic(note, cleanBass)
+    );
+
+    if (bassIsDiatonic) {
+      return {
+        status: 'tension',
+        reason: `Bass note is diatonic to ${keyContext} major (creates tension chord)`
+      };
+    } else {
+      return {
+        status: 'chromatic',
+        reason: `Bass note is chromatic to ${keyContext} major (borrowed or passing tone)`
+      };
+    }
+  }
+
+  // Without key context, check for "avoid note" intervals
+  // Calculate interval from chord root to bass note
+  const rootSemitone = noteToSemitone(chordRoot);
+  const bassSemitone = noteToSemitone(cleanBass);
+  const interval = (bassSemitone - rootSemitone + 12) % 12;
+
+  // Intervals that can be problematic in bass:
+  // - Major 7th (11 semitones) - too dissonant
+  // - Minor 2nd (1 semitone) - clash
+  const avoidIntervals = [1, 11];
+
+  if (avoidIntervals.includes(interval)) {
+    const intervalNames: Record<number, string> = {
+      1: 'minor 2nd',
+      11: 'major 7th'
+    };
+    return {
+      status: 'avoid',
+      reason: `${intervalNames[interval]} in bass can create excessive dissonance`
+    };
+  }
+
+  // Otherwise, it's a chromatic note but potentially valid
+  return {
+    status: 'chromatic',
+    reason: 'Bass note is chromatic (extended or altered harmony)'
+  };
 }
 
 // ============================================================================

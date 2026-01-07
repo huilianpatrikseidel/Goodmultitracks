@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ListMusic, Plus, Trash2, GripVertical, Calendar, Lock, Unlock, PlusCircle, Edit2, Music, Pin } from 'lucide-react';
+import { ListMusic, Plus, Trash2, GripVertical, Calendar, Lock, Unlock, PlusCircle, Edit2, Music, Pin } from '../../../components/icons/Icon';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Setlist, Song, SetlistItem } from '../../../types';
@@ -141,7 +141,7 @@ function SetlistPopup({
             onClick={() => setIsLocked(!isLocked)}
             className={cn(
               'w-8 h-8',
-              isLocked ? 'text-gray-500 hover:text-gray-700' : 'text-blue-500 hover:text-blue-700'
+              isLocked ? 'text-gray-500 hover:text-gray-700' : 'text-yellow-500 hover:text-yellow-700'
             )}
           >
             {isLocked ? <Lock className="w-5 h-5" /> : <Unlock className="w-5 h-5" />}
@@ -199,7 +199,7 @@ function SetlistPopup({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-xs text-blue-600 hover:bg-blue-50 h-6 px-2 opacity-50 hover:opacity-100"
+                      className="text-xs text-yellow-600 hover:bg-yellow-50 h-6 px-2 opacity-50 hover:opacity-100"
                       onClick={() => handleStartAddNote(index)}
                     >
                       <Plus className="w-3 h-3 mr-1" /> Add Note Here
@@ -244,7 +244,7 @@ function SetlistPopup({
                           onClick={() => onSongClick(item.id)}
                           title={`Go to song: ${title}`}
                         >
-                          <p className="truncate font-medium cursor-pointer hover:text-blue-700 hover:underline">
+                          <p className="truncate font-medium cursor-pointer hover:text-yellow-700 hover:underline">
                             {title}
                           </p>
                           <p className="text-xs text-gray-500 truncate">{artist}</p>
@@ -364,7 +364,7 @@ function SetlistPopup({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-xs text-blue-600 hover:bg-blue-50 h-6 px-2 opacity-50 hover:opacity-100"
+                  className="text-xs text-yellow-600 hover:bg-yellow-50 h-6 px-2 opacity-50 hover:opacity-100"
                   onClick={() => handleStartAddNote(setlist.items.length)}
                 >
                   <Plus className="w-3 h-3 mr-1" /> Add Note Here
@@ -659,8 +659,8 @@ export function SetlistManager({
               className={cn(
                 "absolute top-2 left-10 h-8 w-8 z-10 transition-all",
                 isPinned 
-                  ? "text-blue-600 opacity-100" 
-                  : "text-gray-300 opacity-0 group-hover:opacity-100 hover:text-blue-600"
+                  ? "text-yellow-600 opacity-100" 
+                  : "text-gray-300 opacity-0 group-hover:opacity-100 hover:text-yellow-600"
               )}
               onClick={(e: React.MouseEvent) => handleTogglePin(e, setlist.id)}
               aria-label={isPinned ? "Unpin setlist" : "Pin setlist"}
@@ -671,7 +671,7 @@ export function SetlistManager({
             <Card
               className={cn(
                 "cursor-pointer hover:shadow-lg transition-shadow h-full flex flex-col group",
-                isPinned && "ring-2 ring-blue-500"
+                isPinned && "ring-2 ring-yellow-500"
               )}
               onClick={() => handleCardClick(setlist)}
             >
@@ -682,7 +682,7 @@ export function SetlistManager({
                       <ListMusic className="w-5 h-5 flex-shrink-0 text-gray-500" />
                       <span className="truncate font-semibold">{setlist.name}</span>
                       {isPinned && (
-                        <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
+                        <Badge variant="secondary" className="text-xs bg-yellow-100 text-yellow-700">
                           Pinned
                         </Badge>
                       )}
