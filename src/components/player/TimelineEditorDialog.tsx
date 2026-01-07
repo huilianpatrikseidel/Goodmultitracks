@@ -38,7 +38,7 @@ import {
   ACCIDENTALS,
   QUALITIES,
   EXTENSIONS
-} from '../lib/musicTheory';
+} from '../../lib/musicTheory';
 
 interface TimelineEditorDialogProps {
   open: boolean;

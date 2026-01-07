@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // Copyright (c) 2026 GoodMultitracks contributors
 import React, { useState } from 'react';
-import { Plus, Trash2, Lock, Users } from './icons/Icon';
-import { Button } from './ui/button';
-import { Textarea } from './ui/textarea';
-import { Card, CardContent, CardHeader } from './ui/card';
-import { Switch } from './ui/switch';
-import { Label } from './ui/label';
-import { Note } from '../types';
-import { Badge } from './ui/badge';
+import { Plus, Trash2, Lock, Users } from '../icons/Icon';
+import { Button } from '../ui/button';
+import { Textarea } from '../ui/textarea';
+import { Card, CardContent, CardHeader } from '../ui/card';
+import { Switch } from '../ui/switch';
+import { Label } from '../ui/label';
+import { Note } from '../../types';
+import { Badge } from '../ui/badge';
 
 interface NotesPanelProps {
   notes: Note[];

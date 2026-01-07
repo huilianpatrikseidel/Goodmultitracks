@@ -5,6 +5,7 @@
  * Tests for Bebop, Altered, and Augmented scales
  */
 
+import { describe, it, expect } from 'vitest';
 import { getScaleNotes } from '../../musicTheory';
 
 describe('Music Theory - Extended Scales (Phase 3.1)', () => {

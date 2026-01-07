@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // Copyright (c) 2026 GoodMultitracks contributors
 import React from 'react';
-import { Tag } from './icons/Icon';
-import { Button } from './ui/button';
-import { TrackTag, TRACK_TAG_HIERARCHY } from '../types';
+import { Tag } from '../icons/Icon';
+import { Button } from '../ui/button';
+import { TrackTag, TRACK_TAG_HIERARCHY } from '../../types';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-} from './ui/dropdown-menu';
+} from '../ui/dropdown-menu';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from './ui/tooltip';
+} from '../ui/tooltip';
 
 interface TrackTagSelectorProps {
   currentTag?: TrackTag;

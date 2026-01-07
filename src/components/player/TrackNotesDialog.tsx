@@ -7,9 +7,9 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from './ui/dialog';
-import { Textarea } from './ui/textarea';
-import { Button } from './ui/button';
+} from '../ui/dialog';
+import { Textarea } from '../ui/textarea';
+import { Button } from '../ui/button';
 
 interface TrackNotesDialogProps {
   open: boolean;

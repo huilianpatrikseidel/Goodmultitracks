@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // Copyright (c) 2026 GoodMultitracks contributors
 import { create } from 'zustand';
-import { devtools, persist } from 'zustand/middleware';
+import { devtools, persist, createJSONStorage } from 'zustand/middleware';
 import { Song, Setlist } from '../types';
+import { idxStorage } from './idxStorage';
 
 interface AppState {
   // Songs
@@ -135,6 +136,7 @@ export const useAppStore = create<AppState>()(
           setlists: state.setlists,
           userPreferences: state.userPreferences,
         }),
+        storage: createJSONStorage(() => idxStorage),
       }
     ),
     { name: 'GoodMultitracks Store' }

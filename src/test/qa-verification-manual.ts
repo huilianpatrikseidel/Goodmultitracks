@@ -5,13 +5,13 @@
  * Run this to verify all fixes are working correctly
  */
 
-import { getScaleNotes } from './lib/musicTheory/scales';
-import { transposeNote } from './lib/musicTheory/transposition';
-import { buildChord } from './lib/musicTheory/chords';
-import { getIntervalBetweenNotes, identifyChord, validateSlashChord } from './lib/musicTheory/analysis';
-import { optimizePianoVoicing } from './lib/musicTheory/voicings';
-import { analyzeTimeSignature } from './lib/musicTheory/timeSignatures';
-import { parseNoteComponents } from './lib/musicTheory/core';
+import { getScaleNotes } from '../lib/musicTheory/scales';
+import { transposeNote } from '../lib/musicTheory/transposition';
+import { buildChord } from '../lib/musicTheory/chords';
+import { getIntervalBetweenNotes, identifyChord, validateSlashChord } from '../lib/musicTheory/analysis';
+import { optimizePianoVoicing } from '../lib/musicTheory/voicings';
+import { analyzeTimeSignature } from '../lib/musicTheory/timeSignatures';
+import { parseNoteComponents } from '../lib/musicTheory/core';
 
 console.log('='.repeat(70));
 console.log('MUSIC THEORY QA VERIFICATION - Manual Test Suite');

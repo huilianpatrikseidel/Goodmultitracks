@@ -11,12 +11,12 @@
  * 5. Anatomical constraints
  */
 
+import { describe, it, expect } from 'vitest';
 import { 
   generateGuitarVoicing,
   getRomanNumeral,
   parseChordName,
-  GUITAR_TUNINGS,
-  type GuitarTuning 
+  GUITAR_TUNINGS
 } from '../../musicTheory';
 
 // ============================================================================
@@ -26,15 +26,12 @@ import {
 console.log('TEST 1: Bass Note Priority\n' + '='.repeat(50));
 
 // Test 1a: C major in root position (C should be in bass)
-const cMajorRoot = generateGuitarVoicing(['C', 'E', 'G'], { 
-  rootNote: 'C' 
-});
+const cMajorRoot = generateGuitarVoicing(['C', 'E', 'G']); 
 console.log('C Major (root position):', cMajorRoot);
 console.log('Expected: Lowest note should be C (not E or G)\n');
 
 // Test 1b: C/E (first inversion - E should be in bass)
 const cSlashE = generateGuitarVoicing(['C', 'E', 'G'], { 
-  rootNote: 'C',
   bassNote: 'E' 
 });
 console.log('C/E (first inversion):', cSlashE);
@@ -42,7 +39,6 @@ console.log('Expected: Lowest note should be E\n');
 
 // Test 1c: C/G (second inversion - G should be in bass)
 const cSlashG = generateGuitarVoicing(['C', 'E', 'G'], { 
-  rootNote: 'C',
   bassNote: 'G' 
 });
 console.log('C/G (second inversion):', cSlashG);
@@ -114,7 +110,7 @@ console.log('Key of C Major:');
 const cMajorProgression = ['C', 'Dm', 'Em', 'F', 'G7', 'Am', 'Bdim'];
 cMajorProgression.forEach(chordName => {
   const chord = parseChordName(chordName);
-  const roman = getRomanNumeral(chord, 'C');
+  const roman = getRomanNumeral(chord.root, 'C');
   console.log(`  ${chordName.padEnd(6)} → ${roman}`);
 });
 console.log();
@@ -124,7 +120,7 @@ console.log('Key of A Minor:');
 const aMinorProgression = ['Am', 'Bdim', 'C', 'Dm', 'Em', 'F', 'G'];
 aMinorProgression.forEach(chordName => {
   const chord = parseChordName(chordName);
-  const roman = getRomanNumeral(chord, 'Am');
+  const roman = getRomanNumeral(chord.root, 'A', 'minor');
   console.log(`  ${chordName.padEnd(6)} → ${roman}`);
 });
 console.log();
@@ -134,7 +130,7 @@ console.log('Secondary Dominants (Key of C):');
 const secondaryDominants = ['D7', 'A7', 'E7', 'B7'];
 secondaryDominants.forEach(chordName => {
   const chord = parseChordName(chordName);
-  const roman = getRomanNumeral(chord, 'C');
+  const roman = getRomanNumeral(chord.root, 'C');
   console.log(`  ${chordName.padEnd(6)} → ${roman}`);
 });
 console.log();
@@ -144,7 +140,7 @@ console.log('Modal Interchange (Key of C):');
 const borrowedChords = ['Fm', 'Ab', 'Bb'];
 borrowedChords.forEach(chordName => {
   const chord = parseChordName(chordName);
-  const roman = getRomanNumeral(chord, 'C');
+  const roman = getRomanNumeral(chord.root, 'C');
   console.log(`  ${chordName.padEnd(6)} → ${roman}`);
 });
 console.log();
@@ -171,13 +167,12 @@ song.forEach(chord => {
   
   // Roman numeral analysis
   const parsed = parseChordName(chord.name);
-  const roman = getRomanNumeral(parsed, 'D');
+  const roman = getRomanNumeral(parsed.root, 'D');
   console.log(`  Function: ${roman}`);
   
   // Generate voicing in Drop D
   const voicing = generateGuitarVoicing(chord.notes, {
     tuning: GUITAR_TUNINGS['drop-d'],
-    rootNote: parsed.root,
     bassNote: chord.bass
   });
   
@@ -198,14 +193,12 @@ console.log('Cmaj13 (6 notes - challenging):', cmaj13);
 console.log('Expected: May omit some notes, prioritize essential tones\n');
 
 // Test 6b: Very low voicing (bass register)
-const lowE = generateGuitarVoicing(['E', 'G#', 'B'], {
-  rootNote: 'E'
-});
+const lowE = generateGuitarVoicing(['E', 'G#', 'B']);
 console.log('E Major (prefer low voicing):', lowE);
 console.log('Expected: Uses open E string (low E)\n');
 
 // Test 6c: Custom tuning
-const customTuning: GuitarTuning = [2, 7, 2, 7, 2, 7]; // All D and G
+const customTuning: string[] = ['D', 'G', 'D', 'G', 'D', 'G']; // All D and G
 const customChord = generateGuitarVoicing(['D', 'G', 'B'], {
   tuning: customTuning
 });

@@ -1,24 +1,24 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // Copyright (c) 2026 GoodMultitracks contributors
 import React, { useState } from 'react';
-import { Eye, EyeOff, GripVertical } from './icons/Icon';
-import { ViewSettingsIcon } from './icons/CustomIcons';
-import { useLanguage } from '../lib/LanguageContext';
-import { Button } from './ui/button';
-import { Label } from './ui/label';
+import { Eye, EyeOff, GripVertical } from '../icons/Icon';
+import { ViewSettingsIcon } from '../icons/CustomIcons';
+import { useLanguage } from '../../lib/LanguageContext';
+import { Button } from '../ui/button';
+import { Label } from '../ui/label';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from './ui/dropdown-menu';
+} from '../ui/dropdown-menu';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from './ui/tooltip';
-import { Separator } from './ui/separator';
-import { Switch } from './ui/switch';
-import { cn } from './ui/utils';
+} from '../ui/tooltip';
+import { Separator } from '../ui/separator';
+import { Switch } from '../ui/switch';
+import { cn } from '../ui/utils';
 
 export interface RulerConfig {
   id: string;

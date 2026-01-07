@@ -1,23 +1,23 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // Copyright (c) 2026 GoodMultitracks contributors
 import React, { useState } from 'react';
-import { Music, Guitar } from './icons/Icon';
-import { PlaybackSettingsIcon } from './icons/CustomIcons';
-import { Button } from './ui/button';
-import { Slider } from './ui/slider';
-import { Label } from './ui/label';
-import { Separator } from './ui/separator';
-import { transposeKey } from '../lib/musicTheory';
+import { Music, Guitar } from '../icons/Icon';
+import { PlaybackSettingsIcon } from '../icons/CustomIcons';
+import { Button } from '../ui/button';
+import { Slider } from '../ui/slider';
+import { Label } from '../ui/label';
+import { Separator } from '../ui/separator';
+import { transposeKey } from '../../lib/musicTheory';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from './ui/dropdown-menu';
+} from '../ui/dropdown-menu';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from './ui/tooltip';
+} from '../ui/tooltip';
 
 interface PlaybackControlsProps {
   tempo: number;

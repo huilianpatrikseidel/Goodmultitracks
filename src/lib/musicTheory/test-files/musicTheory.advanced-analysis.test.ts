@@ -5,6 +5,7 @@
  * Tests for chord function analysis, borrowed chords, and secondary dominants
  */
 
+import { describe, it, expect } from 'vitest';
 import {
   analyzeChordFunction,
   isBorrowedChord,

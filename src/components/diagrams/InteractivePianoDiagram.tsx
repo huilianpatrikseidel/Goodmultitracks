@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // Copyright (c) 2026 GoodMultitracks contributors
 import React, { useRef, useEffect } from 'react';
-import { Play } from './icons/Icon';
-import { useLanguage } from '../lib/LanguageContext';
-import { ScrollArea } from './ui/scroll-area';
-import { playChord } from '../lib/chordPlayback';
-import { Button } from './ui/button';
-import { CIRCLE_OF_FIFTHS_MAJOR } from '../lib/musicTheory/scales';
-import { areNotesEnharmonic } from '../lib/musicTheory';
+import { Play } from '../icons/Icon';
+import { useLanguage } from '../../lib/LanguageContext';
+import { ScrollArea } from '../ui/scroll-area';
+import { playChord } from '../../lib/chordPlayback';
+import { Button } from '../ui/button';
+import { CIRCLE_OF_FIFTHS_MAJOR } from '../../lib/musicTheory/scales';
+import { areNotesEnharmonic } from '../../lib/musicTheory';
 
 interface InteractivePianoDiagramProps {
   keys: string[];

@@ -8,7 +8,7 @@
  */
 
 import React from 'react';
-import { BravuraSymbols, formatNoteWithBravura, formatChordWithBravura } from '../lib/bravuraUtils';
+import { BravuraSymbols, formatNoteWithBravura, formatChordWithBravura } from '../../lib/bravuraUtils';
 
 interface MusicNotationProps {
   children: React.ReactNode;

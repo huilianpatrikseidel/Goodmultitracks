@@ -51,12 +51,14 @@
             "@types/react": "^19.2.7",
             "@types/react-dom": "^19.2.3",
             "@vitejs/plugin-react-swc": "^3.10.2",
-            "vite": "6.3.5"
+            "@vitest/ui": "^4.0.16",
+            "vite": "6.3.5",
+            "vitest": "^4.0.16"
       },
       "scripts": {
-                  "dev": "vite",
+            "dev": "vite",
             "build": "node scripts/increment-build.js && vite build",
-                  "build:no-increment": "vite build",
-                  "lint:license": "node scripts/check-spdx.cjs"
+            "build:no-increment": "vite build",
+            "lint:license": "node scripts/check-spdx.cjs"
       }
 }

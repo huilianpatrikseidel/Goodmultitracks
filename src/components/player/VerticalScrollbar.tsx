@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // Copyright (c) 2026 GoodMultitracks contributors
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { cn } from './ui/utils';
+import { cn } from '../ui/utils';
 
 interface VerticalScrollbarProps {
   /** Normalized start position (0.0 to 1.0) */

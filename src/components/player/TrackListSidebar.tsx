@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // Copyright (c) 2026 GoodMultitracks contributors
 import React, { useCallback, useState, useRef, useEffect } from 'react';
-import { Volume2, VolumeX, Music2, Trash2, ChevronDown, ChevronUp, Pin } from './icons/Icon';
-import { AudioTrack, TrackTag } from '../types';
+import { Volume2, VolumeX, Music2, Trash2, ChevronDown, ChevronUp, Pin } from '../icons/Icon';
+import { AudioTrack, TrackTag } from '../../types';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Badge } from './ui/badge';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
-import { gainToDb, gainToSlider, sliderToGain, formatDb, parseDbInput, sliderToDb } from '../features/player/utils/audioUtils';
-import { LAYOUT } from '../config/constants';
-import { Button } from './ui/button';
-import { Slider } from './ui/slider';
+import { Badge } from '../ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
+import { gainToDb, gainToSlider, sliderToGain, formatDb, parseDbInput, sliderToDb } from '../../features/player/utils/audioUtils';
+import { LAYOUT } from '../../config/constants';
+import { Button } from '../ui/button';
+import { Slider } from '../ui/slider';
 
 interface TrackListSidebarProps {
   tracks: AudioTrack[];
