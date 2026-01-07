@@ -3,6 +3,7 @@
       "version": "0.1.0",
       "type": "module",
       "private": true,
+      "license": "GPL-2.0-only",
       "dependencies": {
             "@capacitor/cli": "^8.0.0",
             "@capacitor/core": "^8.0.0",

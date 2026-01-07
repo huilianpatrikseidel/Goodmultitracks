@@ -1,8 +1,8 @@
 # GoodMultitracks
 
-**Advanced Multi-track Music Player with Music Theory Engine**
+**Advanced Multi-track Music Player**
 
-This is the GoodMultitracks application - a sophisticated multi-track audio player with integrated music theory analysis, chord voicing generation, and professional music notation support.
+This is the GoodMultitracks application - a sophisticated multi-track audio player, for playing and .
 
 ---
 
@@ -167,7 +167,10 @@ npm test src/lib/musicTheory/__tests__/qa-verification.test.ts
 
 ## 📄 License
 
-[Add your license here]
+Licensed under the GNU General Public License v2.0 (GPL-2.0).
+
+- Full text: see [LICENSE](./LICENSE)
+- SPDX identifier: GPL-2.0-only
 
 ---
 
@@ -176,6 +179,7 @@ npm test src/lib/musicTheory/__tests__/qa-verification.test.ts
 Contributions are welcome! Please:
 1. Read the [Documentation](./docs/README.md)
 2. Follow [Development Guidelines](./src/guidelines/Guidelines.md)
+3. Make you code
 3. Write tests for new features
 4. Update documentation
 
@@ -183,11 +187,12 @@ Contributions are welcome! Please:
 
 ## 📞 Support
 
-[Add support information here]
+huilianpatrik@gmail.com
+
 
 ---
 
-**Version:** 3.0  
+**Version:** 0.0 (in develpment)  
 **Last Updated:** January 6, 2026  
 **Status:** Active Development
 
