@@ -4,13 +4,13 @@
 
 > **Hinweis:** Dieses Projekt befindet sich derzeit in einer **aktiven Entwicklungsphase (Alpha)**. Funktionen können sich ändern und Instabilität ist zu erwarten. Es gibt noch keine offizielle Veröffentlichungsversion.
 
-**GoodMultitracks** ist ein Mehrspur-Audioplayer (Stems), der für pädagogische Zwecke entwickelt wurde: **Er ermöglicht Musikern, Songs durch Spurtrennung tiefgehend zu studieren.**
+**GoodMultitracks** ist ein Mehrspur-Audioplayer (Stems), der für pädagogische Zwecke entwickelt wurde: **Er ermöglicht Musikern, Songs tiefgehend unter Verwendung Ihrer Stems zu studieren.**
 
 Im Gegensatz zu traditionellen DAWs, die auf Produktion ausgerichtet sind, liegt der Schwerpunkt hier auf **Lernen** und **Analyse**. Die Software verwendet eine robuste Musiktheorie-Engine, um das Audio mit harmonischen und rhythmischen Informationen zu kontextualisieren. Es dient Bands, Kirchenlobpreisgruppen und anderen Anwendungen.
 
 ## 🎯 Ziel und Vision
 
-Die Kernidee ist es, ein Werkzeug bereitzustellen, mit dem der Musiker eine Mehrspur-Datei laden, Instrumente isolieren, die Songstruktur verstehen und üben kann. All dies mit der Möglichkeit einer lokalen Installation, kostenlos, als Alternative zu Online-Multitrack-Streaming-Plattformen. Sie erstellen den Multitrack, erstellen eine einzelne Datei, die an die Band gesendet werden kann, und jeder genießt ein gutes Lernwerkzeug, 100% kostenlos und lokal, ohne Cloud-Dienste oder Telemetrie.
+Die Kernidee ist es, ein Werkzeug bereitzustellen, mit dem der Musiker eine Mehrspur-Datei laden, Instrumente/Stems solo schalten, die Songstruktur verstehen und üben kann. All dies mit der Möglichkeit einer lokalen Installation, kostenlos, als Alternative zu Online-Multitrack-Streaming-Plattformen. Sie erstellen den Multitrack, erstellen eine einzelne Datei, die an die Band gesendet werden kann, und jeder genießt ein gutes Lernwerkzeug, 100% kostenlos und lokal, ohne Cloud-Dienste oder Telemetrie.
 
 * **Aktuell:** Ein Mehrspur-Player zum Lernen, mit Wellenform-Visualisierung und theoretischer Analyse (Akkorde, Metriken).
 * **Nahe Zukunft:** Ein vollständiger **VS Player (Virtual Soundcheck/Backing Tracks)** für den Live-Einsatz zu werden.
@@ -18,7 +18,7 @@ Die Kernidee ist es, ein Werkzeug bereitzustellen, mit dem der Musiker eine Mehr
 ## 🚀 Hauptfunktionen
 
 ### Aktuell (In Entwicklung)
-* **Mehrspur-Player (DAW-Stil):** Individuelle Lautstärke-, Solo- und Stummschaltungssteuerung für jede Spur (Stem).
+* **Mehrspur-Player (DAW-Stil):** Individuelle Lautstärke-, Solo- und Stummschaltungssteuerung für jede Spur/Stem.
 * **Musikalische Intelligenz:** Erweitertes Musiktheorie-System, das Folgendes versteht und verarbeitet:
     * Harmonie und Akkorde.
     * Komplexe Metriken und Taktarten (Time Signatures).

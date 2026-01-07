@@ -4,13 +4,13 @@
 
 > **Nota:** Este proyecto se encuentra actualmente en **fase activa de desarrollo (Alfa)**. Las funcionalidades pueden cambiar y se espera cierta inestabilidad. Aún no hay una versión oficial de lanzamiento.
 
-**GoodMultitracks** es un reproductor de audio multipista (stems) diseñado con un propósito educativo: **permitir a los músicos estudiar canciones profundamente a través de la separación de pistas.**
+**GoodMultitracks** es un reproductor de audio multipista (stems) diseñado con un propósito educativo: **permitir a los músicos estudiar canciones profundamente usando tus stems.**
 
 A diferencia de los DAWs tradicionales enfocados en la producción, el enfoque aquí es el **aprendizaje** y el **análisis**. El software utiliza un motor robusto de teoría musical para contextualizar el audio con información armónica y rítmica. Sirve para bandas, grupos de alabanza de iglesias, entre otras aplicaciones.
 
 ## 🎯 Objetivo y Visión
 
-La idea central es proporcionar una herramienta donde el músico pueda cargar un archivo multipista, aislar instrumentos, comprender la estructura de la canción y practicar. Todo esto con la posibilidad de una instalación local, sin costo, siendo una alternativa a las plataformas de streaming de multipistas online. Haces el multitrack, creas un único archivo que se puede enviar a la banda, y todos disfrutan de una buena herramienta de estudio, 100% gratuita y local, sin servicios en la nube ni telemetría.
+La idea central es proporcionar una herramienta donde el músico pueda cargar un archivo multipista, solear instrumentos/stems, comprender la estructura de la canción y practicar. Todo esto con la posibilidad de una instalación local, sin costo, siendo una alternativa a las plataformas de streaming de multipistas online. Haces el multitrack, creas un único archivo que se puede enviar a la banda, y todos disfrutan de una buena herramienta de estudio, 100% gratuita y local, sin servicios en la nube ni telemetría.
 
 * **Actual:** Un reproductor multipista para estudio, con visualización de formas de onda e análisis teórico (acordes, métricas).
 * **Futuro Próximo:** Convertirse en un **Reproductor VS (Virtual Soundcheck/Backing Tracks)** completo para uso en vivo.
@@ -18,7 +18,7 @@ La idea central es proporcionar una herramienta donde el músico pueda cargar un
 ## 🚀 Funcionalidades Principales
 
 ### Actuales (En desarrollo)
-* **Reproductor Multipista (estilo DAW):** Control individual de volumen, solo y silencio (mute) para cada pista (stem).
+* **Reproductor Multipista (estilo DAW):** Control individual de volumen, solo y silencio (mute) para cada pista/stem.
 * **Inteligencia Musical:** Sistema avanzado de teoría musical que comprende y procesa:
     * Armonía y Acordes.
     * Métricas y Fórmulas de Compás (Time Signatures) complejas.

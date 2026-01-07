@@ -4,13 +4,13 @@
 
 > **Remarque :** Ce projet est actuellement en **phase de développement actif (Alpha)**. Les fonctionnalités peuvent changer et une instabilité est à prévoir. Il n'y a pas encore de version officielle.
 
-**GoodMultitracks** est un lecteur audio multipiste (stems) conçu dans un but éducatif : **permettre aux musiciens d'étudier les chansons en profondeur grâce à la séparation des pistes.**
+**GoodMultitracks** est un lecteur audio multipiste (stems) conçu dans un but éducatif : **permettre aux musiciens d'étudier les chansons en profondeur en utilisant vos stems.**
 
 Contrairement aux DAW traditionnels axés sur la production, l'accent est mis ici sur **l'apprentissage** et **l'analyse**. Le logiciel utilise un moteur de théorie musicale robuste pour contextualiser l'audio avec des informations harmoniques et rythmiques. Il sert aux groupes, aux groupes de louange d'église, entre autres applications.
 
 ## 🎯 Objectif et Vision
 
-L'idée centrale est de fournir un outil où le musicien peut charger un fichier multipiste, isoler des instruments, comprendre la structure de la chanson et s'entraîner. Tout cela avec la possibilité d'une installation locale, sans frais, constituant une alternative aux plateformes de streaming multipistes en ligne. Vous faites le multipiste, créez un fichier unique qui peut être envoyé au groupe, et tout le monde profite d'un bon outil d'étude, 100% gratuit et local, sans services cloud ni télémétrie.
+L'idée centrale est de fournir un outil où le musicien peut charger un fichier multipiste, mettre en solo des instruments/stem, comprendre la structure de la chanson et s'entraîner. Tout cela avec la possibilité d'une installation locale, sans frais, constituant une alternative aux plateformes de streaming multipistes en ligne. Vous faites le multipiste, créez un fichier unique qui peut être envoyé au groupe, et tout le monde profite d'un bon outil d'étude, 100% gratuit et local, sans services cloud ni télémétrie.
 
 * **Actuel :** Un lecteur multipiste pour l'étude, avec visualisation de la forme d'onde et analyse théorique (accords, métriques).
 * **Proche Avenir :** Devenir un **Lecteur VS (Virtual Soundcheck/Backing Tracks)** complet pour une utilisation en direct.
@@ -18,7 +18,7 @@ L'idée centrale est de fournir un outil où le musicien peut charger un fichier
 ## 🚀 Fonctionnalités Principales
 
 ### Actuelles (En développement)
-* **Lecteur Multipiste (style DAW) :** Contrôle individuel du volume, solo et sourdine (mute) pour chaque piste (stem).
+* **Lecteur Multipiste (style DAW) :** Contrôle individuel du volume, solo et sourdine (mute) pour chaque piste/stem.
 * **Intelligence Musicale :** Système avancé de théorie musicale qui comprend et traite :
     * Harmonie et Accords.
     * Métriques et Signatures Temporelles (Time Signatures) complexes.

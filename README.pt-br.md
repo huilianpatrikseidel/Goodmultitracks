@@ -4,13 +4,15 @@
 
 > **Nota:** Este projeto está atualmente em **fase ativa de desenvolvimento (Alpha)**. Funcionalidades podem mudar e instabilidade é esperada. Ainda não há uma versão oficial de lançamento.
 
-O **GoodMultitracks** é um reprodutor de áudio multitrack (stems) projetado com um propósito educacional: **permitir que músicos estudem músicas profundamente através da separação de faixas.**
+O **GoodMultitracks** é um reprodutor de áudio multitrack (stems) projetado com um propósito educacional: **permitir que músicos estudem músicas profundamente usando suas stems.**
 
-Diferente de DAWs tradicionais focadas em produção, o foco aqui é o **aprendizado** e a **análise**. O software utiliza um motor robusto de teoria musical para contextualizar o áudio com informações harmônicas e rítmicas.
+Diferente de DAWs tradicionais focadas em produção, o foco aqui é o **aprendizado** e a **análise**. O software utiliza um motor robusto de teoria musical para contextualizar o áudio com informações harmônicas e rítmicas. Serve para bandas, grupos de louvor de igrejas, entre outras aplicações.
 
 ## 🎯 Objetivo e Visão
 
-A ideia central é fornecer uma ferramenta onde o músico possa carregar um arquivo multitrack, isolar instrumentos, entender a estrutura da música e praticar.
+A ideia central é fornecer uma ferramenta onde o músico possa carregar um arquivo multitrack, solar instrumentos/stems, entender a estrutura da música e praticar. Tudo isto, com a possibilidade de uma instalação local, sem custos, sendo um alternativa à plataformas online de streaming de multitracks. Você faz o multitrack, cria um único arquivo que pode ser enviado para a banda, e todos usufruem de uma boa ferramenta de estudos, de forma 100% gratuita e local, sem serviços na nuvem ou telemetria.
+
+
 
 * **Atual:** Um leitor de multitracks para estudo, com visualização de formas de onda e análise teórica (acordes, métricas).
 * **Futuro Próximo:** Tornar-se um **Player de VS (Virtual Soundcheck/Backing Tracks)** completo para uso ao vivo.
@@ -19,7 +21,7 @@ A ideia central é fornecer uma ferramenta onde o músico possa carregar um arqu
 ## 🚀 Funcionalidades Principais
 
 ### Atuais (Em desenvolvimento)
-* **Reprodutor Multitrack (DAW-style):** Controle individual de volume, solo e mute para cada faixa (stem).
+* **Reprodutor Multitrack (DAW-style):** Controle individual de volume, solo e mute para cada faixa/stem.
 * **Inteligência Musical:** Sistema avançado de teoria musical que compreende e processa:
     * Harmonia e Acordes.
     * Métricas e Fórmulas de Compasso (Time Signatures) complexas.
@@ -43,7 +45,7 @@ O projeto é construído sobre uma pilha moderna e performática:
 
 * **Core:** [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
 * **Build Tool:** [Vite](https://vitejs.dev/)
-* (Sem empacotadores nativos por enquanto — o suporte a desktop/mobile será definido futuramente.)
+* (Sem empacotadores nativos por enquanto — possivelmente, utilizaremos Tauri/Capacitor)
 * **Estilização:** Tailwind CSS.
 * **Áudio:** Web Audio API com processamento customizado.
 
@@ -77,7 +79,7 @@ Como o projeto é Open Source, você pode baixar, estudar o código e rodar na s
 
 ## 🤝 Como Contribuir
 
-Contribuições são muito bem-vindas! Se você é desenvolvedor (Front-end, TypeScript, ou entende de DSP/Áudio) ou músico com ideias de funcionalidades:
+Contribuições são muito bem-vindas! Se você é desenvolvedor (Front-end, TypeScript, ou entende de DSP/Áudio e WebAssembly) ou músico com ideias de funcionalidades:
 
 1.  Faça um Fork do projeto.
 2.  Crie uma Branch para sua Feature (`git checkout -b feature/NovaFuncionalidade`).

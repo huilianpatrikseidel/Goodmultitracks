@@ -4,13 +4,13 @@
 
 > **Nota:** Questo progetto è attualmente in **fase di sviluppo attivo (Alpha)**. Le funzionalità potrebbero cambiare ed è prevista instabilità. Non esiste ancora una versione ufficiale di rilascio.
 
-**GoodMultitracks** è un lettore audio multitraccia (stems) progettato con uno scopo educativo: **permettere ai musicisti di studiare le canzoni in profondità attraverso la separazione delle tracce.**
+**GoodMultitracks** è un lettore audio multitraccia (stems) progettato con uno scopo educativo: **permettere ai musicisti di studiare le canzoni in profondità usando i tuoi stems.**
 
 A differenza delle DAW tradizionali focalizzate sulla produzione, l'attenzione qui è sull'**apprendimento** e sull'**analisi**. Il software utilizza un robusto motore di teoria musicale per contestualizzare l'audio con informazioni armoniche e ritmiche. Serve a band, gruppi di lode in chiesa, tra le altre applicazioni.
 
 ## 🎯 Obiettivo e Visione
 
-L'idea centrale è fornire uno strumento in cui il musicista possa caricare un file multitraccia, isolare gli strumenti, comprendere la struttura della canzone ed esercitarsi. Tutto questo con la possibilità di un'installazione locale, senza costi, essendo un'alternativa alle piattaforme di streaming multitraccia online. Fai il multitraccia, crei un unico file che può essere inviato alla band, e tutti godono di un buon strumento di studio, 100% gratuito e locale, senza servizi cloud o telemetria.
+L'idea centrale è fornire uno strumento in cui il musicista possa caricare un file multitraccia, mettere in solo strumenti/stems, comprendere la struttura della canzone ed esercitarsi. Tutto questo con la possibilità di un'installazione locale, senza costi, essendo un'alternativa alle piattaforme di streaming multitraccia online. Fai il multitraccia, crei un unico file che può essere inviato alla band, e tutti godono di un buon strumento di studio, 100% gratuito e locale, senza servizi cloud o telemetria.
 
 * **Attuale:** Un lettore multitraccia per lo studio, con visualizzazione della forma d'onda e analisi teorica (accordi, metriche).
 * **Futuro Prossimo:** Diventare un completo **VS Player (Virtual Soundcheck/Backing Tracks)** per l'uso dal vivo.
@@ -18,7 +18,7 @@ L'idea centrale è fornire uno strumento in cui il musicista possa caricare un f
 ## 🚀 Funzionalità Principali
 
 ### Attuali (In sviluppo)
-* **Lettore Multitraccia (stile DAW):** Controllo individuale di volume, solo e mute per ogni traccia (stem).
+* **Lettore Multitraccia (stile DAW):** Controllo individuale di volume, solo e mute per ogni traccia/stem.
 * **Intelligenza Musicale:** Sistema avanzato di teoria musicale che comprende ed elabora:
     * Armonia e Accordi.
     * Metriche e Tempi (Time Signatures) complessi.
