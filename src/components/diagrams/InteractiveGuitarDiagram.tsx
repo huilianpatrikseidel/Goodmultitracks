@@ -26,10 +26,12 @@ export function InteractiveGuitarDiagram({ frets, fingers, startFret = 1, onChan
     // Convert relative fret to actual fret number
     const actualFret = relativeFret === 0 ? 0 : relativeFret + startFret - 1;
     
-    // If clicking the same fret, clear it
-    if (newFrets[stringIndex] === actualFret) {
-      newFrets[stringIndex] = 0; // Set to open
-      newFingers[stringIndex] = 0;
+    // If clicking the same fret (and it's not open string), cycle finger
+    if (newFrets[stringIndex] === actualFret && actualFret !== 0) {
+      // Cycle: 1 -> 2 -> 3 -> 4 -> 5 (T) -> 1
+      const currentFinger = newFingers[stringIndex];
+      const nextFinger = currentFinger >= 5 ? 1 : currentFinger + 1;
+      newFingers[stringIndex] = nextFinger;
     } else {
       newFrets[stringIndex] = actualFret;
       // Play the note for auditory feedback
@@ -37,9 +39,10 @@ export function InteractiveGuitarDiagram({ frets, fingers, startFret = 1, onChan
       singleStringChord[stringIndex] = actualFret;
       playGuitarChord(singleStringChord, 0.5);
 
-      // Auto-assign finger number (simple logic)
+      // Default finger relative logic:
+      // If placing a note, default to finger 1 (Index)
       if (actualFret > 0) {
-        newFingers[stringIndex] = Math.min(4, relativeFret);
+        newFingers[stringIndex] = 1; 
       } else {
         newFingers[stringIndex] = 0;
       }
@@ -69,6 +72,35 @@ export function InteractiveGuitarDiagram({ frets, fingers, startFret = 1, onChan
     playGuitarChord(frets);
   };
 
+  // Helper detect and group barre chords
+  const barres = React.useMemo(() => {
+    const notesByFretFinger: Record<string, number[]> = {};
+    frets.forEach((fret, stringIndex) => {
+      const finger = fingers[stringIndex];
+      // Group by fret/finger if fret > 0 and finger > 0
+      if (fret > 0 && finger > 0) {
+        const key = `${fret}-${finger}`;
+        if (!notesByFretFinger[key]) notesByFretFinger[key] = [];
+        notesByFretFinger[key].push(stringIndex);
+      }
+    });
+
+    return Object.entries(notesByFretFinger)
+      .filter(([_, indices]) => indices.length >= 2) // Barres cover 2+ strings
+      .map(([key, indices]) => {
+        const [fretStr, fingerStr] = key.split('-');
+        return {
+          fret: parseInt(fretStr),
+          finger: parseInt(fingerStr),
+          minStr: Math.min(...indices),
+          maxStr: Math.max(...indices)
+        };
+      });
+  }, [frets, fingers]);
+
+  const hasNotesBelow = frets.some(f => f > 0 && f < startFret);
+  const hasNotesAbove = frets.some(f => f > startFret + numFrets - 1);
+
   return (
     <div className="flex flex-col items-center space-y-4">
       <div className="flex items-center gap-3">
@@ -94,6 +126,18 @@ export function InteractiveGuitarDiagram({ frets, fingers, startFret = 1, onChan
         role="img"
         aria-label="Interactive guitar fretboard diagram"
       >
+        {/* Off-screen indicators */}
+        {hasNotesBelow && (
+           <text x="120" y="20" fontSize="12" fill="hsl(var(--destructive))" textAnchor="middle" fontWeight="bold">
+             ▲ Notes above
+           </text>
+        )}
+        {hasNotesAbove && (
+           <text x="120" y="310" fontSize="12" fill="hsl(var(--destructive))" textAnchor="middle" fontWeight="bold">
+             ▼ Notes below
+           </text>
+        )}
+
         {/* Fretboard horizontal lines */}
         {[...Array(numFrets)].map((_, i) => (
           <line
@@ -174,6 +218,40 @@ export function InteractiveGuitarDiagram({ frets, fingers, startFret = 1, onChan
             </g>
           );
         })}
+
+        {/* Barre Chords */}
+        {barres.map((barre, idx) => {
+           const relativeFret = barre.fret - startFret + 1;
+           if (relativeFret >= 1 && relativeFret <= numFrets) {
+             const y = 70 + (relativeFret - 0.5) * 40;
+             const minX = 50 + barre.minStr * 32;
+             const maxX = 50 + barre.maxStr * 32;
+             return (
+               <g key={`barre-${idx}`}>
+                 <rect 
+                    x={minX - 14} 
+                    y={y - 14} 
+                    width={maxX - minX + 28} 
+                    height={28} 
+                    rx={14} 
+                    fill="hsl(var(--primary))" 
+                    opacity="0.9"
+                 />
+                 <text 
+                    x={(minX + maxX) / 2} 
+                    y={y + 5} 
+                    fontSize="13" 
+                    fill="hsl(var(--primary-foreground))"
+                    textAnchor="middle"
+                    fontWeight="600"
+                 >
+                    {barre.finger === 5 ? 'T' : barre.finger}
+                 </text>
+               </g>
+             );
+           }
+           return null;
+        })}
         
         {/* Fret markers and muted/open indicators */}
         {frets.map((fret, stringIndex) => {
@@ -197,12 +275,22 @@ export function InteractiveGuitarDiagram({ frets, fingers, startFret = 1, onChan
                 cy="45" 
                 r="7" 
                 fill="none" 
-                stroke="#22c55e" 
+                stroke="hsl(var(--chart-2))" 
                 strokeWidth="2.5" 
               />
             );
           } else {
             // Fretted note - convert to relative position
+            
+            // Skip if barre
+            const isBarre = barres.some(b => 
+                b.fret === fret && 
+                b.finger === fingers[stringIndex] && 
+                stringIndex >= b.minStr && 
+                stringIndex <= b.maxStr
+            );
+            if (isBarre) return null;
+
             const relativeFret = fret - startFret + 1;
             if (relativeFret >= 1 && relativeFret <= numFrets) {
               const y = 70 + (relativeFret - 0.5) * 40;
@@ -220,7 +308,7 @@ export function InteractiveGuitarDiagram({ frets, fingers, startFret = 1, onChan
                       textAnchor="middle"
                       fontWeight="600"
                     >
-                      {finger}
+                      {finger === 5 ? 'T' : finger}
                     </text>
                   )}
                 </g>

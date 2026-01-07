@@ -4,13 +4,13 @@
 
 > **Note:** This project is currently in **active development phase (Alpha)**. Features may change and instability is expected. There is no official release version yet.
 
-**GoodMultitracks** is a multitrack audio player (stems) designed with an educational purpose: **allowing musicians to study songs deeply through track separation.**
+**GoodMultitracks** is a multitrack audio player (stems) designed with an educational purpose: **allowing musicians to study songs deeply using your stems.**
 
 Unlike traditional DAWs focused on production, the focus here is on **learning** and **analysis**. The software uses a robust music theory engine to contextualize audio with harmonic and rhythmic information. It serves bands, church worship groups, among other applications.
 
 ## 🎯 Objective and Vision
 
-The core idea is to provide a tool where the musician can load a multitrack file, isolate instruments, understand the song structure, and practice. All this with the possibility of a local installation, at no cost, being an alternative to online multitrack streaming platforms. You make the multitrack, create a single file that can be sent to the band, and everyone enjoys a good study tool, 100% free and local, without cloud services or telemetry.
+The core idea is to provide a tool where the musician can load a multitrack file, solo instruments/stems, understand the song structure, and practice. All this with the possibility of a local installation, at no cost, being an alternative to online multitrack streaming platforms. You make the multitrack, create a single file that can be sent to the band, and everyone enjoys a good study tool, 100% free and local, without cloud services or telemetry.
 
 * **Current:** A multitrack player for study, with waveform visualization and theoretical analysis (chords, metrics).
 * **Near Future:** To become a complete **VS Player (Virtual Soundcheck/Backing Tracks)** for live use.
@@ -18,7 +18,7 @@ The core idea is to provide a tool where the musician can load a multitrack file
 ## 🚀 Main Features
 
 ### Current (In development)
-* **Multitrack Player (DAW-style):** Individual volume, solo, and mute control for each track (stem).
+* **Multitrack Player (DAW-style):** Individual volume, solo, and mute control for each track/stem.
 * **Musical Intelligence:** Advanced music theory system that understands and processes:
     * Harmony and Chords.
     * Complex Metrics and Time Signatures.

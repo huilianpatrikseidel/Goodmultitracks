@@ -188,8 +188,17 @@ export function calculateInterval(degree: number, semitones: number): IntervalOb
       quality = 'dd';
       id = `dd${normalizedDegree + 1}`;
     } else {
-      // Extreme cases
-      quality = deviation > 0 ? 'A' : 'd';
+      // Extreme cases - Handle arbitrary augmented/diminished intervals
+      if (deviation > 0) {
+        // Augmented (A, AA, AAA...)
+        const count = deviation;
+        quality = 'A'.repeat(count) as any;
+      } else {
+        // Diminished (d, dd, ddd...)
+        // For perfect intervals, deviation -1 is d.
+        const count = Math.abs(deviation);
+        quality = 'd'.repeat(count) as any;
+      }
       id = `${quality}${normalizedDegree + 1}`;
     }
   } else {
@@ -213,8 +222,18 @@ export function calculateInterval(degree: number, semitones: number): IntervalOb
       quality = 'dd';
       id = `dd${normalizedDegree + 1}`;
     } else {
-      // Extreme cases
-      quality = deviation > 0 ? 'A' : 'd';
+      // Extreme cases - Handle arbitrary augmented/diminished intervals
+      if (deviation > 0) {
+        // Augmented (A, AA, AAA...)
+        const count = deviation;
+        quality = 'A'.repeat(count) as any;
+      } else {
+        // Diminished (d, dd, ddd...)
+        // For major intervals, deviation -1 is m, -2 is d.
+        // So deviation -3 is dd (count 2). |dev| - 1 = count.
+        const count = Math.abs(deviation) - 1;
+        quality = 'd'.repeat(count) as any;
+      }
       id = `${quality}${normalizedDegree + 1}`;
     }
   }
