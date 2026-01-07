@@ -95,10 +95,10 @@ GoodMultitracks/
 │   ├── Effects processing
 │   └── Audio Workers
 │
-└── Backend (Tauri/Rust)
-    ├── File system access
-    ├── Audio file parsing
-    └── Native integrations
+└── Backend (temporarily disabled)
+    ├── No native layer at the moment
+    ├── All features run in browser
+    └── Future desktop/mobile support to be re-evaluated
 ```
 
 ---
@@ -153,7 +153,7 @@ GoodMultitracks/
 ### Library Feature
 **Location:** `src/features/library/`  
 **Responsibility:** Song organization and metadata  
-**Dependencies:** Tauri backend  
+**Dependencies:** None (browser only)  
 **Status:** Production ready
 
 ### Setlist Feature
@@ -232,9 +232,7 @@ User Action → Component → Store Action → State Update → Re-render
 - **Audio:** Web Audio API
 
 ### Backend
-- **Framework:** Tauri
-- **Language:** Rust
-- **Platform:** Desktop (Windows, macOS, Linux)
+- (Temporarily disabled — browser-only runtime)
 
 ### Testing
 - **Framework:** Vitest (planned)
@@ -253,10 +251,7 @@ npm run preview      # Preview production build
 ```
 
 ### Desktop App
-```bash
-npm run tauri dev    # Tauri development mode
-npm run tauri build  # Build desktop app
-```
+Temporarily disabled. The project currently targets web (browser) only.
 
 ---
 
