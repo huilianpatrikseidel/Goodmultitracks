@@ -8,6 +8,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../../../../components/ui/tooltip';
+import { ZOOM } from '../../../../config/constants';
 
 interface ZoomControlsProps {
   zoom: number;
@@ -30,9 +31,9 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({
             variant="ghost"
             size="icon"
             className="h-7 w-7 rounded"
-            style={{ backgroundColor: 'var(--daw-control)', color: '#F1F1F1', opacity: zoom <= 1 ? 0.5 : 1 }}
+            style={{ backgroundColor: 'var(--daw-control)', color: '#F1F1F1', opacity: zoom <= ZOOM.MIN ? 0.5 : 1 }}
             onClick={onZoomOut}
-            disabled={zoom <= 1}
+            disabled={zoom <= ZOOM.MIN}
           >
             <ZoomOut className="w-4 h-4" />
           </Button>
@@ -50,9 +51,9 @@ export const ZoomControls: React.FC<ZoomControlsProps> = ({
             variant="ghost"
             size="icon"
             className="h-7 w-7 rounded"
-            style={{ backgroundColor: 'var(--daw-control)', color: '#F1F1F1', opacity: zoom >= 8 ? 0.5 : 1 }}
+            style={{ backgroundColor: 'var(--daw-control)', color: '#F1F1F1', opacity: zoom >= ZOOM.MAX ? 0.5 : 1 }}
             onClick={onZoomIn}
-            disabled={zoom >= 8}
+            disabled={zoom >= ZOOM.MAX}
           >
             <ZoomIn className="w-4 h-4" />
           </Button>

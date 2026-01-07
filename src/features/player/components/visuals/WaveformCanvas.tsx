@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // Copyright (c) 2026 GoodMultitracks contributors
 import React, { useEffect, useRef, useCallback } from 'react';
-import { WaveformMipmap, selectMipmapLevel, getMipmapFactor } from '../../../lib/waveformMipmaps';
+import { WaveformMipmap, selectMipmapLevel, getMipmapFactor } from '../../../../lib/waveformMipmaps';
 
 interface WaveformCanvasProps {
   data: Float32Array;  // CRITICAL FIX: Float32Array for zero-copy transfer

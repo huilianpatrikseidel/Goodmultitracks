@@ -14,6 +14,7 @@ interface RulersContainerProps {
   containerWidth: number;
   visibleRulers: string[];
   rulerOrder: string[];
+  snapEnabled: boolean; // QA FIX: Added to pass to Ruler components
   onTimeClick: (time: number) => void;
   onMarkerEdit?: (marker: any, type: 'tempo' | 'timesig' | 'section' | 'chord') => void;
   onMarkerDelete?: (markerId: string, type: 'tempo' | 'timesig' | 'section' | 'chord') => void;
@@ -52,6 +53,7 @@ export const RulersContainer: React.FC<RulersContainerProps> = React.memo(({
   containerWidth,
   visibleRulers,
   rulerOrder,
+  snapEnabled, // QA FIX: Receive from parent to pass to Ruler
   onTimeClick,
   onMarkerEdit,
   onMarkerDelete,
@@ -117,6 +119,7 @@ export const RulersContainer: React.FC<RulersContainerProps> = React.memo(({
           song={song}
           timelineWidth={song.duration * pps}
           zoom={zoom}
+          snapEnabled={snapEnabled} // QA FIX: Pass global snap state
           editMode={editMode}
           keyShift={keyShift}
           showBeats={true}

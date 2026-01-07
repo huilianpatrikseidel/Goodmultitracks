@@ -36,6 +36,7 @@ interface DAWWorkspaceProps {
   // Edit mode
   activeTool: 'marker' | 'warp' | null;
   warpMode: boolean;
+  snapEnabled: boolean; // QA FIX: Added for global snap state
   
   // Dimensions
   containerWidth: number;
@@ -167,6 +168,7 @@ export function DAWWorkspace(props: DAWWorkspaceProps) {
                 containerWidth={containerWidth}
                 visibleRulers={visibleRulers}
                 rulerOrder={rulerOrder}
+                snapEnabled={props.snapEnabled}
                 onTimeClick={onTimeClick}
                 onMarkerEdit={onMarkerEdit}
                 onMarkerDelete={(id: string, type: 'tempo' | 'timesig' | 'section' | 'chord') => {}} // Implement delete if needed

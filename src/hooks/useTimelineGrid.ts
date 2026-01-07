@@ -6,7 +6,29 @@
  * Hook para cálculo inteligente de grid da timeline usando análise
  * avançada de fórmulas de compasso.
  * 
- * Substitui a lógica manual em gridUtils.ts com análise precisa de:
+ * QA FIX (January 7, 2026): MUSICAL LOD HIERARCHY
+ * ================================================
+ * CRITICAL FIX: Level of Detail (LOD) now based on PIXELS PER MEASURE
+ * instead of arbitrary zoom thresholds.
+ * 
+ * MUSICAL HIERARCHY (respects metric importance):
+ * - Level 1: Measures every 4 bars (4-bar phrases) - extreme zoom out
+ * - Level 2: All measures (bar lines)
+ * - Level 3: Macro beats (strong beats: 1, 3 in 4/4; dotted quarters in 6/8)
+ * - Level 4: All beats/pulses
+ * - Level 5: 16th note subdivisions
+ * 
+ * THRESHOLDS (based on readability - minimum 30-50px gap):
+ * - 15px per measure: Show measure numbers
+ * - 25px per measure: Show all measures (not just every 4th)
+ * - 50px per measure: Show macro beats (main tactus)
+ * - 80px per measure: Show all beats/pulses
+ * - 200px per measure: Show 16th note subdivisions
+ * 
+ * This ensures users ALWAYS see the correct metric hierarchy at any zoom level,
+ * preventing the "unmusical decimation" bug where random beats were hidden.
+ * 
+ * ORIGINAL FEATURES (preserved):
  * - Compassos simples, compostos e irregulares
  * - Hierarquia de beats (macro beats vs. pulses)
  * - Níveis de acento (downbeat, beat, subdivision)
@@ -16,7 +38,8 @@
  * const { gridLines, measureBars, timeSignatureInfo } = useTimelineGrid({
  *   duration: 180,
  *   tempo: 120,
- *   timeSignature: '6/8'
+ *   timeSignature: '6/8',
+ *   zoom: 2.5
  * });
  * // gridLines contém hierarquia correta: 2 macro beats, 6 pulses
  */
@@ -117,10 +140,14 @@ export function useTimelineGrid({
     return getMetronomeClickStructure(timeSignatureInfo);
   }, [timeSignatureInfo]);
 
-  // Calculate grid lines
+  // Calculate grid lines with MUSICAL LOD (pixels per measure)
   const gridLines = useMemo(() => {
     const lines: GridLine[] = [];
     const sortedChanges = [...tempoChanges].sort((a, b) => a.time - b.time);
+
+    // QA FIX: Calculate pixels per second using BASE_PPS constant
+    const BASE_PPS = 50; // pixels per second at zoom 1.0 (from constants.ts)
+    const pixelsPerSecond = BASE_PPS * zoom;
 
     let currentTime = 0;
     let currentMeasure = 1;
@@ -151,75 +178,95 @@ export function useTimelineGrid({
       const quarterNoteDuration = 60 / currentTempo;
       const measureDuration = currentTSInfo.measureDurationInQuarters * quarterNoteDuration;
 
+      // QA FIX: Calculate pixels per measure (MUSICAL metric for LOD decisions)
+      const pixelsPerMeasure = measureDuration * pixelsPerSecond;
+
+      // QA FIX: Musical LOD hierarchy based on pixels per measure
+      // This ensures proper metric hierarchy (Bar > Beat > Subdivision) at all zoom levels
+      // Thresholds based on minimum 30-50px gap for readability
+      const showMeasureNumbers = pixelsPerMeasure >= 15;  // Show measure numbers when readable
+      const showAllMeasures = pixelsPerMeasure >= 25;     // Show all measures (not just every 4th)
+      const showMacroBeats = pixelsPerMeasure >= 50;      // Show main beats (strong metric points)
+      const showAllBeats = pixelsPerMeasure >= 80;        // Show all beats/pulses
+      const showSixteenths = pixelsPerMeasure >= 200;     // Show 16th note subdivisions
+
       // Check if measure is visible
       const isVisible = currentTime + measureDuration >= startTime && currentTime <= endTime;
 
+      // QA FIX: Only show measures based on LOD (respect metric hierarchy)
       if (isVisible && currentTime >= startTime) {
-        // Add measure line (downbeat)
-        lines.push({
-          position: currentTime,
-          opacity: 1.0,
-          type: 'measure',
-          accentLevel: 2,
-          measureNumber: currentMeasure,
-        });
-
-        // Add beat lines using metronome structure
-        if (showBeats) {
-          const pulseDuration = measureDuration / currentTSInfo.pulsesPerMeasure;
-
-          currentMetronome.allPulses.forEach((pulseIndex, i) => {
-            // Skip first pulse (already added as measure line)
-            if (pulseIndex === 0) return;
-
-            const pulseTime = currentTime + pulseIndex * pulseDuration;
-            if (pulseTime >= startTime && pulseTime <= endTime && pulseTime < duration) {
-              const accentLevel = currentMetronome.accentLevels[i];
-              const isMacroBeat = currentMetronome.macroBeats.includes(pulseIndex);
-
-              // Determine line type based on accent and zoom
-              let lineType: 'beat' | 'subdivision';
-              let opacity: number;
-
-              if (isMacroBeat) {
-                // Macro beat (main tactus)
-                lineType = 'beat';
-                opacity = accentLevel === 2 ? 1.0 : 0.6;
-              } else {
-                // Subdivision (pulse within macro beat)
-                lineType = 'subdivision';
-                opacity = 0.3;
-
-                // Hide subdivisions at low zoom
-                if (zoom < 50) return;
-              }
-
-              lines.push({
-                position: pulseTime,
-                opacity,
-                type: lineType,
-                accentLevel,
-              });
-            }
+        // QA FIX: At extreme zoom out, show only every 4th measure (4-bar phrases)
+        const shouldShowMeasure = showAllMeasures || (currentMeasure % 4 === 1);
+        
+        if (shouldShowMeasure) {
+          // Add measure line (downbeat)
+          lines.push({
+            position: currentTime,
+            opacity: 1.0,
+            type: 'measure',
+            accentLevel: 2,
+            measureNumber: showMeasureNumbers ? currentMeasure : undefined,
           });
 
-          // Add finer subdivisions (16th notes) if requested and zoomed in
-          if (showSubdivisions && zoom > 80) {
-            const sixteenthDuration = pulseDuration / 4;
-            const totalSixteenths = currentTSInfo.pulsesPerMeasure * 4;
+          // QA FIX: Add beat lines using MUSICAL hierarchy (not arbitrary zoom values)
+          if (showBeats && showMacroBeats) {
+            const pulseDuration = measureDuration / currentTSInfo.pulsesPerMeasure;
 
-            for (let i = 1; i < totalSixteenths; i++) {
-              // Skip positions that already have beats
-              if (i % 4 === 0) continue;
+            currentMetronome.allPulses.forEach((pulseIndex, i) => {
+              // Skip first pulse (already added as measure line)
+              if (pulseIndex === 0) return;
 
-              const sixteenthTime = currentTime + i * sixteenthDuration;
-              if (sixteenthTime >= startTime && sixteenthTime <= endTime && sixteenthTime < duration) {
+              const pulseTime = currentTime + pulseIndex * pulseDuration;
+              if (pulseTime >= startTime && pulseTime <= endTime && pulseTime < duration) {
+                const accentLevel = currentMetronome.accentLevels[i];
+                const isMacroBeat = currentMetronome.macroBeats.includes(pulseIndex);
+
+                // QA FIX: MUSICAL LOD - respect metric hierarchy
+                // Level 1: Show only macro beats (e.g., beats 1 and 3 in 4/4, or dotted quarters in 6/8)
+                // Level 2: Show all beats/pulses
+                let lineType: 'beat' | 'subdivision';
+                let opacity: number;
+
+                if (isMacroBeat) {
+                  // Macro beat (main tactus) - always show when macro beats are enabled
+                  lineType = 'beat';
+                  opacity = accentLevel === 2 ? 1.0 : 0.6;
+                } else {
+                  // Subdivision (pulse within macro beat)
+                  lineType = 'subdivision';
+                  opacity = 0.3;
+
+                  // QA FIX: Only show subdivisions when pixels per measure allows it
+                  if (!showAllBeats) return;
+                }
+
                 lines.push({
-                  position: sixteenthTime,
-                  opacity: 0.2,
-                  type: 'subdivision',
-                  accentLevel: 0,
+                  position: pulseTime,
+                  opacity,
+                  type: lineType,
+                  accentLevel,
                 });
+              }
+            });
+
+            // QA FIX: Add finer subdivisions (16th notes) based on MUSICAL LOD
+            if (showSubdivisions && showSixteenths) {
+              const sixteenthDuration = pulseDuration / 4;
+              const totalSixteenths = currentTSInfo.pulsesPerMeasure * 4;
+
+              for (let i = 1; i < totalSixteenths; i++) {
+                // Skip positions that already have beats
+                if (i % 4 === 0) continue;
+
+                const sixteenthTime = currentTime + i * sixteenthDuration;
+                if (sixteenthTime >= startTime && sixteenthTime <= endTime && sixteenthTime < duration) {
+                  lines.push({
+                    position: sixteenthTime,
+                    opacity: 0.2,
+                    type: 'subdivision',
+                    accentLevel: 0,
+                  });
+                }
               }
             }
           }

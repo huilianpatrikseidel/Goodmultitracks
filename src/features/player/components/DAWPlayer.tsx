@@ -536,6 +536,7 @@ function DAWPlayerContent({ song, onSongUpdate, onPerformanceMode, onBack, onExp
             onRulerOrderChange={setRulerOrder}
             onSnapToggle={() => setSnapEnabled(!snapEnabled)}
             onSnapModeChange={(mode) => console.log('Snap mode:', mode)}
+            onExportProject={onExportProject ? () => onExportProject(song) : undefined}
             activeTool={activeTool}
             onToolChange={handleToolChange}
           />
@@ -568,6 +569,7 @@ function DAWPlayerContent({ song, onSongUpdate, onPerformanceMode, onBack, onExp
                     containerWidth={containerWidth}
                     visibleRulers={Object.keys(rulerVisibility).filter(k => rulerVisibility[k])}
                     rulerOrder={rulerOrder}
+                    snapEnabled={snapEnabled}
                     onTimeClick={(time: number) => playbackActions.seek(time)}
                     onMarkerEdit={(marker: any, type: 'tempo' | 'timesig' | 'section' | 'chord') => openEditor(type, marker)}
                     onMarkerDelete={(id: string, type: 'tempo' | 'timesig' | 'section' | 'chord') => {}} // Implement delete if needed
@@ -787,6 +789,7 @@ export function DAWPlayer({ song, onSongUpdate, onPerformanceMode, onBack, onCre
       onSongUpdate={onSongUpdate}
       onPerformanceMode={onPerformanceMode}
       onBack={onBack}
+      onExportProject={onExportProject}
     />
   );
 }

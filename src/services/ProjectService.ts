@@ -37,45 +37,64 @@ export class ProjectService {
    * @returns Promise que resolve quando download inicia
    */
   static async saveProject(song: Song): Promise<void> {
+    console.log('[ProjectService] Starting saveProject for:', song.title);
+    console.log('[ProjectService] Song tracks:', song.tracks.length);
+    
     try {
       const zip = new JSZip();
 
       // 1. Adicionar XML
+      console.log('[ProjectService] Generating XML...');
       const xmlContent = this.generateProjectXML(song);
       zip.file('project.xml', xmlContent);
+      console.log('[ProjectService] XML added, length:', xmlContent.length);
 
       // 2. Adicionar arquivos de áudio
+      console.log('[ProjectService] Adding audio files...');
+      let audioFilesAdded = 0;
       for (const track of song.tracks) {
         if (track.file) {
           const extension = this.getFileExtension(track.filename || 'unknown.wav');
           const filename = `audio/${track.id}${extension}`;
           zip.file(filename, track.file);
+          audioFilesAdded++;
+          console.log(`[ProjectService] Added audio file: ${filename}, size: ${track.file.size}`);
+        } else {
+          console.warn(`[ProjectService] Track ${track.name} has no file`);
         }
       }
+      console.log(`[ProjectService] Total audio files added: ${audioFilesAdded}`);
 
       // 3. Adicionar capa se existir
       if (song.thumbnailUrl && song.thumbnailUrl.startsWith('blob:')) {
         try {
+          console.log('[ProjectService] Fetching cover image...');
           const response = await fetch(song.thumbnailUrl);
           const blob = await response.blob();
           zip.file('cover.jpg', blob);
+          console.log('[ProjectService] Cover image added');
         } catch (error) {
           console.warn('Failed to save cover image:', error);
         }
       }
 
       // 4. Gerar blob do ZIP
+      console.log('[ProjectService] Generating ZIP blob...');
       const blob = await zip.generateAsync({
         type: 'blob',
         compression: 'DEFLATE',
         compressionOptions: { level: 6 }
       });
+      console.log('[ProjectService] ZIP blob generated, size:', blob.size);
 
       // 5. Disparar download
       const safeFilename = this.sanitizeFilename(song.title || 'project');
+      console.log('[ProjectService] Triggering download:', `${safeFilename}.gmtk`);
       downloadFile(blob, `${safeFilename}.gmtk`);
+      console.log('[ProjectService] Download triggered successfully');
 
     } catch (error) {
+      console.error('[ProjectService] Error in saveProject:', error);
       throw error;
     }
   }

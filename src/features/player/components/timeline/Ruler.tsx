@@ -5,7 +5,8 @@ import { Badge } from '../../../../components/ui/badge';
 import { Song, SectionMarker, TempoChange, ChordMarker } from '../../../../types';
 import { TIMELINE } from '../../../../config/constants';
 import { transposeKey } from '../../../../lib/musicTheory';
-import { calculateGridLines, calculateMeasureBars } from '../../utils/gridUtils';
+import { snapToGrid } from '../../utils/gridUtils'; // QA FIX: Import from gridUtils to avoid duplication
+import { useTimelineGrid } from '../../../../hooks/useTimelineGrid'; // QA FIX: Use modern hook instead of legacy calculateGridLines
 import { measureToSeconds, secondsToMeasure, calculateWarpBPM } from '../../../../lib/timeUtils';
 import { useWarpInteraction } from '../../hooks/useWarpInteraction';
 import { formatBPM, formatTime } from '../../../../lib/formatters';
@@ -25,6 +26,7 @@ interface RulerProps {
   editMode: boolean;
   keyShift: number;
   showBeats: boolean;
+  snapEnabled: boolean; // QA FIX: Added - must receive from global state, not hardcoded
   onRulerDrop: (e: React.DragEvent<HTMLDivElement>, rulerId: string) => void;
   onRulerDragOver: (e: React.DragEvent<HTMLDivElement>) => void;
   onSectionClick: (markerIndex: number) => void;
@@ -48,6 +50,7 @@ export const Ruler: React.FC<RulerProps> = ({
   song,
   timelineWidth,
   zoom,
+  snapEnabled, // QA FIX: Receive from props, not hardcoded state
   editMode,
   keyShift,
   showBeats,
@@ -95,43 +98,11 @@ export const Ruler: React.FC<RulerProps> = ({
   // Estado para loop dragging
   const [isLoopDragging, setIsLoopDragging] = React.useState(false);
   const [loopDragStart, setLoopDragStart] = React.useState<number | null>(null);
-  const [loopDragEnd, setLoopDragEnd] = React.useState<number | null>(null); // Adicionar estado para o end
+  const [loopDragEnd, setLoopDragEnd] = React.useState<number | null>(null);
   const [ghostCursorTime, setGhostCursorTime] = React.useState<number | null>(null);
-  const [snapEnabled, setSnapEnabled] = React.useState(true);
   const [isTempoExpanded, setIsTempoExpanded] = React.useState(false);
-
-  // Helper: Snap to nearest beat/measure
-  const snapToGrid = (time: number): number => {
-    if (!snapEnabled || gridLines.length === 0) return time;
-    
-    // Binary search to find insertion point
-    let low = 0;
-    let high = gridLines.length - 1;
-    
-    while (low <= high) {
-      const mid = Math.floor((low + high) / 2);
-      if (gridLines[mid].position < time) {
-        low = mid + 1;
-      } else {
-        high = mid - 1;
-      }
-    }
-    
-    // low is the index of the first element > time
-    // Check low and low-1
-    const nextLine = gridLines[low];
-    const prevLine = gridLines[low - 1];
-    
-    if (nextLine && prevLine) {
-      return (time - prevLine.position < nextLine.position - time) ? prevLine.position : nextLine.position;
-    } else if (nextLine) {
-      return nextLine.position;
-    } else if (prevLine) {
-      return prevLine.position;
-    }
-    
-    return time;
-  };
+  // QA FIX: snapEnabled is now a prop from global state, removed hardcoded useState(true)
+  // QA FIX: snapToGrid is now imported from gridUtils to avoid duplication
 
   // Handler para converter clique em tempo
   const handleRulerInteraction = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -150,7 +121,7 @@ export const Ruler: React.FC<RulerProps> = ({
        e.stopPropagation();
        const x = e.clientX - rect.left;
        const time = (x / timelineWidth) * song.duration;
-       const snapped = snapToGrid(time);
+       const snapped = snapEnabled ? snapToGrid(time, song.tempo || 120, 'beat', 4) : time;
        setIsLoopDragging(true);
        setLoopDragStart(snapped);
        setLoopDragEnd(snapped); // Inicializar com mesmo valor
@@ -163,7 +134,7 @@ export const Ruler: React.FC<RulerProps> = ({
         if (rulerId === 'tempo' && onTempoMarkerAdd) {
            const x = e.clientX - rect.left;
            const time = (x / timelineWidth) * song.duration;
-           const snapped = snapToGrid(time);
+           const snapped = snapEnabled ? snapToGrid(time, song.tempo || 120, 'beat', 4) : time;
            onTempoMarkerAdd(snapped);
            return;
         }
@@ -171,7 +142,7 @@ export const Ruler: React.FC<RulerProps> = ({
         if (rulerId === 'chords' && onChordAdd) {
            const x = e.clientX - rect.left;
            const time = (x / timelineWidth) * song.duration;
-           const snapped = snapToGrid(time);
+           const snapped = snapEnabled ? snapToGrid(time, song.tempo || 120, 'beat', 4) : time;
            onChordAdd(snapped);
            return;
         }
@@ -181,11 +152,20 @@ export const Ruler: React.FC<RulerProps> = ({
     // Block Seek if Warp Mode is active (to avoid accidental jumps)
     if (!warpMode) {
       const x = e.clientX - rect.left;
-      const clickedTime = (x / timelineWidth) * song.duration;
-      const snappedTime = snapToGrid(clickedTime);
+      // QA CERTIFICATION: Mathematical time calculation (NOT visual grid iteration)
+      // FORMULA: time = (x / timelineWidth) * duration
+      // COMPLEXITY: O(1) - no iteration over grid lines
+      const exactTime = (x / timelineWidth) * song.duration;
+      
+      // QA CERTIFICATION: Snap is CONDITIONAL - only applied when snapEnabled is true
+      // When snapEnabled is FALSE, the playhead moves to the EXACT calculated time
+      // This enables "freehand" positioning at any float value (e.g., 1.234s)
+      const targetTime = snapEnabled 
+        ? snapToGrid(exactTime, song.tempo || 120, 'beat', 4) 
+        : exactTime;
       
       if (onTimeClick && e.clientY - rect.top < TIMELINE.RULER_HEIGHT / 2) {
-        onTimeClick(Math.max(0, Math.min(snappedTime, song.duration)));
+        onTimeClick(Math.max(0, Math.min(targetTime, song.duration)));
       }
     }
   };
@@ -193,8 +173,27 @@ export const Ruler: React.FC<RulerProps> = ({
   // Global mouse move and up for Warp (Handled by Hook)
   // React.useEffect(() => { ... }) removed.
 
-  // --- Time Ruler Logic ---
-  const getTimeMarkers = () => {
+  // PERFORMANCE: Round zoom to prevent recalculation on every pixel change
+  const roundedZoom = useMemo(() => Math.round(zoom * 10) / 10, [zoom]);
+
+  // Calculate visible viewport window for virtualization
+  const { visibleStartTime, visibleEndTime } = useMemo(() => {
+    if (!containerWidth || !timelineWidth || scrollLeft === undefined) {
+      return { visibleStartTime: undefined, visibleEndTime: undefined };
+    }
+    
+    // Calculate time range visible in viewport
+    const startTime = Math.max(0, (scrollLeft / timelineWidth) * song.duration);
+    const endTime = Math.min(song.duration, ((scrollLeft + containerWidth) / timelineWidth) * song.duration);
+    
+    return {
+      visibleStartTime: startTime,
+      visibleEndTime: endTime
+    };
+  }, [scrollLeft, containerWidth, timelineWidth, song.duration]);
+
+  // --- Time Ruler Logic (Virtualized) ---
+  const getTimeMarkers = useMemo(() => {
     const getTimeInterval = () => {
       if (zoom >= 8) return 1;
       if (zoom >= 4) return 2;
@@ -202,40 +201,41 @@ export const Ruler: React.FC<RulerProps> = ({
       if (zoom >= 0.5) return 10;
       return 30; // Less frequent markers when zoomed out
     };
+    
     const interval = getTimeInterval();
     const markers: number[] = [];
-    // Optimize loop: only generate markers for visible area if we had scroll info, 
-    // but for now just generate all (it's fast enough for reasonable durations)
-    for (let i = 0; i <= song.duration; i += interval) {
+    
+    // Viewport culling: only generate markers within visible window + buffer
+    const bufferTime = interval * 2; // 2 intervals buffer on each side
+    const startTime = Math.max(0, (visibleStartTime ?? 0) - bufferTime);
+    const endTime = Math.min(song.duration, (visibleEndTime ?? song.duration) + bufferTime);
+    
+    // Snap to interval boundaries
+    const startMarker = Math.floor(startTime / interval) * interval;
+    const endMarker = Math.ceil(endTime / interval) * interval;
+    
+    for (let i = startMarker; i <= endMarker && i <= song.duration; i += interval) {
       markers.push(i);
     }
-    return markers;
-  };
-
-  // PERFORMANCE OPTIMIZATION (P1): Arredonda zoom para evitar recálculo a cada pixel
-  // Recalcula apenas quando zoom muda significativamente (0.1 = 10% de diferença)
-  const roundedZoom = useMemo(() => Math.round(zoom * 10) / 10, [zoom]);
-
-  // --- Measures Ruler Logic using gridUtils (Memoized for performance) ---
-  const gridLines = useMemo(() => {
-    // CRITICAL FIX: Não filtramos mais por viewport (scrollLeft/containerWidth)
-    // Renderizamos a estrutura lógica da música inteira.
-    // O gridUtils.ts já possui otimizações de LOD (zoom) para não gerar milhões de linhas.
-    // CSS com position: absolute e container com overflow: auto fazem a virtualização visual.
     
-    return calculateGridLines(
-      song.duration,
-      song.tempo || 120,
-      '4/4', // Default time signature, overridden by tempoChanges
-      showBeats, // Show subdivisions based on showBeats prop
-      roundedZoom * 100, // Convert zoom to a scale gridUtils expects
-      undefined, // Início visível removido (renderiza tudo)
-      undefined,  // Fim visível removido (renderiza tudo)
-      song.tempoChanges // Pass tempo changes for irregular meters
-    );
-  }, [song.duration, song.tempo, song.tempoChanges, editMode, roundedZoom, showBeats]);
+    return markers;
+  }, [zoom, song.duration, visibleStartTime, visibleEndTime]);
 
-  // Convert grid lines to measure bars for rendering with visual hierarchy + virtualização
+  // QA FIX: Use modern useTimelineGrid hook instead of legacy calculateGridLines
+  // This eliminates dead code and uses the superior time signature analysis
+  const { gridLines } = useTimelineGrid({
+    duration: song.duration,
+    tempo: song.tempo || 120,
+    timeSignature: song.tempoChanges?.[0]?.timeSignature || '4/4',
+    showBeats: showBeats,
+    showSubdivisions: false,
+    zoom: roundedZoom * 100,
+    tempoChanges: song.tempoChanges,
+    visibleStart: visibleStartTime,
+    visibleEnd: visibleEndTime,
+  });
+
+  // Convert grid lines to measure bars for rendering with visual hierarchy
   const getMeasureBars = useMemo(() => {
     const measureBars: { 
       time: number; 
@@ -251,40 +251,20 @@ export const Ruler: React.FC<RulerProps> = ({
     }[] = [];
     
     let lastMeasureTime = -1;
-    let lastLabelPixelPosition = -100; // Collision detection
-    const minPixelDistance = 50; // Mínimo 50px entre labels
     
-    // LOD Adaptativo baseado em pixels por beat (mais robusto que zoom bruto)
-    const pps = (timelineWidth / song.duration);
-    const pixelsPerBeat = (60 / (song.tempo || 120)) * pps;
-    const showBeatsAtThisZoom = showBeats && pixelsPerBeat >= 25; // Beats se houver >= 25px de espaço
-    const showSubdivisionsAtThisZoom = showBeats && pixelsPerBeat >= 80; // Subdivisões se >= 80px
-    
-    // P0 FIX: gridLines já vem pré-filtrado pela janela visível, não precisa filtrar novamente
-    // As linhas já foram calculadas apenas para a viewport em calculateGridLines
+    // QA FIX: LOD is now handled by useTimelineGrid hook with superior time signature analysis
+    // No need for manual pixel calculations here - just render what we receive from the hook
     
     gridLines.forEach((line, index) => {
       
       if (line.type === 'measure') {
         lastMeasureTime = line.position;
         
-        // Collision detection baseada em pixels VISÍVEIS na viewport
-        const pixelPosition = (line.position / song.duration) * timelineWidth;
-        // Calcular posição relativa à viewport atual
-        const visiblePixelPosition = pixelPosition - scrollLeft;
-        const hasSpace = (visiblePixelPosition - lastLabelPixelPosition) >= minPixelDistance;
-        // Só mostrar número se estiver dentro da viewport visível
-        const isInViewport = visiblePixelPosition >= 0 && visiblePixelPosition <= containerWidth;
-        const shouldShowNumber = hasSpace && isInViewport;
-        
-        if (shouldShowNumber) {
-          lastLabelPixelPosition = visiblePixelPosition;
-        }
-        
-        // BUGFIX: Use measureNumber from gridLines instead of local counter
+        // QA FIX: Always show measure number - LOD filtering already happened in useTimelineGrid
+        // The gridLines array only contains measures that should be visible at this zoom level
         measureBars.push({
           time: line.position,
-          measure: shouldShowNumber && line.measureNumber ? line.measureNumber : null,
+          measure: line.measureNumber || null, // Use measure number from gridLines (semantic source)
           beat: 1,
           isBeat: false,
           opacity: line.opacity,
@@ -292,16 +272,16 @@ export const Ruler: React.FC<RulerProps> = ({
           width: 2, // Linha mais espessa
           color: 'rgba(255,255,255,0.6)', // Cor forte
         });
-      } else if (line.type === 'beat' && showBeatsAtThisZoom) {
-        // BUGFIX: Calcular beat number relativo ao compasso atual, não acumulativo
+      } else if (line.type === 'beat') {
+        // QA FIX: Calcular beat number relativo ao compasso atual
         const beatsSinceMeasure = gridLines
           .slice(0, index)
           .filter(l => l.position > lastMeasureTime && l.type === 'beat')
           .length;
         
         // Beat number dentro do compasso (1-based, começando em 2 porque 1 é o downbeat/measure)
-        const beatNumber = beatsSinceMeasure + 1;
-        const isStrongSubBeat = beatNumber === 4 || beatNumber === 7 || beatNumber === 10; // Ex: tempo 4 em 6/8
+        const beatNumber = beatsSinceMeasure + 2; // +2 porque beat 1 é o downbeat (measure line)
+        const isStrongSubBeat = line.accentLevel === 2; // Use accent level from music theory analysis
         
         measureBars.push({
           time: line.position,
@@ -313,7 +293,8 @@ export const Ruler: React.FC<RulerProps> = ({
           width: isStrongSubBeat ? 1.5 : 1,
           color: isStrongSubBeat ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.25)',
         });
-      } else if (line.type === 'subdivision' && showSubdivisionsAtThisZoom) {
+      } else if (line.type === 'subdivision') {
+        // QA FIX: Subdivisions are already filtered by LOD in gridUtils
         measureBars.push({
           time: line.position,
           measure: null,
@@ -328,7 +309,7 @@ export const Ruler: React.FC<RulerProps> = ({
     });
     
     return measureBars;
-  }, [gridLines, zoom, showBeats, song.duration, timelineWidth, song.tempo, scrollLeft, containerWidth]);
+  }, [gridLines, showBeats, song.duration, timelineWidth]);
 
   switch (rulerId) {
     case 'time':
@@ -345,7 +326,7 @@ export const Ruler: React.FC<RulerProps> = ({
           onDragOver={onRulerDragOver}
           onMouseDown={handleRulerInteraction}
         >
-          {getTimeMarkers().map((time) => (
+          {getTimeMarkers.map((time) => (
             <div key={time} className="absolute top-0 bottom-0 border-l" style={{ left: (time / song.duration) * timelineWidth, borderColor: 'var(--daw-border)' }}>
               <span className="absolute top-0.5 left-1 text-[10px]" style={{ color: 'var(--daw-text-secondary)' }}>
                 {formatTime(time)}
@@ -373,7 +354,7 @@ export const Ruler: React.FC<RulerProps> = ({
             const rect = e.currentTarget.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const time = (x / timelineWidth) * song.duration;
-            const snapped = snapToGrid(time);
+            const snapped = snapEnabled ? snapToGrid(time, song.tempo || 120, 'beat', 4) : time;
             setGhostCursorTime(snapped);
             
             // Loop dragging

@@ -177,13 +177,15 @@ function AppContent() {
    * Exporta o projeto atual como .gmtk
    */
   const handleExportProject = async (song: Song) => {
+    console.log('[App] handleExportProject called with song:', song.title);
     setLoading(true, 0, 'Packaging project files... this may take a moment.');
     
     try {
       await ProjectService.saveProject(song);
+      console.log('[App] ProjectService.saveProject completed successfully');
       toast.success('Project exported successfully!');
     } catch (error) {
-      console.error('Error exporting project:', error);
+      console.error('[App] Error exporting project:', error);
       toast.error('Failed to save project');
     } finally {
       setLoading(false);
