@@ -58,8 +58,9 @@
             "vite": "6.3.5"
       },
       "scripts": {
-            "dev": "vite",
+                  "dev": "vite",
             "build": "node scripts/increment-build.js && vite build",
-            "build:no-increment": "vite build"
+                  "build:no-increment": "vite build",
+                  "lint:license": "node scripts/check-spdx.cjs"
       }
 }
