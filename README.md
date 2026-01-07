@@ -6,11 +6,11 @@
 
 **GoodMultitracks** is a multitrack audio player (stems) designed with an educational purpose: **allowing musicians to study songs deeply through track separation.**
 
-Unlike traditional DAWs focused on production, the focus here is on **learning** and **analysis**. The software uses a robust music theory engine to contextualize audio with harmonic and rhythmic information.
+Unlike traditional DAWs focused on production, the focus here is on **learning** and **analysis**. The software uses a robust music theory engine to contextualize audio with harmonic and rhythmic information. It serves bands, church worship groups, among other applications.
 
 ## 🎯 Objective and Vision
 
-The core idea is to provide a tool where the musician can load a multitrack file, isolate instruments, understand the song structure, and practice.
+The core idea is to provide a tool where the musician can load a multitrack file, isolate instruments, understand the song structure, and practice. All this with the possibility of a local installation, at no cost, being an alternative to online multitrack streaming platforms. You make the multitrack, create a single file that can be sent to the band, and everyone enjoys a good study tool, 100% free and local, without cloud services or telemetry.
 
 * **Current:** A multitrack player for study, with waveform visualization and theoretical analysis (chords, metrics).
 * **Near Future:** To become a complete **VS Player (Virtual Soundcheck/Backing Tracks)** for live use.
@@ -42,7 +42,7 @@ The project is built on a modern and performant stack:
 
 * **Core:** [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
 * **Build Tool:** [Vite](https://vitejs.dev/)
-* (No native packagers for now — desktop/mobile support will be defined in the future.)
+* (No native packagers for now — possibly, we will use Tauri/Capacitor)
 * **Styling:** Tailwind CSS.
 * **Audio:** Web Audio API with custom processing.
 
@@ -74,7 +74,7 @@ Since the project is Open Source, you can download, study the code, and run it o
 
 ## 🤝 How to Contribute
 
-Contributions are very welcome! If you are a developer (Front-end, TypeScript, or understand DSP/Audio) or a musician with feature ideas:
+Contributions are very welcome! If you are a developer (Front-end, TypeScript, or understand DSP/Audio and WebAssembly) or a musician with feature ideas:
 
 1.  Fork the project.
 2.  Create a Branch for your Feature (`git checkout -b feature/NewFeature`).

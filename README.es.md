@@ -6,11 +6,11 @@
 
 **GoodMultitracks** es un reproductor de audio multipista (stems) diseñado con un propósito educativo: **permitir a los músicos estudiar canciones profundamente a través de la separación de pistas.**
 
-A diferencia de los DAWs tradicionales enfocados en la producción, el enfoque aquí es el **aprendizaje** y el **análisis**. El software utiliza un motor robusto de teoría musical para contextualizar el audio con información armónica y rítmica.
+A diferencia de los DAWs tradicionales enfocados en la producción, el enfoque aquí es el **aprendizaje** y el **análisis**. El software utiliza un motor robusto de teoría musical para contextualizar el audio con información armónica y rítmica. Sirve para bandas, grupos de alabanza de iglesias, entre otras aplicaciones.
 
 ## 🎯 Objetivo y Visión
 
-La idea central es proporcionar una herramienta donde el músico pueda cargar un archivo multipista, aislar instrumentos, comprender la estructura de la canción y practicar.
+La idea central es proporcionar una herramienta donde el músico pueda cargar un archivo multipista, aislar instrumentos, comprender la estructura de la canción y practicar. Todo esto con la posibilidad de una instalación local, sin costo, siendo una alternativa a las plataformas de streaming de multipistas online. Haces el multitrack, creas un único archivo que se puede enviar a la banda, y todos disfrutan de una buena herramienta de estudio, 100% gratuita y local, sin servicios en la nube ni telemetría.
 
 * **Actual:** Un reproductor multipista para estudio, con visualización de formas de onda e análisis teórico (acordes, métricas).
 * **Futuro Próximo:** Convertirse en un **Reproductor VS (Virtual Soundcheck/Backing Tracks)** completo para uso en vivo.
@@ -42,7 +42,7 @@ El proyecto está construido sobre una pila moderna y de alto rendimiento:
 
 * **Core:** [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
 * **Herramienta de Construcción:** [Vite](https://vitejs.dev/)
-* (Sin empaquetadores nativos por ahora — el soporte para escritorio/móvil se definirá en el futuro.)
+* (Sin empaquetadores nativos por ahora — posiblemente, utilizaremos Tauri/Capacitor)
 * **Estilos:** Tailwind CSS.
 * **Audio:** Web Audio API con procesamiento personalizado.
 
@@ -74,7 +74,7 @@ Dado que el proyecto es Open Source, puedes descargar, estudiar el código y eje
 
 ## 🤝 Cómo Contribuir
 
-¡Las contribuciones son muy bienvenidas! Si eres desarrollador (Front-end, TypeScript, o entiendes de DSP/Audio) o músico con ideas de funcionalidades:
+¡Las contribuciones son muy bienvenidas! Si eres desarrollador (Front-end, TypeScript, o entiendes de DSP/Audio y WebAssembly) o músico con ideas de funcionalidades:
 
 1.  Haz un Fork del proyecto.
 2.  Crea una Branch para tu Feature (`git checkout -b feature/NuevaFuncionalidad`).

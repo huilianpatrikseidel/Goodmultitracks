@@ -6,11 +6,11 @@
 
 **GoodMultitracks** est un lecteur audio multipiste (stems) conçu dans un but éducatif : **permettre aux musiciens d'étudier les chansons en profondeur grâce à la séparation des pistes.**
 
-Contrairement aux DAW traditionnels axés sur la production, l'accent est mis ici sur **l'apprentissage** et **l'analyse**. Le logiciel utilise un moteur de théorie musicale robuste pour contextualiser l'audio avec des informations harmoniques et rythmiques.
+Contrairement aux DAW traditionnels axés sur la production, l'accent est mis ici sur **l'apprentissage** et **l'analyse**. Le logiciel utilise un moteur de théorie musicale robuste pour contextualiser l'audio avec des informations harmoniques et rythmiques. Il sert aux groupes, aux groupes de louange d'église, entre autres applications.
 
 ## 🎯 Objectif et Vision
 
-L'idée centrale est de fournir un outil où le musicien peut charger un fichier multipiste, isoler des instruments, comprendre la structure de la chanson et s'entraîner.
+L'idée centrale est de fournir un outil où le musicien peut charger un fichier multipiste, isoler des instruments, comprendre la structure de la chanson et s'entraîner. Tout cela avec la possibilité d'une installation locale, sans frais, constituant une alternative aux plateformes de streaming multipistes en ligne. Vous faites le multipiste, créez un fichier unique qui peut être envoyé au groupe, et tout le monde profite d'un bon outil d'étude, 100% gratuit et local, sans services cloud ni télémétrie.
 
 * **Actuel :** Un lecteur multipiste pour l'étude, avec visualisation de la forme d'onde et analyse théorique (accords, métriques).
 * **Proche Avenir :** Devenir un **Lecteur VS (Virtual Soundcheck/Backing Tracks)** complet pour une utilisation en direct.
@@ -42,7 +42,7 @@ Le projet est construit sur une pile moderne et performante :
 
 * **Cœur :** [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
 * **Outil de Build :** [Vite](https://vitejs.dev/)
-* (Pas d'empaqueteurs natifs pour l'instant — le support bureau/mobile sera défini ultérieurement.)
+* (Pas d'empaqueteurs natifs pour l'instant — possiblement, nous utiliserons Tauri/Capacitor)
 * **Style :** Tailwind CSS.
 * **Audio :** API Web Audio avec traitement personnalisé.
 
@@ -74,7 +74,7 @@ Puisque le projet est Open Source, vous pouvez le télécharger, étudier le cod
 
 ## 🤝 Comment Contribuer
 
-Les contributions sont les bienvenues ! Si vous êtes développeur (Front-end, TypeScript, ou comprenez le DSP/Audio) ou musicien avec des idées de fonctionnalités :
+Les contributions sont les bienvenues ! Si vous êtes développeur (Front-end, TypeScript, ou comprenez le DSP/Audio et WebAssembly) ou musicien avec des idées de fonctionnalités :
 
 1.  Faites un Fork du projet.
 2.  Créez une Branche pour votre Fonctionnalité (`git checkout -b feature/NouvelleFonctionnalite`).

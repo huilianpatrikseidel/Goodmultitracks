@@ -6,11 +6,11 @@
 
 **GoodMultitracks** ist ein Mehrspur-Audioplayer (Stems), der für pädagogische Zwecke entwickelt wurde: **Er ermöglicht Musikern, Songs durch Spurtrennung tiefgehend zu studieren.**
 
-Im Gegensatz zu traditionellen DAWs, die auf Produktion ausgerichtet sind, liegt der Schwerpunkt hier auf **Lernen** und **Analyse**. Die Software verwendet eine robuste Musiktheorie-Engine, um das Audio mit harmonischen und rhythmischen Informationen zu kontextualisieren.
+Im Gegensatz zu traditionellen DAWs, die auf Produktion ausgerichtet sind, liegt der Schwerpunkt hier auf **Lernen** und **Analyse**. Die Software verwendet eine robuste Musiktheorie-Engine, um das Audio mit harmonischen und rhythmischen Informationen zu kontextualisieren. Es dient Bands, Kirchenlobpreisgruppen und anderen Anwendungen.
 
 ## 🎯 Ziel und Vision
 
-Die Kernidee ist es, ein Werkzeug bereitzustellen, mit dem der Musiker eine Mehrspur-Datei laden, Instrumente isolieren, die Songstruktur verstehen und üben kann.
+Die Kernidee ist es, ein Werkzeug bereitzustellen, mit dem der Musiker eine Mehrspur-Datei laden, Instrumente isolieren, die Songstruktur verstehen und üben kann. All dies mit der Möglichkeit einer lokalen Installation, kostenlos, als Alternative zu Online-Multitrack-Streaming-Plattformen. Sie erstellen den Multitrack, erstellen eine einzelne Datei, die an die Band gesendet werden kann, und jeder genießt ein gutes Lernwerkzeug, 100% kostenlos und lokal, ohne Cloud-Dienste oder Telemetrie.
 
 * **Aktuell:** Ein Mehrspur-Player zum Lernen, mit Wellenform-Visualisierung und theoretischer Analyse (Akkorde, Metriken).
 * **Nahe Zukunft:** Ein vollständiger **VS Player (Virtual Soundcheck/Backing Tracks)** für den Live-Einsatz zu werden.
@@ -42,7 +42,7 @@ Das Projekt basiert auf einem modernen und leistungsfähigen Stack:
 
 * **Kern:** [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
 * **Build-Tool:** [Vite](https://vitejs.dev/)
-* (Vorerst keine nativen Packager — die Unterstützung für Desktop/Mobile wird in Zukunft definiert.)
+* (Vorerst keine nativen Packager — möglicherweise werden wir Tauri/Capacitor verwenden)
 * **Styling:** Tailwind CSS.
 * **Audio:** Web Audio API mit benutzerdefinierter Verarbeitung.
 
@@ -74,7 +74,7 @@ Da das Projekt Open Source ist, können Sie es herunterladen, den Code studieren
 
 ## 🤝 Wie man beiträgt
 
-Beiträge sind sehr willkommen! Wenn Sie Entwickler (Front-End, TypeScript oder Kenntnisse in DSP/Audio) oder Musiker mit Ideen für Funktionen sind:
+Beiträge sind sehr willkommen! Wenn Sie Entwickler (Front-End, TypeScript oder Kenntnisse in DSP/Audio und WebAssembly) oder Musiker mit Ideen für Funktionen sind:
 
 1.  Forken Sie das Projekt.
 2.  Erstellen Sie einen Branch für Ihr Feature (`git checkout -b feature/NeuesFeature`).

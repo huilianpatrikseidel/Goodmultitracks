@@ -6,11 +6,11 @@
 
 **GoodMultitracks** è un lettore audio multitraccia (stems) progettato con uno scopo educativo: **permettere ai musicisti di studiare le canzoni in profondità attraverso la separazione delle tracce.**
 
-A differenza delle DAW tradizionali focalizzate sulla produzione, l'attenzione qui è sull'**apprendimento** e sull'**analisi**. Il software utilizza un robusto motore di teoria musicale per contestualizzare l'audio con informazioni armoniche e ritmiche.
+A differenza delle DAW tradizionali focalizzate sulla produzione, l'attenzione qui è sull'**apprendimento** e sull'**analisi**. Il software utilizza un robusto motore di teoria musicale per contestualizzare l'audio con informazioni armoniche e ritmiche. Serve a band, gruppi di lode in chiesa, tra le altre applicazioni.
 
 ## 🎯 Obiettivo e Visione
 
-L'idea centrale è fornire uno strumento in cui il musicista possa caricare un file multitraccia, isolare gli strumenti, comprendere la struttura della canzone ed esercitarsi.
+L'idea centrale è fornire uno strumento in cui il musicista possa caricare un file multitraccia, isolare gli strumenti, comprendere la struttura della canzone ed esercitarsi. Tutto questo con la possibilità di un'installazione locale, senza costi, essendo un'alternativa alle piattaforme di streaming multitraccia online. Fai il multitraccia, crei un unico file che può essere inviato alla band, e tutti godono di un buon strumento di studio, 100% gratuito e locale, senza servizi cloud o telemetria.
 
 * **Attuale:** Un lettore multitraccia per lo studio, con visualizzazione della forma d'onda e analisi teorica (accordi, metriche).
 * **Futuro Prossimo:** Diventare un completo **VS Player (Virtual Soundcheck/Backing Tracks)** per l'uso dal vivo.
@@ -42,7 +42,7 @@ Il progetto è costruito su uno stack moderno e performante:
 
 * **Core:** [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
 * **Build Tool:** [Vite](https://vitejs.dev/)
-* (Nessun pacchettizzatore nativo per ora — il supporto desktop/mobile sarà definito in futuro.)
+* (Nessun pacchettizzatore nativo per ora — possibilmente, utilizzeremo Tauri/Capacitor)
 * **Stile:** Tailwind CSS.
 * **Audio:** Web Audio API con elaborazione personalizzata.
 
@@ -74,7 +74,7 @@ Poiché il progetto è Open Source, puoi scaricarlo, studiare il codice ed esegu
 
 ## 🤝 Come Contribuire
 
-I contributi sono molto benvenuti! Se sei uno sviluppatore (Front-end, TypeScript, o capisci di DSP/Audio) o un musicista con idee per funzionalità:
+I contributi sono molto benvenuti! Se sei uno sviluppatore (Front-end, TypeScript, o capisci di DSP/Audio e WebAssembly) o un musicista con idee per funzionalità:
 
 1.  Fai un Fork del progetto.
 2.  Crea un Branch per la tua Feature (`git checkout -b feature/NuovaFunzionalita`).
