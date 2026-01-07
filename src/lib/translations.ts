@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 // English-only translations
 export const translations = {
   // App navigation
@@ -160,3 +162,4 @@ export const translations = {
   clickToToggle: 'Click keys to toggle selection',
   blueDotsFingers: 'Blue dots show finger positions on the fretboard',
 };
+

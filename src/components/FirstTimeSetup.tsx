@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import React, { useState } from 'react';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
@@ -147,3 +149,4 @@ export function FirstTimeSetup({ onComplete }: FirstTimeSetupProps) {
     </div>
   );
 }
+

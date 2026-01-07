@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import React, { useCallback, useState, useRef, useEffect } from 'react';
 import { Volume2, VolumeX, Music2, Trash2, ChevronDown, ChevronUp, Pin } from './icons/Icon';
 import { AudioTrack, TrackTag } from '../types';

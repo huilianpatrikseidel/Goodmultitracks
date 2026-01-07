@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * CRITICAL FIX (QA Report): Load project with memory-efficient streaming
  * 

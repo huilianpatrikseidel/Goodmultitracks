@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import React from 'react';
 import { Label } from '../../../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../components/ui/select';
@@ -120,3 +122,4 @@ export function MetronomeModeSelect({ mode, onModeChange, timeSignature }: Metro
  * 5/8 (2+3) in 'accented' mode: FORTE piano MÉDIO piano piano
  * 7/8 (2+2+3) in 'accented' mode: FORTE piano MÉDIO piano MÉDIO piano piano
  */
+

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import { TempoChange } from '../../../types';
 
 // QA FIX 3.1: Cache for O(log N) warp calculations

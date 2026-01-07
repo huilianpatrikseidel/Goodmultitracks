@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Song, AudioTrack } from '../../../../../types';
 import type { MetronomeMode } from '../../../../../hooks/useMetronome';
@@ -90,3 +92,4 @@ export const useDAWState = ({ song }: UseDAWStateProps) => {
     hoveredContainerRef,
   };
 };
+

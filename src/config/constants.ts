@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * UI Constants - Centralized configuration values
  * 
@@ -240,3 +242,4 @@ export type GridKey = keyof typeof GRID;
 export type PerformanceKey = keyof typeof PERFORMANCE;
 export type MetronomeKey = keyof typeof METRONOME;
 export type ExportKey = keyof typeof EXPORT;
+

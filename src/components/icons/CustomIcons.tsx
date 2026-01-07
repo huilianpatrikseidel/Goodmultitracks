@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import React from 'react';
 
 // Ícone de Metrônomo - representa um metrônomo mecânico clássico
@@ -228,3 +230,4 @@ export const ViewSettingsIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props)
     <circle cx="8" cy="17.5" r="0.8" fill="currentColor" />
   </svg>
 );
+

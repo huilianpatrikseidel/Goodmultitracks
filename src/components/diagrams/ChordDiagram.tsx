@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import React from 'react';
 import { Play } from './icons/Icon';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
@@ -386,3 +388,4 @@ export function ChordDiagram({ chord, isOpen, onClose, customDiagram }: ChordDia
     </Dialog>
   );
 }
+

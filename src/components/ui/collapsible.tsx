@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 "use client";
 
 import * as CollapsiblePrimitive from "@radix-ui/react-collapsible@1.1.3";
@@ -31,3 +33,4 @@ function CollapsibleContent({
 }
 
 export { Collapsible, CollapsibleTrigger, CollapsibleContent };
+

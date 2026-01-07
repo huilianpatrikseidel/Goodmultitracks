@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { storage } from './localStorageManager';
 
@@ -79,3 +81,4 @@ export function useTheme() {
   }
   return context;
 }
+

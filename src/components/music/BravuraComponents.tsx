@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * ============================================================================
  * BRAVURA MUSIC NOTATION - React Components
@@ -150,3 +152,4 @@ export const Clef: React.FC<ClefProps> = ({ type, className = '' }) => {
     </span>
   );
 };
+

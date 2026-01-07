@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import React from 'react';
 import { MixerDock } from '../mixer/MixerDock';
 import { NotesPanel } from '../../../../components/player';
@@ -67,3 +69,4 @@ export const DAWSidePanels: React.FC<DAWSidePanelsProps> = ({
     </>
   );
 };
+

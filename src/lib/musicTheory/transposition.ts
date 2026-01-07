@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * ============================================================================
  * TRANSPOSITION ENGINE - Degree-Based Mathematics
@@ -172,3 +174,4 @@ export function transposeKey(key: string, semitones: number, targetKeyContext?: 
   const transposedRoot = transposeNote(rootNote, intervalId);
   return transposedRoot + suffix;
 }
+

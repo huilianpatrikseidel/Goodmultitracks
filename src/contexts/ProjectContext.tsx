@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import React, { createContext, useContext, ReactNode } from 'react';
 import { Song, AudioTrack, TrackTag } from '../types';
 
@@ -98,3 +100,4 @@ export const ProjectProvider: React.FC<ProjectProviderProps> = ({
     </ProjectContext.Provider>
   );
 };
+

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * Waveform Component - Adaptive renderer
  * Uses Canvas for rendering with fallback support
@@ -66,4 +68,5 @@ export function Waveform({
 }
 
 export { WaveformCanvas } from './WaveformCanvas';
+
 

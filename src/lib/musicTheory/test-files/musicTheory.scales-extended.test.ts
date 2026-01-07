@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * Extended Scale Tests - Phase 3.1 Implementation
  * Tests for Bebop, Altered, and Augmented scales
@@ -168,3 +170,4 @@ describe('Music Theory - Extended Scales (Phase 3.1)', () => {
     });
   });
 });
+

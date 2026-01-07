@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * ============================================================================
  * TIME SIGNATURES MODULE - Rhythm & Meter Analysis
@@ -350,3 +352,4 @@ export const getSubdivisionPresets = (numerator: number, denominator: number): s
   // Convert number arrays to subdivision strings (e.g., [3, 2] => "3+2")
   return partitions.map(partition => partition.join('+'));
 };
+

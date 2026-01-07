@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import React from 'react';
 import { Ruler } from '../timeline/Ruler';
 import { Song, ChordMarker, TempoChange } from '../../../../types';
@@ -140,3 +142,4 @@ export const RulersContainer: React.FC<RulersContainerProps> = React.memo(({
 });
 
 RulersContainer.displayName = 'RulersContainer';
+

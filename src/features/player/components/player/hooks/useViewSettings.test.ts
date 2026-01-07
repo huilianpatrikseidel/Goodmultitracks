@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 // @ts-nocheck
 import { renderHook, act } from '@testing-library/react';
 import { useViewSettings } from '../useViewSettings';
@@ -163,3 +165,4 @@ describe('useViewSettings', () => {
     expect(result.current.visibleRulers).toEqual(['time', 'measures', 'sections', 'chords', 'tempo']); // Default
   });
 });
+

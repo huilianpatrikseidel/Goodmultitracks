@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * ============================================================================
  * CHORD DATABASE - Instrument Fingerings
@@ -50,3 +52,4 @@ export const CHORD_DATABASE: Record<string, {
 };
 
 export const ROOT_NOTES = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+

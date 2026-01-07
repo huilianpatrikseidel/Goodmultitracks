@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import React, { useState } from 'react';
 import { Plus, ListMusic, Download, Search } from '../../../components/icons/Icon';
 import {
@@ -225,4 +227,5 @@ export function AddToSetlistDialog({
     </Dialog>
   );
 }
+
 

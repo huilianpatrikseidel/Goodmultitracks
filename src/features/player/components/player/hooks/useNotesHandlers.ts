@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import { useCallback } from 'react';
 import { Song } from '../../../../../types';
 
@@ -44,3 +46,4 @@ export const useNotesHandlers = ({ song, onSongUpdate }: UseNotesHandlersProps) 
     handleSaveTrackNotes,
   };
 };
+

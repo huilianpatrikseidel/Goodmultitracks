@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * ============================================================================
  * ANALYSIS MODULE - Harmonic Analysis & Music Theory Utilities
@@ -807,3 +809,4 @@ export function getSecondaryDominant(
   
   return dominantRoot + '7';
 }
+

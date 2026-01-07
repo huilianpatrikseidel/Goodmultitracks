@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import React from 'react';
 
 // Simple SVG wrapper component
@@ -85,4 +87,5 @@ export const VolumeX = createIcon('<polygon points="11 5 6 9 2 9 2 15 6 15 11 19
 export const X = createIcon('<path d="M18 6 6 18"/><path d="m6 6 12 12"/>');
 export const ZoomIn = createIcon('<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6"/><path d="M8 11h6"/>');
 export const ZoomOut = createIcon('<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M8 11h6"/>');
+
 

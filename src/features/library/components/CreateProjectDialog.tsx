@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import React, { useState, useRef } from 'react';
 import { Upload, FolderOpen, Plus, Music, Trash2, Image as ImageIcon } from '../../../components/icons/Icon';
 import { BravuraSymbols, toBravuraAccidental } from '../../../lib/bravuraUtils';
@@ -574,4 +576,5 @@ export function CreateProjectDialog({
     </Dialog>
   );
 }
+
 

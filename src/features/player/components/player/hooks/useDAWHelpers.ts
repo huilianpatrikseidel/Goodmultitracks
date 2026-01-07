@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import { useMemo } from 'react';
 import { Song } from '../../../../../types';
 import { ZOOM } from '../../../../../config/constants';
@@ -46,3 +48,4 @@ export const useDAWHelpers = ({ song, zoom, currentTime, trackHeight }: UseDAWHe
     getCurrentTimeSignature,
   };
 };
+

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import React, { useMemo } from 'react';
 import { Badge } from '../../../../components/ui/badge';
 import { Song, SectionMarker, TempoChange, ChordMarker } from '../../../../types';

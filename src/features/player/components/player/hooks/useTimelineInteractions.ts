@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import { useState, useRef, useCallback } from 'react';
 import { Song } from '../../../../../types';
 
@@ -144,3 +146,4 @@ export const useTimelineInteractions = ({
     handleWaveformMouseUp,
   };
 };
+

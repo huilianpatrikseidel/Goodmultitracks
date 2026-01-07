@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import React from 'react';
 import { ZoomIn, ZoomOut, Maximize2, PanelLeftClose, PanelLeft, Sliders, StickyNote } from '../../../../components/icons/Icon';
 import { Button } from '../../../../components/ui/button';
@@ -255,3 +257,4 @@ export function DAWFooter(props: DAWFooterProps) {
     </>
   );
 }
+

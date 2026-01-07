@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import React from 'react';
 import { Tag } from './icons/Icon';
 import { Button } from './ui/button';
@@ -102,3 +104,4 @@ export function TrackTagSelector({ currentTag, onTagChange, disabled }: TrackTag
     </DropdownMenu>
   );
 }
+

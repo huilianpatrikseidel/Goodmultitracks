@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import '@testing-library/jest-dom';
 
 // Type declaration for jest
@@ -47,3 +49,4 @@ global.crypto = {
   ...global.crypto,
   randomUUID: jest.fn(() => 'test-uuid-' + Math.random().toString(36).substring(7)),
 } as any;
+

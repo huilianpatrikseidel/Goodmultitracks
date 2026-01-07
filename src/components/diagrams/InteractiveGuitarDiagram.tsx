@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import React from 'react';
 import { X, Play } from './icons/Icon';
 import { useLanguage } from '../lib/LanguageContext';
@@ -277,3 +279,4 @@ export function InteractiveGuitarDiagram({ frets, fingers, startFret = 1, onChan
     </div>
   );
 }
+

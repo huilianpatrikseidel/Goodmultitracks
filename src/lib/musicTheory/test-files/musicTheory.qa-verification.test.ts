@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * QA Verification Tests for Music Theory Engine Fixes
  * January 6, 2026
@@ -238,3 +240,4 @@ describe('QA Audit Verification - Scale Patterns', () => {
 
 // Test suite is available but commented out until vitest is installed
 // To enable: npm install -D vitest && uncomment this file
+

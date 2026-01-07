@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * ============================================================================
  * VOICINGS MODULE - Instrument-Specific Chord Voicings
@@ -1086,3 +1088,4 @@ export function generatePianoVoicingRootless(
   
   return { keys };
 }
+

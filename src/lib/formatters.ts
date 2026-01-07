@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 export const formatBPM = (bpm: number): string => {
   // If it's an integer, return as is
   if (Number.isInteger(bpm)) {

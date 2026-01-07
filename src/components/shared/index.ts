@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * Shared Components Module
  * 
@@ -6,3 +8,4 @@
 
 export { KeyboardShortcutsHelp } from './KeyboardShortcutsHelp';
 export { LoadingScreen } from './LoadingScreen';
+

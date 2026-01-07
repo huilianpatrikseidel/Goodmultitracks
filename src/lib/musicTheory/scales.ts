@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * ============================================================================
  * SCALES MODULE - Scale Generation & Analysis
@@ -409,3 +411,4 @@ export function isChordInKey(chordRoot: string, keyRoot: string, scale: string =
     return normalizedNote === normalizedChordRoot || areNotesEnharmonic(normalizedNote, normalizedChordRoot);
   });
 }
+

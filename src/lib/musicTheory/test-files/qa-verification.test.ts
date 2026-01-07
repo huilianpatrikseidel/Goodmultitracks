@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 // @ts-nocheck
 /**
  * ============================================================================
@@ -550,3 +552,4 @@ export const QA_VERIFICATION_MANIFEST = {
 console.log('QA Verification Test Suite Loaded');
 console.log(`Total Tests: ${QA_VERIFICATION_MANIFEST.totalTests}`);
 console.log('Status:', QA_VERIFICATION_MANIFEST.status);
+

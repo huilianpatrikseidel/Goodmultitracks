@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import React, { useState, useEffect, useMemo } from 'react';
 import { ListMusic, Plus, Trash2, GripVertical, Calendar, Lock, Unlock, PlusCircle, Edit2, Music, Pin } from '../../../components/icons/Icon';
 import { Button } from '../../../components/ui/button';
@@ -853,4 +855,5 @@ export function SetlistManager({
     </div>
   );
 }
+
 

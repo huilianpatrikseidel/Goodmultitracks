@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * Tests for Algorithmic Voicing Generation
  * 
@@ -309,3 +311,4 @@ describe('Algorithmic Voicing Generation', () => {
     });
   });
 });
+

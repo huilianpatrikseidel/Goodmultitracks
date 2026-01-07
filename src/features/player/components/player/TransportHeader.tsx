@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import React from 'react';
 import { ArrowLeft, ChevronDown, Play, Pause, Square, Download } from '../../../../components/icons/Icon';
 import { MetronomeIcon, SnapGridIcon, LoopIcon, WorkspaceIcon, MarkerEditorIcon, WarpGridIcon, PlayerModeIcon } from '../../../../components/icons/CustomIcons';
@@ -475,4 +477,5 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
     </div>
   );
 };
+
 

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * Time Conversion Helpers - Enhanced with MusicTheory Integration
  * 
@@ -281,3 +283,4 @@ export function formatPosition(position: { measure: number; beat: number; beatFr
   const beatSubdivision = Math.floor(position.beatFraction * 10);
   return `${position.measure}.${position.beat}.${beatSubdivision}`;
 }
+

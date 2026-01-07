@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * ============================================================================
  * MUSIC THEORY CORE - Intervals & Note Representation
@@ -260,3 +262,4 @@ export function areNotesEnharmonic(noteA: string, noteB: string): boolean {
   // Compare semitone values
   return noteToSemitone(cleanA) === noteToSemitone(cleanB);
 }
+

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * Test suite for the refactored Time Signature module
  * Validates the QA Report requirements
@@ -146,3 +148,4 @@ console.log('\n' + '='.repeat(70));
 console.log('QA VERIFICATION COMPLETE');
 console.log('All critical issues from the report have been addressed ✓');
 console.log('='.repeat(70));
+

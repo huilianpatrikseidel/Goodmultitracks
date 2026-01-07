@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * Theme-aware color utilities
  * Use these instead of hardcoded hex colors to support light/dark themes

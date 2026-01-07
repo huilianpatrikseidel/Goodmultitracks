@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * Player Feature Module
  * 
@@ -27,3 +29,4 @@ export * from './engine/metronome';
 
 // Context
 export { AudioContextProvider, useAudioContext } from './context/AudioContextProvider';
+

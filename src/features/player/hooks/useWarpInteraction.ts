@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import { useState, useEffect, useCallback } from 'react';
 import { Song } from '../../../types';
 import { measureToSeconds, secondsToMeasure, calculateWarpBPM } from '../../../lib/timeUtils';
@@ -129,3 +131,4 @@ export const useWarpInteraction = ({
     handleWarpMouseDown
   };
 };
+

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * Quick Verification Script - Manual Testing of QA Fixes
  * Run this to verify all fixes are working correctly
@@ -92,3 +94,4 @@ console.log('\n' + '='.repeat(70));
 console.log('QA VERIFICATION COMPLETE');
 console.log('All critical issues have been addressed!');
 console.log('='.repeat(70) + '\n');
+

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * Test Suite for Advanced Music Theory Features
  * 
@@ -224,3 +226,4 @@ console.log('✅ Alternate tunings (7 presets + custom)');
 console.log('✅ Roman numeral harmonic analysis');
 console.log('✅ Anatomical constraint detection (integrated)');
 console.log('\nThe system now has "Musical Intelligence"! 🎵');
+

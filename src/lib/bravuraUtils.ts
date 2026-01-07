@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * ============================================================================
  * BRAVURA MUSIC NOTATION UTILITIES
@@ -211,3 +213,4 @@ export function toBravuraTimeSignature(numerator: number, denominator: number): 
  */
 export const bravuraClass = 'music-notation';
 export const bravuraTextClass = 'music-text';
+

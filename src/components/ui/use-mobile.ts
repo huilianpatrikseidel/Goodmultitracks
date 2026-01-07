@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import * as React from "react";
 
 const MOBILE_BREAKPOINT = 768;
@@ -19,3 +21,4 @@ export function useIsMobile() {
 
   return !!isMobile;
 }
+

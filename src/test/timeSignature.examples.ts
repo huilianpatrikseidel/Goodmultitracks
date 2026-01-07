@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * Real-world examples demonstrating the refactored Time Signature module
  */
@@ -120,3 +122,4 @@ edgeCases.forEach(({ num, den, name }) => {
 
 console.log('='.repeat(70));
 console.log('\n✅ All real-world examples work correctly!\n');
+

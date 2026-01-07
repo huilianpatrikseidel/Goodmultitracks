@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * Metronome utility for generating click sounds
  * Creates audio clicks for strong beats and weak beats
@@ -252,3 +254,4 @@ export function getSubdivisionInfo(
   
   return { groupIndex: 0, beatInGroup: 1, isGroupStart: true };
 }
+

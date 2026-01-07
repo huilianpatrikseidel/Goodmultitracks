@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * TrackWaveformRenderer - Reactive waveform display component
  * 
@@ -54,3 +56,4 @@ export const TrackWaveformRenderer = React.memo<TrackWaveformRendererProps>(({
 });
 
 TrackWaveformRenderer.displayName = 'TrackWaveformRenderer';
+

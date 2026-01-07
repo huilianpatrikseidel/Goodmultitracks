@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import React, { useState } from 'react';
 import { Eye, EyeOff, GripVertical } from './icons/Icon';
 import { ViewSettingsIcon } from './icons/CustomIcons';
@@ -241,3 +243,4 @@ export function PlayerViewSettings({
     </DropdownMenu>
   );
 }
+

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * Web Worker para processamento ZIP off-thread
  * 
@@ -111,3 +113,4 @@ self.onmessage = async (e: MessageEvent<ZipRequest>) => {
 
 // Export para TypeScript
 export {};
+

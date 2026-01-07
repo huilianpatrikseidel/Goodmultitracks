@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import React, { createContext, useContext, useRef, useEffect, ReactNode } from 'react';
 
 interface AudioContextProviderProps {
@@ -95,3 +97,4 @@ export const useAudioContext = (): AudioContextValue => {
   }
   return context;
 };
+

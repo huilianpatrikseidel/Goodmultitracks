@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { AudioTrack, Song, MixPreset, TrackTag } from '../../../types';
 import { storage } from '../../../lib/localStorageManager';

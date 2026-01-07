@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * Advanced Harmonic Analysis Tests - Phase 3.2 Implementation
  * Tests for chord function analysis, borrowed chords, and secondary dominants
@@ -391,3 +393,4 @@ describe('Music Theory - Advanced Harmonic Analysis (Phase 3.2)', () => {
     });
   });
 });
+

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * IndexedDB Manager - Persistência de alto desempenho
  * 
@@ -166,3 +168,4 @@ export const indexedDB = new IndexedDBManager();
  * const data = await indexedDB.get('projects', projectId);
  * ```
  */
+

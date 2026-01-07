@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * Centralized LocalStorage Manager
  * 
@@ -150,3 +152,4 @@ export const storage = {
   isFirstTimeSetupComplete: () => getItem(KEYS.FIRST_TIME_SETUP_COMPLETE, false),
   setFirstTimeSetupComplete: () => setItem(KEYS.FIRST_TIME_SETUP_COMPLETE, true),
 };
+

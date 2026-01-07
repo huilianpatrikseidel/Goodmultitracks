@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * QA Comprehensive Test Suite
  * Tests all improvements from the QA Report
@@ -224,3 +226,4 @@ console.log('  ✓ Polychord vs slash chord distinction');
 console.log('  ✓ Expanded Alt chord definitions');
 console.log('  ✓ Mathematical interval calculation');
 console.log('='.repeat(80));
+

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 // Chord playback using Web Audio API
 // MIGRATION NOTE: This module maintains backward compatibility with singleton pattern.
 // For new code, use AudioContextProvider from contexts/AudioContextProvider.tsx
@@ -136,3 +138,4 @@ export function playUkuleleChord(strings: number[], duration: number = 1.5): voi
     }
   });
 }
+

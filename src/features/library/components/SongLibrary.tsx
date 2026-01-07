@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import React, { useState, useMemo } from 'react';
 import { Search, Music, Upload, ListPlus, Plus, SortAsc, SortDesc, ArrowDownAZ, ArrowUpAZ, Clock, View, List, Grid, ImageOff } from '../../../components/icons/Icon';
 import { Input } from '../../../components/ui/input';
@@ -231,4 +233,5 @@ export function SongLibrary({
     </div>
   );
 }
+
 

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * ============================================================================
  * MUSIC THEORY LIBRARY - Main Entry Point
@@ -139,3 +141,4 @@ export {
   getPositionFromTime,
   formatPosition,
 } from './helpers/timeConversion';
+

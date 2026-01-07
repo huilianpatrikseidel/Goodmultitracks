@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 /**
  * ============================================================================
  * RHYTHM MODULE - Metronome & Accent Analysis
@@ -220,3 +222,4 @@ export function getSubdivisionsPerBeat(timeSignature: TimeSignatureInfo): number
     return timeSignature.denominator <= 4 ? 2 : 4;
   }
 }
+

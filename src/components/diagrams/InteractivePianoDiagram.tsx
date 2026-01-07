@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+// Copyright (c) 2026 GoodMultitracks contributors
 import React, { useRef, useEffect } from 'react';
 import { Play } from './icons/Icon';
 import { useLanguage } from '../lib/LanguageContext';
@@ -200,3 +202,4 @@ export function InteractivePianoDiagram({ keys, onChange }: InteractivePianoDiag
     </div>
   );
 }
+
