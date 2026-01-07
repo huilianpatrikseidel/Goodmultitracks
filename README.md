@@ -1,95 +1,90 @@
-[Português](./README.md) | [English](./README.en.md) | [Español](./README.es.md) | [Deutsch](./README.de.md) | [Italiano](./README.it.md) | [Français](./README.fr.md)
+[English](./README.md) | [Português](./README.pt-br.md) | [Español](./README.es.md) | [Deutsch](./README.de.md) | [Italiano](./README.it.md) | [Français](./README.fr.md)
 
 # GoodMultitracks
 
-> **Nota:** Este projeto está atualmente em **fase ativa de desenvolvimento (Alpha)**. Funcionalidades podem mudar e instabilidade é esperada. Ainda não há uma versão oficial de lançamento.
+> **Note:** This project is currently in **active development phase (Alpha)**. Features may change and instability is expected. There is no official release version yet.
 
-O **GoodMultitracks** é um reprodutor de áudio multitrack (stems) projetado com um propósito educacional: **permitir que músicos estudem músicas profundamente através da separação de faixas.**
+**GoodMultitracks** is a multitrack audio player (stems) designed with an educational purpose: **allowing musicians to study songs deeply through track separation.**
 
-Diferente de DAWs tradicionais focadas em produção, o foco aqui é o **aprendizado** e a **análise**. O software utiliza um motor robusto de teoria musical para contextualizar o áudio com informações harmônicas e rítmicas.
+Unlike traditional DAWs focused on production, the focus here is on **learning** and **analysis**. The software uses a robust music theory engine to contextualize audio with harmonic and rhythmic information.
 
-## 🎯 Objetivo e Visão
+## 🎯 Objective and Vision
 
-A ideia central é fornecer uma ferramenta onde o músico possa carregar um arquivo multitrack, isolar instrumentos, entender a estrutura da música e praticar.
+The core idea is to provide a tool where the musician can load a multitrack file, isolate instruments, understand the song structure, and practice.
 
-* **Atual:** Um leitor de multitracks para estudo, com visualização de formas de onda e análise teórica (acordes, métricas).
-* **Futuro Próximo:** Tornar-se um **Player de VS (Virtual Soundcheck/Backing Tracks)** completo para uso ao vivo.
+* **Current:** A multitrack player for study, with waveform visualization and theoretical analysis (chords, metrics).
+* **Near Future:** To become a complete **VS Player (Virtual Soundcheck/Backing Tracks)** for live use.
 
+## 🚀 Main Features
 
-## 🚀 Funcionalidades Principais
-
-### Atuais (Em desenvolvimento)
-* **Reprodutor Multitrack (DAW-style):** Controle individual de volume, solo e mute para cada faixa (stem).
-* **Inteligência Musical:** Sistema avançado de teoria musical que compreende e processa:
-    * Harmonia e Acordes.
-    * Métricas e Fórmulas de Compasso (Time Signatures) complexas.
-    * Transposição inteligente.
-* **Visualização Instrumental:** Diagramas interativos para Guitarra, Piano e Ukulele
-* **Gerenciamento de Setlist:** Organização de músicas para estudo ou (futuramente) performance.
-* **Ambiente atual:** Execução focada em **Web (navegador)** durante o desenvolvimento.
-* **Compilações:** Ainda não estamos trabalhando em compilações/empacotamento (desktop/mobile). 
-* **Plataformas previstas:** Alvo multiplataforma — **Desktop (Windows, macOS, Linux)** e **Mobile (Android, iOS)**.
+### Current (In development)
+* **Multitrack Player (DAW-style):** Individual volume, solo, and mute control for each track (stem).
+* **Musical Intelligence:** Advanced music theory system that understands and processes:
+    * Harmony and Chords.
+    * Complex Metrics and Time Signatures.
+    * Intelligent transposition.
+* **Instrument Visualization:** Interactive diagrams for Guitar, Piano, and Ukulele.
+* **Setlist Management:** Organization of songs for study or (in the future) performance.
+* **Current Environment:** Execution focused on **Web (browser)** during development.
+* **Builds:** We are not yet working on builds/packaging (desktop/mobile).
+* **Planned Platforms:** Cross-platform target — **Desktop (Windows, macOS, Linux)** and **Mobile (Android, iOS)**.
 
 ### Roadmap 🗺️
-- [ ] Otimização do motor de áudio para baixa latência.
-- [ ] Modo "Performance" dedicado para uso como VS Player ao vivo.
-- [ ] Melhorias na detecção e sincronia de grades de tempo (Grid).
-- [ ] Suporte expandido a formatos de arquivo.
-- [ ] Empacotamento multiplataforma (Desktop/Mobile) — Tauri/Capacitor.
+- [ ] Audio engine optimization for low latency.
+- [ ] Dedicated "Performance" mode for live VS Player use.
+- [ ] Improvements in grid detection and synchronization.
+- [ ] Expanded file format support.
+- [ ] Cross-platform packaging (Desktop/Mobile) — Tauri/Capacitor.
 
-## 🛠️ Tecnologias Utilizadas
+## 🛠️ Technologies Used
 
-O projeto é construído sobre uma pilha moderna e performática:
+The project is built on a modern and performant stack:
 
 * **Core:** [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
 * **Build Tool:** [Vite](https://vitejs.dev/)
-* (Sem empacotadores nativos por enquanto — o suporte a desktop/mobile será definido futuramente.)
-* **Estilização:** Tailwind CSS.
-* **Áudio:** Web Audio API com processamento customizado.
+* (No native packagers for now — desktop/mobile support will be defined in the future.)
+* **Styling:** Tailwind CSS.
+* **Audio:** Web Audio API with custom processing.
 
-## 💻 Como Executar o Projeto
+## 💻 How to Run the Project
 
-Como o projeto é Open Source, você pode baixar, estudar o código e rodar na sua máquina.
+Since the project is Open Source, you can download, study the code, and run it on your machine.
 
-### Pré-requisitos
-* [Node.js](https://nodejs.org/) (Versão 18 ou superior recomendada)
-  
+### Prerequisites
+* [Node.js](https://nodejs.org/) (Version 18 or higher recommended)
 
-### Passo a Passo
+### Step by Step
 
-1.  **Clone o repositório:**
+1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/seu-usuario/goodmultitracks.git](https://github.com/seu-usuario/goodmultitracks.git)
+    git clone https://github.com/your-username/goodmultitracks.git
     cd goodmultitracks
     ```
 
-2.  **Instale as dependências:**
+2.  **Install dependencies:**
     ```bash
     npm install
     ```
 
-3.  **Para rodar no navegador (Modo Web):**
+3.  **To run in browser (Web Mode):**
     ```bash
     npm run dev
     ```
-    Observação: compilações/empacotamento para Desktop/Mobile ainda **não** estão habilitados. Esta etapa será adicionada quando iniciarmos o suporte multiplataforma.
-   
+    Note: builds/packaging for Desktop/Mobile are **not** yet enabled. This step will be added when we start cross-platform support.
 
-## 🤝 Como Contribuir
+## 🤝 How to Contribute
 
-Contribuições são muito bem-vindas! Se você é desenvolvedor (Front-end, TypeScript, ou entende de DSP/Áudio) ou músico com ideias de funcionalidades:
+Contributions are very welcome! If you are a developer (Front-end, TypeScript, or understand DSP/Audio) or a musician with feature ideas:
 
-1.  Faça um Fork do projeto.
-2.  Crie uma Branch para sua Feature (`git checkout -b feature/NovaFuncionalidade`).
-3.  Faça o Commit (`git commit -m 'Adicionando nova funcionalidade'`).
-4.  Faça o Push (`git push origin feature/NovaFuncionalidade`).
-5.  Abra um Pull Request.
+1.  Fork the project.
+2.  Create a Branch for your Feature (`git checkout -b feature/NewFeature`).
+3.  Commit (`git commit -m 'Adding new feature'`).
+4.  Push (`git push origin feature/NewFeature`).
+5.  Open a Pull Request.
 
-## 📄 Licença
+## 📄 License
 
-Licenciado sob **GNU GPL v2.0 (GPL-2.0-only)**. Consulte o arquivo [LICENSE](./LICENSE) para o texto completo.
+Licensed under **GNU GPL v2.0 (GPL-2.0-only)**. See the [LICENSE](./LICENSE) file for the full text.
 
 ---
-*Desenvolvido com ❤️ por Huilian Patrik Seidel
-
-```
+*Developed with ❤️ by Huilian Patrik Seidel*
