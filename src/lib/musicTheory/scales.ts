@@ -8,7 +8,7 @@
  * and analyzing relationships between chords and keys.
  */
 
-import { INTERVAL_DEFINITIONS, IntervalObject, areNotesEnharmonic } from './core';
+import { INTERVAL_DEFINITIONS, IntervalObject, areNotesEnharmonic, normalizeNote } from './core';
 import { transposeNote } from './transposition';
 
 /**
@@ -402,12 +402,12 @@ function getKeySignatureFromScale(root: string, scale: string): { sharps: number
  */
 export function isChordInKey(chordRoot: string, keyRoot: string, scale: string = 'major'): boolean {
   const scaleNotes = getScaleNotes(keyRoot, scale);
-  // Normalize to compare just the letter and accidental (ignore octave)
-  const normalizedChordRoot = chordRoot.replace(/\d+$/, '');
+  // PERFORMANCE FIX: Use cached normalizeNote instead of regex
+  const normalizedChordRoot = normalizeNote(chordRoot);
   
   // Check for exact match or enharmonic equivalent
   return scaleNotes.some(note => {
-    const normalizedNote = note.replace(/\d+$/, '');
+    const normalizedNote = normalizeNote(note);
     return normalizedNote === normalizedChordRoot || areNotesEnharmonic(normalizedNote, normalizedChordRoot);
   });
 }

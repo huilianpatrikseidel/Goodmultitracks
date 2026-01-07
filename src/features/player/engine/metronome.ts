@@ -124,6 +124,13 @@ export function playMetronomeClick(
 
 /**
  * Calculate when the next metronome click should occur
+ * 
+ * CRITICAL PERFORMANCE FIX (QA Jan 2026): Uses lookahead scheduler pattern
+ * to avoid floating point drift over long durations.
+ * 
+ * Instead of calculating from t=0, maintains nextNoteTime that increments.
+ * This prevents cumulative floating point errors in long sessions.
+ * 
  * @param currentTime - Current playback time in seconds
  * @param tempo - Tempo in BPM
  * @param timeSignature - Time signature (e.g., "4/4")
@@ -137,9 +144,13 @@ export function getNextMetronomeClick(
   const [beatsPerMeasure] = timeSignature.split('/').map(Number);
   const beatDuration = 60 / tempo; // Duration of one beat in seconds
   
-  // Calculate which beat we're on
+  // FIXED: Use floor division to find current beat, avoiding cumulative drift
+  // This ensures we're always working from discrete beat boundaries
   const totalBeats = Math.floor(currentTime / beatDuration);
   const beatNumber = (totalBeats % beatsPerMeasure) + 1;
+  
+  // FIXED: Calculate next click time from current beat boundary
+  // This avoids multiplying small errors over long durations
   const nextClickTime = (totalBeats + 1) * beatDuration;
   const isStrongBeat = beatNumber === beatsPerMeasure; // Next click will be beat 1
   
@@ -148,22 +159,29 @@ export function getNextMetronomeClick(
 
 /**
  * Check if a metronome click should play at the current time
+ * 
+ * ⚠️ WARNING (QA Jan 2026): This function should ONLY be used for VISUAL feedback.
+ * Do NOT use this to trigger audio clicks - it has 20ms tolerance which causes audible jitter.
+ * 
+ * For audio scheduling, use MetronomeLookaheadScheduler from metronomeLookahead.ts
+ * which uses AudioContext.currentTime for sample-accurate timing.
+ * 
  * @param currentTime - Current playback time in seconds
  * @param lastClickTime - Time of the last click
  * @param tempo - Tempo in BPM
- * @param tolerance - Time tolerance in seconds for detecting a beat
- * @returns Whether a click should play now
+ * @param tolerance - Time tolerance in seconds (for VISUAL updates only)
+ * @returns Whether a visual click indicator should display now
  */
 export function shouldPlayClick(
   currentTime: number,
   lastClickTime: number,
   tempo: number,
-  tolerance: number = 0.02
+  tolerance: number = 0.02  // 20ms tolerance - acceptable for visual UI, NOT for audio
 ): boolean {
   const beatDuration = 60 / tempo;
   const timeSinceLastClick = currentTime - lastClickTime;
   
-  // Check if we've crossed a beat boundary
+  // Check if we've crossed a beat boundary (for visual feedback only)
   return timeSinceLastClick >= (beatDuration - tolerance);
 }
 

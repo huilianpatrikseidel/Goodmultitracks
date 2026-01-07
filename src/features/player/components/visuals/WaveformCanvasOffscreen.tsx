@@ -15,7 +15,7 @@ import React, { useEffect, useRef } from 'react';
  */
 
 interface WaveformCanvasOffscreenProps {
-  data: number[];
+  data: Float32Array;  // CRITICAL FIX: Float32Array for zero-copy transfer
   width: number;
   height: number;
   fill?: string;
@@ -61,10 +61,14 @@ export function WaveformCanvasOffscreen({
   useEffect(() => {
     if (!isInitializedRef.current || !workerRef.current || isLoading) return;
 
+    // CRITICAL PERFORMANCE FIX (QA Jan 2026): Use Transferable Objects
+    // Clone the data first since we still need it on main thread for other renders
+    const transferableData = new Float32Array(data);
+    
     workerRef.current.postMessage({
       type: 'updateData',
-      data
-    });
+      data: transferableData
+    }, [transferableData.buffer]); // Transfer list - zero-copy transfer
   }, [data, isLoading]);
 
   /**

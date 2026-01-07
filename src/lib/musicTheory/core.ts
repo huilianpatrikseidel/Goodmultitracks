@@ -87,6 +87,28 @@ export const INTERVAL_DEFINITIONS: Record<string, IntervalObject> = {
 };
 
 /**
+ * Note normalization cache to avoid repeated regex operations
+ * PERFORMANCE FIX (QA Jan 2026): Cache normalized notes
+ */
+const NOTE_NORMALIZATION_CACHE = new Map<string, string>();
+
+/**
+ * Remove octave number from note (optimized with caching)
+ * @param note - Note with possible octave (e.g., 'C4', 'F#5', 'Bb')
+ * @returns Note without octave (e.g., 'C', 'F#', 'Bb')
+ * 
+ * PERFORMANCE: Caches results to avoid repeated regex execution
+ */
+export function normalizeNote(note: string): string {
+  const cached = NOTE_NORMALIZATION_CACHE.get(note);
+  if (cached !== undefined) return cached;
+  
+  const normalized = note.replace(/\d+$/, '');
+  NOTE_NORMALIZATION_CACHE.set(note, normalized);
+  return normalized;
+}
+
+/**
  * Parse a note into its components
  * Now supports arbitrary-length accidentals for theoretical robustness (###, bbbb, etc.)
  * @example parseNoteComponents('C#4') → { letter: 'C', accidentalStr: '#', accidentalValue: 1, octave: 4 }
@@ -189,15 +211,32 @@ export function calculateInterval(degree: number, semitones: number): IntervalOb
       id = `dd${normalizedDegree + 1}`;
     } else {
       // Extreme cases - Handle arbitrary augmented/diminished intervals
+      // QA AUDIT FIX (Jan 2026): Add warning for extreme intervals beyond doubly aug/dim
       if (deviation > 0) {
         // Augmented (A, AA, AAA...)
         const count = deviation;
         quality = 'A'.repeat(count) as any;
+        
+        // Warn if beyond doubly augmented (non-standard)
+        if (count > 2) {
+          console.warn(
+            `[Music Theory] Non-standard interval: ${count}x augmented ${normalizedDegree + 1}. ` +
+            `Consider using enharmonic equivalent for better compatibility.`
+          );
+        }
       } else {
         // Diminished (d, dd, ddd...)
         // For perfect intervals, deviation -1 is d.
         const count = Math.abs(deviation);
         quality = 'd'.repeat(count) as any;
+        
+        // Warn if beyond doubly diminished
+        if (count > 2) {
+          console.warn(
+            `[Music Theory] Non-standard interval: ${count}x diminished ${normalizedDegree + 1}. ` +
+            `Consider using enharmonic equivalent for better compatibility.`
+          );
+        }
       }
       id = `${quality}${normalizedDegree + 1}`;
     }
@@ -223,16 +262,31 @@ export function calculateInterval(degree: number, semitones: number): IntervalOb
       id = `dd${normalizedDegree + 1}`;
     } else {
       // Extreme cases - Handle arbitrary augmented/diminished intervals
+      // QA AUDIT FIX (Jan 2026): Add warning for extreme intervals beyond doubly aug/dim
       if (deviation > 0) {
         // Augmented (A, AA, AAA...)
         const count = deviation;
         quality = 'A'.repeat(count) as any;
+        
+        if (count > 2) {
+          console.warn(
+            `[Music Theory] Non-standard interval: ${count}x augmented ${normalizedDegree + 1}. ` +
+            `Consider using enharmonic equivalent for better compatibility.`
+          );
+        }
       } else {
         // Diminished (d, dd, ddd...)
         // For major intervals, deviation -1 is m, -2 is d.
         // So deviation -3 is dd (count 2). |dev| - 1 = count.
         const count = Math.abs(deviation) - 1;
         quality = 'd'.repeat(count) as any;
+        
+        if (count > 2) {
+          console.warn(
+            `[Music Theory] Non-standard interval: ${count}x diminished ${normalizedDegree + 1}. ` +
+            `Consider using enharmonic equivalent for better compatibility.`
+          );
+        }
       }
       id = `${quality}${normalizedDegree + 1}`;
     }

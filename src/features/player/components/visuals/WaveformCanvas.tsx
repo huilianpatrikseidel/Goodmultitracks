@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // Copyright (c) 2026 GoodMultitracks contributors
 import React, { useEffect, useRef, useCallback } from 'react';
+import { WaveformMipmap, selectMipmapLevel, getMipmapFactor } from '../../../lib/waveformMipmaps';
 
 interface WaveformCanvasProps {
-  data: number[];
+  data: Float32Array;  // CRITICAL FIX: Float32Array for zero-copy transfer
+  mipmaps?: WaveformMipmap;  // CRITICAL FIX: Pre-computed mipmaps for O(1) rendering
   width: number; // Largura total da track em pixels (song duration * pps)
   height: number;
   fill?: string;
@@ -16,6 +18,7 @@ interface WaveformCanvasProps {
 
 export function WaveformCanvas({ 
   data, 
+  mipmaps,
   width, 
   height, 
   fill = '#60a5fa', 
@@ -151,32 +154,37 @@ export function WaveformCanvas({
     const pointsPerPixel = 1 / pixelPerPoint;
     const step = pointsPerPixel > 1 ? Math.floor(pointsPerPixel) : 1;
     
+    // CRITICAL PERFORMANCE FIX (QA Jan 2026): Use mipmaps for O(1) lookup
+    // Select appropriate mipmap level based on zoom
+    let renderData = data;
+    let dataFactor = 1;  // Index adjustment factor
+    
+    if (mipmaps && pointsPerPixel > 1) {
+      const level = selectMipmapLevel(pointsPerPixel);
+      dataFactor = getMipmapFactor(level);
+      renderData = mipmaps[`level${level}`] as Float32Array;
+    }
+    
     const centerY = height / 2;
 
     ctx.fillStyle = fill;
     ctx.globalAlpha = opacity;
     ctx.beginPath();
     
+    // Ajusta índices para o mipmap level selecionado
+    const mipmapStart = Math.floor(safeStart / dataFactor);
+    const mipmapEnd = Math.ceil(safeEnd / dataFactor);
+    const mipmapStep = Math.max(1, Math.floor(step / dataFactor));
+    
     // Começa no primeiro ponto visível
     const firstX = (safeStart * pixelPerPoint) - scrollLeft;
     ctx.moveTo(firstX, centerY);
 
-    // CRITICAL: Peak detection aprimorado para preservar transientes
-    // Quando step > 1, não podemos simplesmente pular dados, senão perdemos batidas/ataques
-    const getPeakInRange = (startIdx: number, endIdx: number): number => {
-      let peak = 0;
-      for (let j = startIdx; j < Math.min(endIdx, totalDataPoints); j++) {
-        if (data[j] > peak) peak = data[j];
-      }
-      return peak;
-    };
-
-    // Loop: Parte Superior
-    for (let i = safeStart; i < safeEnd; i += step) {
-      // Se estamos pulando pontos (zoom out), procura o pico no intervalo
-      const val = step > 1 ? getPeakInRange(i, i + step) : data[i];
-
-      const x = (i * pixelPerPoint) - scrollLeft;
+    // Loop: Parte Superior - Direct mipmap access (O(1) per pixel)
+    for (let i = mipmapStart; i < mipmapEnd; i += mipmapStep) {
+      const val = renderData[i] ?? 0;
+      const originalIndex = i * dataFactor;  // Convert back to original scale
+      const x = (originalIndex * pixelPerPoint) - scrollLeft;
       
       // FIX: Math.max(0.5, ...): Garante no mínimo 0.5px de altura (total 1px visual)
       // Desenha linha de silêncio fina e contínua, evitando "desaparecimento" em -∞ dB
@@ -186,10 +194,10 @@ export function WaveformCanvas({
     }
 
     // Loop: Parte Inferior (espelhada para simular estéreo/bipolar visual)
-    for (let i = safeEnd - 1; i >= safeStart; i -= step) {
-      const val = step > 1 ? getPeakInRange(i, i + step) : data[i];
-      
-      const x = (i * pixelPerPoint) - scrollLeft;
+    for (let i = mipmapEnd - 1; i >= mipmapStart; i -= mipmapStep) {
+      const val = renderData[i] ?? 0;
+      const originalIndex = i * dataFactor;
+      const x = (originalIndex * pixelPerPoint) - scrollLeft;
       
       // Mesma lógica de altura mínima
       const barHeight = Math.max(0.5, val * centerY * 0.95);
@@ -210,7 +218,7 @@ export function WaveformCanvas({
     }
 
     rafRef.current = requestAnimationFrame(draw);
-  }, [data, width, height, fill, opacity, zoom, scrollContainerRef]);
+  }, [data, mipmaps, width, height, fill, opacity, zoom, scrollContainerRef, scrollPosRef]);
 
   useEffect(() => {
     rafRef.current = requestAnimationFrame(draw);

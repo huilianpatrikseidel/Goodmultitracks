@@ -22,7 +22,7 @@
 interface RenderRequest {
   type: 'init' | 'render' | 'updateData' | 'updateMetrics';
   canvas?: OffscreenCanvas;
-  data?: number[];
+  data?: Float32Array;  // CRITICAL FIX: Use Float32Array for zero-copy transfer
   width?: number;
   height?: number;
   viewportWidth?: number;
@@ -34,7 +34,7 @@ interface RenderRequest {
 
 let offscreenCanvas: OffscreenCanvas | null = null;
 let ctx: OffscreenCanvasRenderingContext2D | null = null;
-let waveformData: number[] = [];
+let waveformData: Float32Array = new Float32Array(0);  // CRITICAL FIX: Float32Array for performance
 let totalWidth = 0;
 let canvasHeight = 100;
 let currentFill = '#60a5fa';
@@ -42,11 +42,12 @@ let currentOpacity = 0.8;
 
 /**
  * Inicializa o OffscreenCanvas
+ * PERFORMANCE: Receives Float32Array via Transferable Object (zero-copy)
  */
-function initCanvas(canvas: OffscreenCanvas, data: number[], width: number, height: number, fill: string, opacity: number) {
+function initCanvas(canvas: OffscreenCanvas, data: Float32Array, width: number, height: number, fill: string, opacity: number) {
   offscreenCanvas = canvas;
   ctx = canvas.getContext('2d', { alpha: true });
-  waveformData = data;
+  waveformData = data;  // Direct assignment - buffer was transferred
   totalWidth = width;
   canvasHeight = height;
   currentFill = fill;
@@ -55,9 +56,10 @@ function initCanvas(canvas: OffscreenCanvas, data: number[], width: number, heig
 
 /**
  * Atualiza os dados da waveform
+ * PERFORMANCE: Receives Float32Array via Transferable Object (zero-copy)
  */
-function updateData(data: number[]) {
-  waveformData = data;
+function updateData(data: Float32Array) {
+  waveformData = data;  // Direct assignment - buffer was transferred
 }
 
 /**

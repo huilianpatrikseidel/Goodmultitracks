@@ -95,8 +95,8 @@ export function PlaybackControls({
                   onClick={() => onTempoChange(100)}
                   className="h-6 px-2 text-xs"
                   style={{
-                    backgroundColor: tempo === 100 ? '#3B82F6' : 'var(--daw-control)',
-                    color: '#F1F1F1',
+                    backgroundColor: tempo === 100 ? 'var(--primary)' : 'var(--daw-control)',
+                    color: tempo === 100 ? 'var(--primary-foreground)' : '#F1F1F1',
                   }}
                 >
                   Reset
@@ -133,11 +133,11 @@ export function PlaybackControls({
               </div>
               <div>
                 <div className="text-xs mb-1" style={{ color: '#9E9E9E' }}>Playing</div>
-                <div className="text-lg" style={{ color: '#3B82F6' }}>{playingKey}</div>
+                <div className="text-lg" style={{ color: 'var(--primary)' }}>{playingKey}</div>
               </div>
               <div>
                 <div className="text-xs mb-1" style={{ color: '#9E9E9E' }}>Display</div>
-                <div className="text-lg" style={{ color: capoFret > 0 ? '#22c55e' : '#F1F1F1' }}>{displayKey}</div>
+                <div className="text-lg" style={{ color: capoFret > 0 ? 'var(--primary)' : '#F1F1F1' }}>{displayKey}</div>
               </div>
             </div>
           </div>
@@ -160,8 +160,8 @@ export function PlaybackControls({
                   onClick={() => onKeyShiftChange(0)}
                   className="h-6 px-2 text-xs"
                   style={{
-                    backgroundColor: keyShift === 0 ? '#3B82F6' : 'var(--daw-control)',
-                    color: '#F1F1F1',
+                    backgroundColor: keyShift === 0 ? 'var(--primary)' : 'var(--daw-control)',
+                    color: keyShift === 0 ? 'var(--primary-foreground)' : '#F1F1F1',
                   }}
                 >
                   Reset
@@ -201,8 +201,8 @@ export function PlaybackControls({
                   onClick={() => setCapoFret(0)}
                   className="h-6 px-2 text-xs"
                   style={{
-                    backgroundColor: capoFret === 0 ? '#3B82F6' : 'var(--daw-control)',
-                    color: '#F1F1F1',
+                    backgroundColor: capoFret === 0 ? 'var(--primary)' : 'var(--daw-control)',
+                    color: capoFret === 0 ? 'var(--primary-foreground)' : '#F1F1F1',
                   }}
                 >
                   Reset

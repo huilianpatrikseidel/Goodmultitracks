@@ -7,17 +7,21 @@
  * - Limita workers ao número de CPUs disponíveis
  * - Implementa fila de tarefas
  * - Reutiliza workers para múltiplos arquivos
+ * 
+ * PERFORMANCE FIX (QA Jan 2026): Gera mipmaps para renderização O(1)
  */
+
+import { generateWaveformMipmaps, WaveformMipmap } from '../lib/waveformMipmaps';
 
 interface WorkerTask {
   file: File;
   samples?: number;
-  resolve: (result: { waveform: number[]; waveformMedium: number[]; waveformOverview: number[]; duration: number }) => void;
+  resolve: (result: { waveform: Float32Array; waveformMedium: Float32Array; waveformOverview: Float32Array; mipmaps: WaveformMipmap; duration: number }) => void;
   reject: (error: Error) => void;
 }
 
 interface PendingTask {
-  resolve: (result: { waveform: number[]; waveformMedium: number[]; waveformOverview: number[]; duration: number }) => void;
+  resolve: (result: { waveform: Float32Array; waveformMedium: Float32Array; waveformOverview: Float32Array; mipmaps: WaveformMipmap; duration: number }) => void;
   reject: (error: Error) => void;
   timeout: NodeJS.Timeout;
 }
@@ -36,10 +40,28 @@ class AudioWorkerPool {
   }
 
   private initializePool(): void {
-    // DISABLED: Worker creation fails in this build environment
-    // All audio processing will happen on main thread
-    console.log('Audio processing will run on main thread (Workers disabled)');
-    // Workers array stays empty, processAudio will handle main thread fallback
+    for (let i = 0; i < this.poolSize; i++) {
+      try {
+        const worker = new Worker(
+          new URL('./waveformRenderer.worker.ts', import.meta.url),
+          { type: 'module' }
+        );
+
+        worker.onmessage = (e) => this.handleWorkerMessage(worker, e);
+        worker.onerror = (e) => this.handleWorkerError(worker, e);
+
+        this.workers.push(worker);
+        this.availableWorkers.push(worker);
+      } catch (error) {
+        console.error('Failed to create worker:', error);
+      }
+    }
+
+    if (this.workers.length === 0) {
+      console.warn('No workers created, falling back to main thread processing');
+    } else {
+      console.log(`Audio worker pool initialized with ${this.workers.length} workers`);
+    }
   }
 
   private handleWorkerMessage(worker: Worker, e: MessageEvent): void {
@@ -73,8 +95,10 @@ class AudioWorkerPool {
 
   /**
    * Processa arquivo de áudio usando worker disponível
+   * CRITICAL PERFORMANCE FIX (QA Jan 2026): Returns Float32Array for zero-copy transfers
+   * and pre-computed mipmaps for O(1) rendering
    */
-  async processAudio(file: File, samples?: number): Promise<{ waveform: number[]; waveformMedium: number[]; waveformOverview: number[]; duration: number }> {
+  async processAudio(file: File, samples?: number): Promise<{ waveform: Float32Array; waveformMedium: Float32Array; waveformOverview: Float32Array; mipmaps: WaveformMipmap; duration: number }> {
     // FALLBACK: If no workers available (disabled), process on main thread
     if (this.workers.length === 0) {
       return this.processAudioMainThread(file, samples);
@@ -95,8 +119,9 @@ class AudioWorkerPool {
   /**
    * Process audio on main thread (fallback when Workers are disabled)
    * Generates 3 LOD levels: high detail, medium, and overview
+   * CRITICAL PERFORMANCE FIX: Also generates mipmaps for O(1) peak lookup
    */
-  private async processAudioMainThread(file: File, samples: number = 500): Promise<{ waveform: number[]; waveformMedium: number[]; waveformOverview: number[]; duration: number }> {
+  private async processAudioMainThread(file: File, samples: number = 500): Promise<{ waveform: Float32Array; waveformMedium: Float32Array; waveformOverview: Float32Array; mipmaps: WaveformMipmap; duration: number }> {
     const arrayBuffer = await file.arrayBuffer();
     
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
@@ -108,9 +133,10 @@ class AudioWorkerPool {
       const duration = audioBuffer.duration;
       
       // Helper function to generate waveform array
-      const generateWaveform = (targetSamples: number): number[] => {
+      // CRITICAL FIX: Returns Float32Array for memory efficiency
+      const generateWaveform = (targetSamples: number): Float32Array => {
         const samplesPerPixel = Math.floor(rawData.length / targetSamples);
-        const result: number[] = [];
+        const result = new Float32Array(targetSamples);
         
         for (let i = 0; i < targetSamples; i++) {
           const start = i * samplesPerPixel;
@@ -122,7 +148,7 @@ class AudioWorkerPool {
             if (abs > max) max = abs;
           }
           
-          result.push(max);
+          result[i] = max;
         }
         
         return result;
@@ -134,7 +160,10 @@ class AudioWorkerPool {
       const waveformMedium = generateWaveform(20000);            // Medium: 20k samples
       const waveformOverview = generateWaveform(2000);           // Low: 2k samples
       
-      return { waveform, waveformMedium, waveformOverview, duration };
+      // CRITICAL PERFORMANCE FIX (QA Jan 2026): Generate mipmaps for O(1) rendering
+      const mipmaps = generateWaveformMipmaps(waveform);
+      
+      return { waveform, waveformMedium, waveformOverview, mipmaps, duration };
       
     } finally {
       if (decodingContext.state !== 'closed') {
@@ -191,16 +220,17 @@ class AudioWorkerPool {
         timeout
       });
 
-      // CRITICAL FIX (26/11/2025): Clone instead of transfer to prevent stack overflow
-      // Transfer ownership causes issues with worker reuse
-      const clonedData = new Float32Array(rawData);
+      // CRITICAL PERFORMANCE FIX (QA Jan 2026): Use Transferable Objects for zero-copy transfer
+      // This transfers ownership of the buffer to the worker (instant, no GC spike)
+      // After this call, rawData buffer is neutered (length=0) on main thread
+      const transferableData = new Float32Array(rawData);
       
       worker.postMessage({
         type: 'generateWaveform',
-        rawData: clonedData,
+        rawData: transferableData,
         duration,
         samples: task.samples
-      }); // No transfer, just structured clone
+      }, [transferableData.buffer]); // Transfer list - enables zero-copy
 
     } catch (error) {
       task.reject(error as Error);

@@ -25,8 +25,8 @@ export interface AudioTrack {
   volume: number;
   muted: boolean;
   solo: boolean;
-  waveformData?: number[];
-  waveformOverview?: number[];
+  waveformData?: Float32Array;  // CRITICAL FIX: Float32Array for memory efficiency
+  waveformOverview?: Float32Array;  // CRITICAL FIX: Float32Array for memory efficiency
   output?: number;
   color?: string;
   tag?: TrackTag;

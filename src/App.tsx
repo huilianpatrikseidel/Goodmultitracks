@@ -467,12 +467,18 @@ function AppContent() {
 
   // Show first time setup if needed
   if (showFirstTimeSetup) {
-    return <FirstTimeSetup onComplete={handleFirstTimeSetupComplete} />;
+    return (
+      <Suspense fallback={<LoadingScreen />}>
+        <FirstTimeSetup onComplete={handleFirstTimeSetupComplete} />
+      </Suspense>
+    );
   }
 
   if (performanceMode && selectedSong) {
     return (
-      <PerformanceMode song={selectedSong} onClose={() => setPerformanceMode(false)} />
+      <Suspense fallback={<LoadingScreen />}>
+        <PerformanceMode song={selectedSong} onClose={() => setPerformanceMode(false)} />
+      </Suspense>
     );
   }
 
@@ -571,30 +577,34 @@ function AppContent() {
           ) : (
             <div className="flex-1 container mx-auto px-6 py-6 h-full overflow-y-auto"> 
               {activeView === 'library' && (
-                <SongLibrary
-                  songs={songs}
-                  setlists={setlists}
-                  onSongSelect={handleSongSelect}
-                  selectedSongId={selectedSong?.id}
-                  onAddToSetlist={handleAddToSetlist}
-                  onCreateSetlist={handleCreateSetlist}
-                  onImportSetlist={handleImportSetlist}
-                  onImportSong={handleImportSong}
-                  onCreateProject={handleCreateNewProject}
-                  onImportProject={handleImportProject}
-                />
+                <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin text-yellow-500" /></div>}>
+                  <SongLibrary
+                    songs={songs}
+                    setlists={setlists}
+                    onSongSelect={handleSongSelect}
+                    selectedSongId={selectedSong?.id}
+                    onAddToSetlist={handleAddToSetlist}
+                    onCreateSetlist={handleCreateSetlist}
+                    onImportSetlist={handleImportSetlist}
+                    onImportSong={handleImportSong}
+                    onCreateProject={handleCreateNewProject}
+                    onImportProject={handleImportProject}
+                  />
+                </Suspense>
               )}
 
               {activeView === 'setlists' && (
-                <SetlistManager
-                  setlists={setlists}
-                  songs={songs}
-                  onSongClick={handleSongClick}
-                  onCreateSetlist={handleCreateSetlist}
-                  onUpdateSetlist={handleUpdateSetlist}
-                  onDeleteSetlist={handleDeleteSetlist}
-                  onReorderSetlists={handleReorderSetlists}
-                />
+                <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin text-yellow-500" /></div>}>
+                  <SetlistManager
+                    setlists={setlists}
+                    songs={songs}
+                    onSongClick={handleSongClick}
+                    onCreateSetlist={handleCreateSetlist}
+                    onUpdateSetlist={handleUpdateSetlist}
+                    onDeleteSetlist={handleDeleteSetlist}
+                    onReorderSetlists={handleReorderSetlists}
+                  />
+                </Suspense>
               )}
 
               {activeView === 'settings' && (
@@ -609,32 +619,36 @@ function AppContent() {
         <div className="md:hidden h-full pb-16 overflow-y-auto">
           {activeTab === 'library' && (
             <div className="p-4">
-              <SongLibrary
-                songs={songs}
-                setlists={setlists}
-                onSongSelect={handleSongSelect}
-                selectedSongId={selectedSong?.id}
-                onAddToSetlist={handleAddToSetlist}
-                onCreateSetlist={handleCreateSetlist}
-                onImportSetlist={handleImportSetlist}
-                onImportSong={handleImportSong}
-                onCreateProject={handleCreateNewProject}
-                onImportProject={handleImportProject}
-              />
+              <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin text-yellow-500" /></div>}>
+                <SongLibrary
+                  songs={songs}
+                  setlists={setlists}
+                  onSongSelect={handleSongSelect}
+                  selectedSongId={selectedSong?.id}
+                  onAddToSetlist={handleAddToSetlist}
+                  onCreateSetlist={handleCreateSetlist}
+                  onImportSetlist={handleImportSetlist}
+                  onImportSong={handleImportSong}
+                  onCreateProject={handleCreateNewProject}
+                  onImportProject={handleImportProject}
+                />
+              </Suspense>
             </div>
           )}
 
           {activeTab === 'setlists' && (
             <div className="p-4">
-              <SetlistManager
-                setlists={setlists}
-                songs={songs}
-                onSongClick={handleSongClick}
-                onCreateSetlist={handleCreateSetlist}
-                onUpdateSetlist={handleUpdateSetlist}
-                onDeleteSetlist={handleDeleteSetlist}
-                onReorderSetlists={handleReorderSetlists}
-              />
+              <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin text-yellow-500" /></div>}>
+                <SetlistManager
+                  setlists={setlists}
+                  songs={songs}
+                  onSongClick={handleSongClick}
+                  onCreateSetlist={handleCreateSetlist}
+                  onUpdateSetlist={handleUpdateSetlist}
+                  onDeleteSetlist={handleDeleteSetlist}
+                  onReorderSetlists={handleReorderSetlists}
+                />
+              </Suspense>
             </div>
           )}
 
