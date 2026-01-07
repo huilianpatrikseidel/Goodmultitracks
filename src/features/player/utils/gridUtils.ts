@@ -1,6 +1,9 @@
 /**
  * Grid Utilities - Pure functions for timeline grid calculations
  * 
+ * REFACTORED (Fase 3): Agora usa useTimelineGrid hook para análise avançada
+ * de fórmulas de compasso, mantendo funções auxiliares para compatibilidade.
+ * 
  * This module contains all the mathematical logic for calculating
  * measure bars, time markers, and grid positions in the timeline.
  * 
@@ -8,10 +11,14 @@
  * - Better testability (pure functions)
  * - Performance (can be memoized easily)
  * - Maintainability (single source of truth for grid math)
+ * 
+ * NOTA: Para novos componentes, use useTimelineGrid hook diretamente.
+ * Estas funções são mantidas para compatibilidade com código legado.
  */
 
 import { TempoChange } from '../../../types';
 import { secondsToMeasure } from '../../../lib/timeUtils';
+import { analyzeTimeSignature, getMetronomeClickStructure } from '../../../lib/musicTheory';
 
 export interface MeasureBar {
   position: number; // Position in seconds
@@ -29,6 +36,10 @@ export interface GridLine {
   position: number;
   opacity: number; // 1.0 for strong lines, 0.5 for weak lines
   type: 'measure' | 'beat' | 'subdivision';
+  /** NEW: Accent level for hierarchy (2 = downbeat, 1 = beat, 0 = subdivision) */
+  accentLevel?: number;
+  /** NEW: Measure number (1-based, only for measure lines) */
+  measureNumber?: number;
 }
 
 /**
@@ -205,6 +216,11 @@ export function calculateBeatsInMeasure(
 
 /**
  * Calculate grid lines for visual snap-to-grid
+ * REFACTORED (Fase 3): Agora usa análise musical avançada com suporte a:
+ * - Compassos compostos (6/8, 9/8, 12/8) com macro beats corretos  
+ * - Compassos irregulares (5/8, 7/8) com accent patterns
+ * - Hierarquia visual baseada em análise de teoria musical
+ * 
  * P0 FIX: Otimizado para processar apenas janela visível
  * @param duration Total duration in seconds
  * @param tempo Base tempo in BPM
@@ -227,14 +243,17 @@ export function calculateGridLines(
 ): GridLine[] {
   const lines: GridLine[] = [];
   
-  // Sort tempo changes by measure
+  // Sort tempo changes by time (in SECONDS)
   const sortedChanges = tempoChanges ? [...tempoChanges].sort((a, b) => a.time - b.time) : [];
   
   let currentMeasure = 1;
   let currentTime = 0;
   let currentTempo = tempo;
   let currentTimeSignature = timeSignature;
-  let currentSubdivision: string | undefined = undefined;
+  
+  // REFACTORED: Analyze time signature with musicTheory
+  let tsInfo = analyzeTimeSignature(currentTimeSignature, currentTempo);
+  let metronome = getMetronomeClickStructure(tsInfo);
   
   let changeIndex = 0;
   
@@ -244,102 +263,101 @@ export function calculateGridLines(
   
   // Iterate from beginning to track changes correctly
   while (currentTime < duration) {
-    // Apply tempo/time signature changes for current measure
-    while (changeIndex < sortedChanges.length && sortedChanges[changeIndex].time <= currentMeasure) {
+    // REFACTORED: Apply tempo/time signature changes for current TIME (not measure)
+    while (changeIndex < sortedChanges.length && sortedChanges[changeIndex].time <= currentTime) {
       const change = sortedChanges[changeIndex];
       currentTempo = change.tempo;
-      if (change.timeSignature) currentTimeSignature = change.timeSignature;
-      currentSubdivision = change.subdivision;
+      if (change.timeSignature) {
+        currentTimeSignature = change.timeSignature;
+        tsInfo = analyzeTimeSignature(currentTimeSignature, currentTempo);
+        metronome = getMetronomeClickStructure(tsInfo);
+      }
       changeIndex++;
     }
     
-    const [beatsPerMeasure] = currentTimeSignature.split('/').map(Number);
-    const beatDuration = 60 / currentTempo;
-    const measureDuration = beatDuration * beatsPerMeasure;
+    // REFACTORED: Calculate measure duration using analyzed info
+    const quarterNoteDuration = 60 / currentTempo;
+    const measureDuration = tsInfo.measureDurationInQuarters * quarterNoteDuration;
     
     // Check visibility (with buffer)
     const isVisible = currentTime + measureDuration >= startTime && currentTime <= endTime;
     
     if (isVisible) {
-      // Measure line (strongest)
+      // Measure line (downbeat - strongest)
       if (currentTime >= startTime) {
         lines.push({
           position: currentTime,
           opacity: 1.0,
           type: 'measure',
+          accentLevel: 2,
+          measureNumber: currentMeasure,
         });
       }
       
-      // Parse subdivision if exists
-      let strongBeatIndices = new Set<number>();
-      if (currentSubdivision) {
-          const groups = currentSubdivision.split('+').map(s => parseInt(s.trim()));
-          let index = 0;
-          for (const g of groups) {
-              strongBeatIndices.add(index);
-              index += g;
-          }
-      } else {
-          // Default: all beats are strong
-          for(let i=0; i<beatsPerMeasure; i++) strongBeatIndices.add(i);
-      }
-
-      // Beat lines
-      for (let beat = 1; beat < beatsPerMeasure; beat++) {
-        const beatTime = currentTime + beat * beatDuration;
+      // REFACTORED: Beat/pulse lines using metronome structure from music theory
+      if (showSubdivisions || zoom > 25) {
+        const pulseDuration = measureDuration / tsInfo.pulsesPerMeasure;
         
-        if (beatTime >= startTime && beatTime < endTime && beatTime < duration) {
-            if (strongBeatIndices.has(beat)) {
-                lines.push({
-                    position: beatTime,
-                    opacity: 0.6,
-                    type: 'beat',
-                });
+        metronome.allPulses.forEach((pulseIndex, i) => {
+          // Skip first pulse (already added as measure line)
+          if (pulseIndex === 0) return;
+          
+          const pulseTime = currentTime + pulseIndex * pulseDuration;
+          if (pulseTime >= startTime && pulseTime <= endTime && pulseTime < duration) {
+            const accentLevel = metronome.accentLevels[i];
+            const isMacroBeat = metronome.macroBeats.includes(pulseIndex);
+            
+            // Determine line type and opacity based on hierarchy
+            if (isMacroBeat) {
+              // Macro beat (main tactus) - medium strength
+              lines.push({
+                position: pulseTime,
+                opacity: accentLevel === 2 ? 1.0 : 0.6,
+                type: 'beat',
+                accentLevel,
+              });
             } else if (showSubdivisions && zoom > 50) {
-                 // Weak beat (part of irregular group)
-                 lines.push({
-                    position: beatTime,
-                    opacity: 0.4,
-                    type: 'subdivision',
-                });
+              // Subdivision (pulse within macro beat) - weak
+              lines.push({
+                position: pulseTime,
+                opacity: 0.3,
+                type: 'subdivision',
+                accentLevel,
+              });
             }
-        }
+          }
+        });
         
-        // Subdivision lines (16th notes) - only if zoomed in
+        // Finer subdivisions (16th notes) - only if zoomed in significantly
         if (showSubdivisions && zoom > 80) {
-          for (let sub = 1; sub < 4; sub++) {
-            const subTime = beatTime - beatDuration + (beatDuration * sub / 4);
-            if (subTime > currentTime && subTime >= startTime && subTime < endTime && subTime < duration) {
-               if (Math.abs(subTime - beatTime) > 0.001) {
-                  lines.push({
-                    position: subTime,
-                    opacity: 0.3,
-                    type: 'subdivision',
-                  });
-               }
+          const sixteenthDuration = pulseDuration / 4;
+          const totalSixteenths = tsInfo.pulsesPerMeasure * 4;
+          
+          for (let i = 1; i < totalSixteenths; i++) {
+            // Skip positions that already have pulses
+            if (i % 4 === 0) continue;
+            
+            const sixteenthTime = currentTime + i * sixteenthDuration;
+            if (sixteenthTime >= startTime && sixteenthTime <= endTime && sixteenthTime < duration) {
+              lines.push({
+                position: sixteenthTime,
+                opacity: 0.2,
+                type: 'subdivision',
+                accentLevel: 0,
+              });
             }
           }
         }
-      }
-      
-      // Handle subdivisions for the last beat interval
-      if (showSubdivisions && zoom > 80) {
-          const lastBeatTime = currentTime + (beatsPerMeasure - 1) * beatDuration;
-          for (let sub = 1; sub < 4; sub++) {
-              const subTime = lastBeatTime + (beatDuration * sub / 4);
-              if (subTime >= startTime && subTime < endTime && subTime < duration) {
-                  lines.push({
-                    position: subTime,
-                    opacity: 0.3,
-                    type: 'subdivision',
-                  });
-              }
-          }
       }
     }
     
     currentTime += measureDuration;
     currentMeasure++;
+    
+    // Early exit if past visible end
+    if (visibleEndTime && currentTime > visibleEndTime + measureDuration) {
+      break;
+    }
   }
   
   return lines;

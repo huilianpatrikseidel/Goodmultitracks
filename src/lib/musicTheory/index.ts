@@ -126,3 +126,16 @@ export {
   getSubdivisionsPerBeat,
   type MetronomeClickStructure,
 } from './rhythm';
+
+// Time Conversion Helpers (Advanced)
+export {
+  measureToSecondsAdvanced,
+  secondsToMeasureAdvanced,
+  calculateSecondsPerMeasure,
+  calculateSecondsPerBeat,
+  calculateSecondsPerPulse,
+  calculateBeatTime,
+  calculatePulseTime,
+  getPositionFromTime,
+  formatPosition,
+} from './helpers/timeConversion';

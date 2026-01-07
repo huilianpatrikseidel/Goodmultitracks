@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Song, AudioTrack } from '../../../../../types';
+import type { MetronomeMode } from '../../../../../hooks/useMetronome';
 
 interface UseDAWStateProps {
   song: Song;
@@ -29,6 +30,7 @@ export const useDAWState = ({ song }: UseDAWStateProps) => {
   const [selectedTrackForNotes, setSelectedTrackForNotes] = useState<AudioTrack | null>(null);
   const [notesPanelVisible, setNotesPanelVisible] = useState(false);
   const [warpMode, setWarpMode] = useState(false);
+  const [metronomeMode, setMetronomeMode] = useState<MetronomeMode>('macro');
 
   const rulerRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -80,6 +82,8 @@ export const useDAWState = ({ song }: UseDAWStateProps) => {
     setNotesPanelVisible,
     warpMode,
     setWarpMode,
+    metronomeMode,
+    setMetronomeMode,
     rulerRef,
     sidebarRef,
     timelineRef,

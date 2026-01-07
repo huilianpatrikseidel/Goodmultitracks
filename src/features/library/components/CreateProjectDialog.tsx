@@ -180,7 +180,8 @@ export function CreateProjectDialog({
       accidental === 'sharp' ? BravuraSymbols.accidentalSharp : 
       accidental === 'flat' ? BravuraSymbols.accidentalFlat : '';
     
-    const fullKey = `${keyName}${accidentalSymbol} ${mode}`;
+    const noteKey = `${keyName}${accidentalSymbol}`;
+    const scaleType = mode.toLowerCase() === 'minor' ? 'minor' : 'major';
 
     const projectData = {
       songName: songName.trim(),
@@ -188,7 +189,8 @@ export function CreateProjectDialog({
       authors: authors,
       coverArt: coverArt,
       coverArtPreview: coverArtPreview,
-      key: fullKey,
+      key: noteKey,
+      scale: scaleType as 'major' | 'minor',
       tempo: parseInt(tempo) || 120,
       timeSignature: `${timeSignatureNumerator}/${timeSignatureDenominator}`,
       tracks: audioTracks.map((track, index) => ({

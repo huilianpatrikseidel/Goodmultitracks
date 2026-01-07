@@ -12,7 +12,23 @@ import { TempoChange } from '../types';
  * - Seconds (absolute time in audio timeline)
  * 
  * All conversions respect variable tempo maps.
+ * 
+ * REFACTORED (Fase 3): Agora exports também os helpers avançados do musicTheory
+ * para conversões mais precisas. Mantido para compatibilidade com código legado.
  */
+
+// Re-export advanced conversion helpers from musicTheory
+export {
+  measureToSecondsAdvanced,
+  secondsToMeasureAdvanced,
+  calculateSecondsPerMeasure,
+  calculateSecondsPerBeat,
+  calculateSecondsPerPulse,
+  calculateBeatTime,
+  calculatePulseTime,
+  getPositionFromTime,
+  formatPosition,
+} from './musicTheory';
 
 /**
  * Converts a measure number (1-based) to absolute time in seconds.

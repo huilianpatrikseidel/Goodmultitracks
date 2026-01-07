@@ -4,8 +4,6 @@
 
 This is the GoodMultitracks application - a sophisticated multi-track audio player with integrated music theory analysis, chord voicing generation, and professional music notation support.
 
-Original design: https://www.figma.com/design/ZDQjWeW8cUemVb6PJxWywL/GoodMultitracks
-
 ---
 
 ## 🚀 Quick Start

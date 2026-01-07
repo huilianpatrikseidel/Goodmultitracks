@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ScrollZoomSlider } from '../../../../components/ScrollZoomSlider';
+import { ScrollZoomSlider } from '../../../../components/player';
 import { ZOOM } from '../../../../config/constants';
 
 interface TimelineNavigatorProps {

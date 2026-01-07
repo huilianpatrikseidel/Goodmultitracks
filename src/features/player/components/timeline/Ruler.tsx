@@ -7,6 +7,13 @@ import { calculateGridLines, calculateMeasureBars } from '../../utils/gridUtils'
 import { measureToSeconds, secondsToMeasure, calculateWarpBPM } from '../../../../lib/timeUtils';
 import { useWarpInteraction } from '../../hooks/useWarpInteraction';
 import { formatBPM, formatTime } from '../../../../lib/formatters';
+import { useChordAnalysis } from '../../../../hooks/useChordAnalysis';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../../../../components/ui/tooltip';
 
 interface RulerProps {
   rulerId: 'time' | 'measures' | 'sections' | 'chords' | 'tempo';
@@ -59,6 +66,17 @@ export const Ruler: React.FC<RulerProps> = ({
   warpMode = false,
   onWarpCommit,
 }) => {
+  // PHASE 4: Chord analysis hook
+  const { analyzeChordMarkers } = useChordAnalysis({
+    key: song.key || 'C',
+    scale: song.scale || 'major',
+  });
+
+  // Analyze chord markers with harmonic analysis
+  const analyzedChordMarkers = useMemo(() => {
+    return analyzeChordMarkers(song.chordMarkers || []);
+  }, [analyzeChordMarkers, song.chordMarkers]);
+
   // Warp Grid State (via Hook)
   const { 
     isWarpDragging, 
@@ -610,27 +628,72 @@ export const Ruler: React.FC<RulerProps> = ({
           onDragOver={onRulerDragOver}
           onMouseDown={handleRulerInteraction}
         >
-          {(song.chordMarkers || []).map((chord, i) => (
-            <div key={i} className="absolute top-0.5" style={{ left: (chord.time / song.duration) * timelineWidth }}>
-              <div
-                className="cursor-pointer hover:brightness-110 transition-all"
-                style={{
-                  backgroundColor: '#3b82f6',
-                  color: '#fff',
-                  fontSize: '10px',
-                  fontWeight: '600',
-                  padding: '3px 6px',
-                  borderRadius: '3px',
-                  border: '1px solid rgba(0,0,0,0.2)',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
-                  whiteSpace: 'nowrap'
-                }}
-                onClick={(e: React.MouseEvent) => { e.stopPropagation(); onChordClick(chord); }}
-              >
-                {transposeKey(chord.chord, keyShift)}
+          <TooltipProvider>
+            {analyzedChordMarkers.map((chord, i) => (
+              <div key={i} className="absolute top-0.5 flex flex-col gap-0.5" style={{ left: (chord.time / song.duration) * timelineWidth }}>
+                {/* Main chord button */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div
+                      className="cursor-pointer hover:brightness-110 transition-all"
+                      style={{
+                        backgroundColor: chord.analysis?.isBorrowed ? '#f59e0b' : '#3b82f6',
+                        color: '#fff',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        padding: '3px 7px',
+                        borderRadius: '3px',
+                        border: '1px solid rgba(0,0,0,0.2)',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                        whiteSpace: 'nowrap'
+                      }}
+                      onClick={(e: React.MouseEvent) => { e.stopPropagation(); onChordClick(chord); }}
+                    >
+                      {transposeKey(chord.chord, keyShift)}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <div className="text-xs space-y-1">
+                      <div className="font-bold">{transposeKey(chord.chord, keyShift)}</div>
+                      {chord.analysis && (
+                        <>
+                          <div>
+                            <span className="text-muted-foreground">Roman:</span>{' '}
+                            <span className="font-semibold">{chord.analysis.romanNumeral}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Function:</span>{' '}
+                            {chord.analysis.function}
+                          </div>
+                          {chord.analysis.isBorrowed && (
+                            <div className="text-orange-400">⚠ Borrowed chord</div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+
+                {/* Roman numeral badge - below chord */}
+                {chord.analysis && (
+                  <div
+                    className="text-center"
+                    style={{
+                      fontSize: '9px',
+                      fontWeight: '600',
+                      color: chord.analysis.isBorrowed ? '#f59e0b' : '#64748b',
+                      backgroundColor: 'rgba(0,0,0,0.05)',
+                      padding: '1px 4px',
+                      borderRadius: '2px',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {chord.analysis.romanNumeral}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            ))}
+          </TooltipProvider>
         </div>
       );
 

@@ -2,11 +2,9 @@ import React from 'react';
 import { X } from '../../../../components/icons/Icon';
 import { RulerSidebarHeaders } from '../player/RulerSidebarHeaders';
 import { RulersContainer } from '../player/RulersContainer';
-import { TrackListSidebar } from '../../../../components/TrackListSidebar';
+import { TrackListSidebar, VerticalScrollbar, NotesPanel } from '../../../../components/player';
 import { TimelineContainer } from '../player/TimelineContainer';
-import { VerticalScrollbar } from '../../../../components/VerticalScrollbar';
 import { MixerDock } from '../mixer/MixerDock';
-import { NotesPanel } from '../../../../components/NotesPanel';
 import { Song, AudioTrack, ChordMarker } from '../../../../types';
 
 interface DAWWorkspaceProps {

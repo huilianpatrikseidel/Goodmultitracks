@@ -24,22 +24,25 @@ import {
   GripVertical,
 } from '../../../components/icons/Icon';
 import { transposeKey } from '../../../lib/musicTheory';
-import { PlayerViewSettings } from '../../../components/PlayerViewSettings';
-import { PlaybackControls } from '../../../components/PlaybackControls';
+import { 
+  PlayerViewSettings, 
+  PlaybackControls, 
+  NotesPanel, 
+  TimelineEditorDialog, 
+  TrackNotesDialog, 
+  ScrollZoomSlider, 
+  VerticalScrollbar, 
+  TrackListSidebar 
+} from '../../../components/player';
+import { ChordDiagram } from '../../../components/diagrams';
 import { KeyboardShortcutsHelp } from '../../../components/shared/KeyboardShortcutsHelp';
 import { MixPresetsManager } from './mixer/MixPresetsManager';
 import { MixerDock } from './mixer/MixerDock';
-import { NotesPanel } from '../../../components/NotesPanel';
 import { Button } from '../../../components/ui/button';
 import { getWarpedTime as utilsGetWarpedTime } from '../utils/warpUtils';
 import { Song, AudioTrack, SectionMarker, TempoChange, ChordMarker, MixPreset } from '../../../types';
 import { Separator } from '../../../components/ui/separator';
 import { CreateProjectDialog } from '../../../features/library/components/CreateProjectDialog';
-import { TimelineEditorDialog } from '../../../components/TimelineEditorDialog';
-import { ChordDiagram } from '../../../components/ChordDiagram';
-import { TrackNotesDialog } from '../../../components/TrackNotesDialog';
-import { ScrollZoomSlider } from '../../../components/ScrollZoomSlider';
-import { VerticalScrollbar } from '../../../components/VerticalScrollbar';
 import { ProjectProvider } from '../../../contexts/ProjectContext';
 import { usePlaybackEngine } from '../hooks/usePlaybackEngine';
 import { useKeyboardShortcuts } from './player/hooks/useKeyboardShortcuts';
@@ -47,7 +50,6 @@ import { useViewSettings } from './player/hooks/useViewSettings';
 import { useTrackActions } from './player/hooks/useTrackActions';
 import { TimelineContainer } from './player/TimelineContainer';
 import { TransportHeader } from './player/TransportHeader';
-import { TrackListSidebar } from '../../../components/TrackListSidebar';
 import { RulerSidebarHeaders } from './player/RulerSidebarHeaders';
 import { ZoomControls } from './player/ZoomControls';
 import { BottomToolbar } from './player/BottomToolbar';
@@ -240,6 +242,7 @@ function DAWPlayerContent({ song, onSongUpdate, onPerformanceMode, onBack, onExp
     dynamicTempos, isDragging, setIsDragging, scrollTop, setScrollTop,
     pinnedTracks, setPinnedTracks, selectedTrackForNotes, setSelectedTrackForNotes,
     notesPanelVisible, setNotesPanelVisible, warpMode, setWarpMode,
+    metronomeMode, setMetronomeMode,
     rulerRef, sidebarRef, timelineRef, hoveredContainerRef
   } = dawState;
 
@@ -501,12 +504,14 @@ function DAWPlayerContent({ song, onSongUpdate, onPerformanceMode, onBack, onExp
           <TransportHeader
             songTitle={song.title}
             songKey={song.key}
+            songScale={song.scale}
             isPlaying={isPlaying}
             currentTime={currentTime}
             tempo={tempo}
             loopEnabled={loopEnabled}
             metronomeEnabled={metronomeEnabled}
             metronomeVolume={metronomeVolume}
+            metronomeMode={metronomeMode}
             currentMeasure={String(getCurrentMeasure())}
             currentTimeSignature={getCurrentTimeSignature()}
             displayTempo={tempo}
@@ -521,6 +526,7 @@ function DAWPlayerContent({ song, onSongUpdate, onPerformanceMode, onBack, onExp
             onLoopToggle={() => playbackActions.setLoopEnabled(!loopEnabled)}
             onMetronomeToggle={() => playbackActions.setMetronomeEnabled(!metronomeEnabled)}
             onMetronomeVolumeChange={playbackActions.setMetronomeVolume}
+            onMetronomeModeChange={setMetronomeMode}
             onTempoChange={playbackActions.setTempo}
             onKeyShiftChange={setKeyShift}
             onTrackHeightChange={setTrackHeight}

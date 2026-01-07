@@ -3,63 +3,25 @@
 **Font:** Bravura SMuFL  
 **Version:** 1.392  
 **Provider:** Steinberg  
-**Last Updated:** January 6, 2026
+**Last Updated:** January 2026
 
 ---
 
-## 📚 Documentation Files
+## 📚 Documentation
 
 ### [Bravura Implementation Guide](./BRAVURA_IMPLEMENTATION.md)
-Complete guide to integrating Bravura music notation font.
+Complete guide to integrating Bravura music notation font in the application.
 
 **Contents:**
-- Font Installation
-- Symbol Mapping
+- Font Installation and Setup
+- Symbol Mapping and Usage
 - Component Integration
 - Chord Diagram Rendering
 - Performance Optimization
+- Local File Structure (WOFF2, WOFF, OTF)
+- Build Configuration
 
-**Audience:** Developers implementing music notation
-
----
-
-### [Local Structure](./BRAVURA_LOCAL_STRUCTURE.md)
-Organization of local Bravura font files and assets.
-
-**Contents:**
-- File Structure
-- Font Formats (WOFF2, TTF, OTF)
-- Metadata Files
-- CSS Integration
-
-**Audience:** Build engineers, maintainers
-
----
-
-### [Complete Reference](./BRAVURA_LOCAL_COMPLETE.md)
-Comprehensive reference for all Bravura features.
-
-**Contents:**
-- Full Symbol Catalog
-- Chord Symbol Mapping
-- Accidental Rendering
-- Dynamic Marks
-- Articulations
-
-**Audience:** Designers, advanced users
-
----
-
-### [Quick Start](./BRAVURA_README.md)
-Quick start guide for using Bravura in the application.
-
-**Contents:**
-- Basic Setup
-- Common Use Cases
-- Troubleshooting
-- Examples
-
-**Audience:** New developers
+**Audience:** All developers
 
 ---
 

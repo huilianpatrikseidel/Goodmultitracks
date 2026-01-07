@@ -1,6 +1,6 @@
 import React from 'react';
 import { MixerDock } from '../mixer/MixerDock';
-import { NotesPanel } from '../../../../components/NotesPanel';
+import { NotesPanel } from '../../../../components/player';
 import { AudioTrack } from '../../../../types';
 
 interface DAWSidePanelsProps {

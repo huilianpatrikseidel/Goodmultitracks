@@ -108,7 +108,7 @@ export function SettingsPanel() {
     <div className="space-y-6 max-w-3xl mx-auto">
       <div>
         <h2 className="text-2xl font-semibold mb-1">{t.appSettings}</h2>
-        <p className="text-sm text-gray-600">Configure suas preferências da aplicação.</p>
+        <p className="text-sm text-muted-foreground">Configure suas preferências da aplicação.</p>
       </div>
 
       {/* Appearance Settings */}

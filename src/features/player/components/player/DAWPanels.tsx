@@ -1,6 +1,6 @@
 import React from 'react';
 import { X } from '../../../../components/icons/Icon';
-import { NotesPanel } from '../../../../components/NotesPanel';
+import { NotesPanel } from '../../../../components/player';
 import { MixerDock } from '../mixer/MixerDock';
 import { AudioTrack } from '../../../../types';
 

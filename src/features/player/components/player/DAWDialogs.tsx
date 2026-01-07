@@ -1,8 +1,7 @@
 import React from 'react';
 import { CreateProjectDialog } from '../../../../features/library/components/CreateProjectDialog';
-import { TimelineEditorDialog } from '../../../../components/TimelineEditorDialog';
-import { ChordDiagram } from '../../../../components/ChordDiagram';
-import { TrackNotesDialog } from '../../../../components/TrackNotesDialog';
+import { TimelineEditorDialog, TrackNotesDialog } from '../../../../components/player';
+import { ChordDiagram } from '../../../../components/diagrams';
 import { AudioTrack, TempoChange, SectionMarker, ChordMarker } from '../../../../types';
 
 interface DAWDialogsProps {

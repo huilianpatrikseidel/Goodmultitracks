@@ -5,21 +5,24 @@ import { Button } from '../../../../components/ui/button';
 import { Slider } from '../../../../components/ui/slider';
 import { Label } from '../../../../components/ui/label';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../../../components/ui/tooltip';
-import { PlaybackControls } from '../../../../components/PlaybackControls';
-import { PlayerViewSettings } from '../../../../components/PlayerViewSettings';
+import { PlaybackControls, PlayerViewSettings } from '../../../../components/player';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../../components/ui/dropdown-menu';
 import { gainToDb, gainToSlider, sliderToGain, formatDb } from '../../utils/audioUtils';
 import { formatBPM, formatTime } from '../../../../lib/formatters';
+import { MetronomeModeSelect } from './MetronomeModeSelect';
+import type { MetronomeMode } from '../../../../hooks/useMetronome';
 
 interface TransportHeaderProps {
   songTitle: string;
   songKey: string;
+  songScale?: 'major' | 'minor';
   isPlaying: boolean;
   currentTime: number;
   tempo: number;
   loopEnabled: boolean;
   metronomeEnabled: boolean;
   metronomeVolume: number;
+  metronomeMode?: MetronomeMode;
   keyShift: number;
   trackHeight: 'small' | 'medium' | 'large';
   rulerVisibility: Record<string, boolean>;
@@ -35,6 +38,7 @@ interface TransportHeaderProps {
   onLoopToggle: () => void;
   onMetronomeToggle: () => void;
   onMetronomeVolumeChange: (volume: number) => void;
+  onMetronomeModeChange?: (mode: MetronomeMode) => void;
   onTempoChange: (tempo: number) => void;
   onKeyShiftChange: (shift: number) => void;
   onTrackHeightChange: (height: 'small' | 'medium' | 'large') => void;
@@ -50,12 +54,14 @@ interface TransportHeaderProps {
 export const TransportHeader: React.FC<TransportHeaderProps> = ({
   songTitle,
   songKey,
+  songScale = 'major',
   isPlaying,
   currentTime,
   tempo,
   loopEnabled,
   metronomeEnabled,
   metronomeVolume,
+  metronomeMode = 'macro',
   keyShift,
   trackHeight,
   rulerVisibility,
@@ -71,6 +77,7 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
   onLoopToggle,
   onMetronomeToggle,
   onMetronomeVolumeChange,
+  onMetronomeModeChange,
   onTempoChange,
   onKeyShiftChange,
   onTrackHeightChange,
@@ -242,7 +249,7 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
           <div className="flex flex-col items-center">
             <span className="text-xs uppercase tracking-wider" style={{ color: 'var(--daw-text-muted)' }}>Key</span>
             <span className="text-lg font-mono font-bold" style={{ color: '#10B981' }}>
-              {songKey}
+              {songKey} {songScale === 'minor' ? 'minor' : 'Major'}
             </span>
           </div>
         </div>
@@ -301,25 +308,38 @@ export const TransportHeader: React.FC<TransportHeaderProps> = ({
             className="w-64 p-4"
             style={{ backgroundColor: 'var(--daw-bg-bars)', borderColor: 'var(--daw-border)' }}
           >
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm" style={{ color: 'var(--daw-text-primary)' }}>
-                  Metronome Volume
-                </Label>
-                <span className="text-sm" style={{ color: 'var(--daw-text-secondary)' }}>
-                  {formatDb(gainToDb(metronomeVolume))} dB
-                </span>
+            <div className="space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm" style={{ color: 'var(--daw-text-primary)' }}>
+                    Metronome Volume
+                  </Label>
+                  <span className="text-sm" style={{ color: 'var(--daw-text-secondary)' }}>
+                    {formatDb(gainToDb(metronomeVolume))} dB
+                  </span>
+                </div>
+                <Slider
+                  value={[gainToSlider(metronomeVolume)]}
+                  onValueChange={(values: number[]) => onMetronomeVolumeChange(sliderToGain(values[0]))}
+                  max={100}
+                  step={0.1}
+                  className="w-full"
+                  onDoubleClick={() => {
+                    onMetronomeVolumeChange(0.5); // Reset to -6dB
+                  }}
+                />
               </div>
-              <Slider
-                value={[gainToSlider(metronomeVolume)]}
-                onValueChange={(values: number[]) => onMetronomeVolumeChange(sliderToGain(values[0]))}
-                max={100}
-                step={0.1}
-                className="w-full"
-                onDoubleClick={() => {
-                  onMetronomeVolumeChange(0.5); // Reset to -6dB
-                }}
-              />
+
+              {/* PHASE 5: Metronome Mode Selector */}
+              {onMetronomeModeChange && (
+                <div className="pt-3 border-t" style={{ borderColor: 'var(--daw-border)' }}>
+                  <MetronomeModeSelect 
+                    mode={metronomeMode}
+                    onModeChange={onMetronomeModeChange}
+                    timeSignature={currentTimeSignature}
+                  />
+                </div>
+              )}
             </div>
           </DropdownMenuContent>
         </DropdownMenu>

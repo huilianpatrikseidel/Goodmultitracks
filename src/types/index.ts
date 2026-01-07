@@ -58,6 +58,15 @@ export interface ChordMarker {
     piano: { keys: string[] };
     capo?: number;
   };
+  /** PHASE 4: Harmonic analysis (auto-calculated) */
+  analysis?: {
+    romanNumeral: string;
+    isDiatonic: boolean;
+    isBorrowed: boolean;
+    function: string;
+    quality: string;
+    notes: string[];
+  };
 }
 
 export interface TempoChange {
@@ -103,6 +112,7 @@ export interface Song {
   title: string;
   artist: string;
   key: string;
+  scale?: 'major' | 'minor';
   tempo: number;
   duration: number;
   tracks: AudioTrack[];
