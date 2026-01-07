@@ -6,25 +6,44 @@ import { useLanguage } from '../lib/LanguageContext';
 import { ScrollArea } from './ui/scroll-area';
 import { playChord } from '../lib/chordPlayback';
 import { Button } from './ui/button';
+import { CIRCLE_OF_FIFTHS_MAJOR } from '../lib/musicTheory/scales';
+import { areNotesEnharmonic } from '../lib/musicTheory';
 
 interface InteractivePianoDiagramProps {
   keys: string[];
   onChange: (keys: string[]) => void;
+  keySignature?: string;
 }
 
-export function InteractivePianoDiagram({ keys, onChange }: InteractivePianoDiagramProps) {
+export function InteractivePianoDiagram({ keys, onChange, keySignature = 'C' }: InteractivePianoDiagramProps) {
   const { t } = useLanguage();
   const scrollRef = useRef<HTMLDivElement>(null);
   
+  // Determine if we should use flats based on key signature
+  const useFlats = (CIRCLE_OF_FIFTHS_MAJOR[keySignature] || 0) < 0 || keySignature === 'F';
+
   // Two octaves of keys
-  const octave1Keys = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-  const octave2Keys = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const sharpKeys = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const flatKeys = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+  
+  const currentKeys = useFlats ? flatKeys : sharpKeys;
+  
+  const octave1Keys = currentKeys;
+  const octave2Keys = currentKeys;
   const allKeys = [
     ...octave1Keys.map(k => `${k}4`),
     ...octave2Keys.map(k => `${k}5`)
   ];
   
-  const blackKeys = ['C#', 'D#', 'F#', 'G#', 'A#'];
+  const blackKeys = useFlats 
+    ? ['Db', 'Eb', 'Gb', 'Ab', 'Bb'] 
+    : ['C#', 'D#', 'F#', 'G#', 'A#'];
+    
+  // Helper to check if a key is active (handling enharmonic spelling)
+  const isKeyActive = (keyNote: string) => {
+    return keys.some(k => k === keyNote || areNotesEnharmonic(k, keyNote));
+  };
+
   const whiteKeys = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
   
   // Auto-scroll to middle C on mount
@@ -63,11 +82,11 @@ export function InteractivePianoDiagram({ keys, onChange }: InteractivePianoDiag
   };
 
   const isBlackKey = (keyName: string): boolean => {
-    return keyName.includes('#');
+    return keyName.includes('#') || keyName.includes('b');
   };
 
   const isCKey = (fullKey: string): boolean => {
-    return fullKey.startsWith('C');
+    return fullKey.startsWith('C') && !fullKey.includes('#') && !fullKey.includes('b');
   };
 
   const handlePlayChord = () => {
@@ -106,7 +125,7 @@ export function InteractivePianoDiagram({ keys, onChange }: InteractivePianoDiag
           {/* White keys with C markers */}
           {allKeys.filter(k => !isBlackKey(getKeyName(k))).map((fullKey, i) => {
             const x = 20 + i * 56;
-            const isActive = keys.includes(fullKey);
+            const isActive = isKeyActive(fullKey);
             const isC = isCKey(fullKey);
             
             return (
@@ -157,19 +176,21 @@ export function InteractivePianoDiagram({ keys, onChange }: InteractivePianoDiag
             const keyName = getKeyName(fullKey);
             const octave = fullKey.replace(/[^0-9]/g, '');
             const octaveIndex = parseInt(octave) - 4;
-            const baseKeyIndex = blackKeys.indexOf(keyName);
-            
-            // Calculate position based on octave and black key pattern
+            // Calculate baseKeyIndex carefully with flats/sharps
+            // Normalize for index finding if needed, but blackKeys array matches currentKeys mode
             let whiteKeyOffset = 0;
-            if (keyName === 'C#') whiteKeyOffset = 0;
-            else if (keyName === 'D#') whiteKeyOffset = 1;
-            else if (keyName === 'F#') whiteKeyOffset = 3;
-            else if (keyName === 'G#') whiteKeyOffset = 4;
-            else if (keyName === 'A#') whiteKeyOffset = 5;
+            
+            // Map note names to white key offset (C=0, D=1, E=2, F=3, G=4, A=5, B=6)
+            // Black keys: C#/Db(0), D#/Eb(1), F#/Gb(3), G#/Ab(4), A#/Bb(5)
+            if (keyName === 'C#' || keyName === 'Db') whiteKeyOffset = 0;
+            else if (keyName === 'D#' || keyName === 'Eb') whiteKeyOffset = 1;
+            else if (keyName === 'F#' || keyName === 'Gb') whiteKeyOffset = 3;
+            else if (keyName === 'G#' || keyName === 'Ab') whiteKeyOffset = 4;
+            else if (keyName === 'A#' || keyName === 'Bb') whiteKeyOffset = 5;
             
             const totalWhiteKeyIndex = octaveIndex * 7 + whiteKeyOffset;
             const x = 20 + totalWhiteKeyIndex * 56 + 40;
-            const isActive = keys.includes(fullKey);
+            const isActive = isKeyActive(fullKey);
             
             return (
               <rect
@@ -182,7 +203,7 @@ export function InteractivePianoDiagram({ keys, onChange }: InteractivePianoDiag
                 stroke="hsl(var(--border))"
                 strokeWidth="2"
                 role="button"
-                aria-label={`${keyName} sharp key${isActive ? ' (selected)' : ''}`}
+                aria-label={`${keyName} key${isActive ? ' (selected)' : ''}`}
                 tabIndex={0}
                 rx="3"
                 cursor="pointer"

@@ -279,19 +279,21 @@ function generateAllVoicings(
       const positions = findAllPositions(note, [tuning[stringIndex]], maxFret);
       
       for (const pos of positions) {
-        // Skip if fret is too far from other frets (playability)
+        // Skip if fret is too far from other frets (playability) - PHYSIOLOGICAL CONSTRAINT
         if (currentPositions.length > 0) {
           const activeFrets = currentFrets.filter(f => f > 0);
           if (activeFrets.length > 0) {
             const minFret = Math.min(...activeFrets);
             const maxActiveFret = Math.max(...activeFrets);
-            
-            // Skip if stretch is too wide (more than 4 frets)
-            if (pos.fret > 0 && (
-              pos.fret < minFret - 4 ||
-              pos.fret > maxActiveFret + 4
-            )) {
-              continue;
+
+            // Constraint: Total hand span must not exceed 4 frets (unless open strings involved)
+            // Exception: If the new note is open (0), it doesn't count towards stretch
+            if (pos.fret > 0) {
+               const newMin = Math.min(minFret, pos.fret);
+               const newMax = Math.max(maxActiveFret, pos.fret);
+               if (newMax - newMin > 4) {
+                 continue; // Reject voicing
+               }
             }
           }
         }

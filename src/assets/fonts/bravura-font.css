@@ -34,6 +34,11 @@
   font-feature-settings: 'liga', 'calt';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Fix vertical alignment for SMuFL fonts */
+  vertical-align: middle;
+  line-height: 1;
+  transform: translateY(-0.1em); 
+  display: inline-block;
 }
 
 .music-text {
@@ -41,6 +46,10 @@
   font-feature-settings: 'liga', 'calt';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Fix vertical alignment for SMuFL fonts */
+  vertical-align: middle;
+  line-height: 1;
+  display: inline-block;
 }
 
 /* Common music symbols with Bravura */

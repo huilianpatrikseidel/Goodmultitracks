@@ -19,7 +19,7 @@ import { transposeNote } from './transposition';
  * Major keys arranged by fifths: C(0) → G(1) → D(2) → A(3) → E(4) → B(5) → F#(6) → C#(7)
  * Flat keys: F(-1) → Bb(-2) → Eb(-3) → Ab(-4) → Db(-5) → Gb(-6) → Cb(-7)
  */
-const CIRCLE_OF_FIFTHS_MAJOR: Record<string, number> = {
+export const CIRCLE_OF_FIFTHS_MAJOR: Record<string, number> = {
   'C': 0,   // No sharps or flats
   'G': 1,   // 1 sharp (F#)
   'D': 2,   // 2 sharps (F#, C#)
