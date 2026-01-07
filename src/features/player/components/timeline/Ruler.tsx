@@ -250,7 +250,6 @@ export const Ruler: React.FC<RulerProps> = ({
       color: string; // Cor baseada na força do beat
     }[] = [];
     
-    let measureCount = 0;
     let lastMeasureTime = -1;
     let lastLabelPixelPosition = -100; // Collision detection
     const minPixelDistance = 50; // Mínimo 50px entre labels
@@ -267,21 +266,25 @@ export const Ruler: React.FC<RulerProps> = ({
     gridLines.forEach((line, index) => {
       
       if (line.type === 'measure') {
-        measureCount++;
         lastMeasureTime = line.position;
         
-        // Collision detection baseada em pixels
+        // Collision detection baseada em pixels VISÍVEIS na viewport
         const pixelPosition = (line.position / song.duration) * timelineWidth;
-        const hasSpace = (pixelPosition - lastLabelPixelPosition) >= minPixelDistance;
-        const shouldShowNumber = hasSpace;
+        // Calcular posição relativa à viewport atual
+        const visiblePixelPosition = pixelPosition - scrollLeft;
+        const hasSpace = (visiblePixelPosition - lastLabelPixelPosition) >= minPixelDistance;
+        // Só mostrar número se estiver dentro da viewport visível
+        const isInViewport = visiblePixelPosition >= 0 && visiblePixelPosition <= containerWidth;
+        const shouldShowNumber = hasSpace && isInViewport;
         
         if (shouldShowNumber) {
-          lastLabelPixelPosition = pixelPosition;
+          lastLabelPixelPosition = visiblePixelPosition;
         }
         
+        // BUGFIX: Use measureNumber from gridLines instead of local counter
         measureBars.push({
           time: line.position,
-          measure: shouldShowNumber ? measureCount : null,
+          measure: shouldShowNumber && line.measureNumber ? line.measureNumber : null,
           beat: 1,
           isBeat: false,
           opacity: line.opacity,
@@ -290,13 +293,14 @@ export const Ruler: React.FC<RulerProps> = ({
           color: 'rgba(255,255,255,0.6)', // Cor forte
         });
       } else if (line.type === 'beat' && showBeatsAtThisZoom) {
+        // BUGFIX: Calcular beat number relativo ao compasso atual, não acumulativo
         const beatsSinceMeasure = gridLines
           .slice(0, index)
           .filter(l => l.position > lastMeasureTime && l.type === 'beat')
           .length;
         
-        // Detectar tempos fortes em compassos compostos (6/8, 12/8)
-        const beatNumber = beatsSinceMeasure + 2;
+        // Beat number dentro do compasso (1-based, começando em 2 porque 1 é o downbeat/measure)
+        const beatNumber = beatsSinceMeasure + 1;
         const isStrongSubBeat = beatNumber === 4 || beatNumber === 7 || beatNumber === 10; // Ex: tempo 4 em 6/8
         
         measureBars.push({

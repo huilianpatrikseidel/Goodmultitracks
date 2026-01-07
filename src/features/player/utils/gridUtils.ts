@@ -248,7 +248,6 @@ export function calculateGridLines(
   // Sort tempo changes by time (in SECONDS)
   const sortedChanges = tempoChanges ? [...tempoChanges].sort((a, b) => a.time - b.time) : [];
   
-  let currentMeasure = 1;
   let currentTime = 0;
   let currentTempo = tempo;
   let currentTimeSignature = timeSignature;
@@ -287,6 +286,9 @@ export function calculateGridLines(
     if (isVisible) {
       // Measure line (downbeat - strongest)
       if (currentTime >= startTime) {
+        // BUGFIX: Use secondsToMeasure from musicTheory library for accurate measure calculation
+        const currentMeasure = Math.round(secondsToMeasure(currentTime, sortedChanges, tempo, currentTimeSignature));
+        
         lines.push({
           position: currentTime,
           opacity: 1.0,
@@ -354,7 +356,6 @@ export function calculateGridLines(
     }
     
     currentTime += measureDuration;
-    currentMeasure++;
     
     // Early exit if past visible end
     if (visibleEndTime && currentTime > visibleEndTime + measureDuration) {
