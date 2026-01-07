@@ -12,7 +12,7 @@ A ideia central é fornecer uma ferramenta onde o músico possa carregar um arqu
 
 * **Atual:** Um leitor de multitracks para estudo, com visualização de formas de onda e análise teórica (acordes, métricas).
 * **Futuro Próximo:** Tornar-se um **Player de VS (Virtual Soundcheck/Backing Tracks)** completo para uso ao vivo.
-* **Filosofia:** O software possui altas capacidades de teorização musical "under-the-hood" para auxiliar no aprendizado (exibição de acordes dinâmicos, diagramas de instrumentos, compassos compostos), mas **não** tem como foco, no momento, a exibição de partituras (notação musical tradicional).
+
 
 ## 🚀 Funcionalidades Principais
 
@@ -22,15 +22,18 @@ A ideia central é fornecer uma ferramenta onde o músico possa carregar um arqu
     * Harmonia e Acordes.
     * Métricas e Fórmulas de Compasso (Time Signatures) complexas.
     * Transposição inteligente.
-* **Visualização Instrumental:** Diagramas interativos para Guitarra, Piano e Ukulele (baseado nos arquivos encontrados em `src/components/diagrams`).
+* **Visualização Instrumental:** Diagramas interativos para Guitarra, Piano e Ukulele
 * **Gerenciamento de Setlist:** Organização de músicas para estudo ou (futuramente) performance.
 * **Ambiente atual:** Execução focada em **Web (navegador)** durante o desenvolvimento.
+* **Compilações:** Ainda não estamos trabalhando em compilações/empacotamento (desktop/mobile). A prioridade atual é a experiência web.
+* **Plataformas previstas:** Alvo multiplataforma no futuro — **Desktop (Windows, macOS, Linux)** e **Mobile (Android, iOS)**.
 
 ### Roadmap 🗺️
 - [ ] Otimização do motor de áudio para baixa latência.
 - [ ] Modo "Performance" dedicado para uso como VS Player ao vivo.
 - [ ] Melhorias na detecção e sincronia de grades de tempo (Grid).
 - [ ] Suporte expandido a formatos de arquivo.
+- [ ] Empacotamento multiplataforma (Desktop/Mobile) — definir estratégia e pipeline.
 
 ## 🛠️ Tecnologias Utilizadas
 
@@ -38,7 +41,7 @@ O projeto é construído sobre uma pilha moderna e performática:
 
 * **Core:** [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
 * **Build Tool:** [Vite](https://vitejs.dev/)
-* (Sem Tauri/Capacitor por enquanto — suporte desktop/mobile será reavaliado futuramente.)
+* (Sem empacotadores nativos por enquanto — o suporte a desktop/mobile será definido futuramente.)
 * **Estilização:** Tailwind CSS.
 * **Áudio:** Web Audio API com processamento customizado.
 
@@ -67,12 +70,12 @@ Como o projeto é Open Source, você pode baixar, estudar o código e rodar na s
     ```bash
     npm run dev
     ```
-
+    Observação: compilações/empacotamento para Desktop/Mobile ainda **não** estão habilitados. Esta etapa será adicionada quando iniciarmos o suporte multiplataforma.
    
 
 ## 🤝 Como Contribuir
 
-Contribuições são muito bem-vindas! Se você é desenvolvedor (Front-end, Rust, ou entende de DSP/Áudio) ou músico com ideias de funcionalidades:
+Contribuições são muito bem-vindas! Se você é desenvolvedor (Front-end, TypeScript, ou entende de DSP/Áudio) ou músico com ideias de funcionalidades:
 
 1.  Faça um Fork do projeto.
 2.  Crie uma Branch para sua Feature (`git checkout -b feature/NovaFuncionalidade`).
