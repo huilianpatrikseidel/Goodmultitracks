@@ -1,199 +1,90 @@
 # GoodMultitracks
 
-**Advanced Multi-track Music Player**
+> **Nota:** Este projeto está atualmente em **fase ativa de desenvolvimento (Alpha)**. Funcionalidades podem mudar e instabilidade é esperada. Ainda não há uma versão oficial de lançamento.
 
-This is the GoodMultitracks application - a sophisticated multi-track audio player, for playing and .
+O **GoodMultitracks** é um reprodutor de áudio multitrack (stems) projetado com um propósito educacional: **permitir que músicos estudem músicas profundamente através da separação de faixas.**
 
----
+Diferente de DAWs tradicionais focadas em produção, o foco aqui é o **aprendizado** e a **análise**. O software utiliza um motor robusto de teoria musical para contextualizar o áudio com informações harmônicas e rítmicas.
 
-## 🚀 Quick Start
+## 🎯 Objetivo e Visão
 
-### Installation
-```bash
-npm install
-```
+A ideia central é fornecer uma ferramenta onde o músico possa carregar um arquivo multitrack, isolar instrumentos, entender a estrutura da música e praticar.
 
-### Development
-```bash
-npm run dev          # Start development server
-npm run build        # Production build
-npm run preview      # Preview production build
-```
+* **Atual:** Um leitor de multitracks para estudo, com visualização de formas de onda e análise teórica (acordes, métricas).
+* **Futuro Próximo:** Tornar-se um **Player de VS (Virtual Soundcheck/Backing Tracks)** completo para uso ao vivo.
+* **Filosofia:** O software possui altas capacidades de teorização musical "under-the-hood" para auxiliar no aprendizado (exibição de acordes dinâmicos, diagramas de instrumentos, compassos compostos), mas **não** tem como foco, no momento, a exibição de partituras (notação musical tradicional).
 
-### Desktop App (Tauri)
-```bash
-npm run tauri dev    # Development mode
-npm run tauri build  # Build desktop app
-```
+## 🚀 Funcionalidades Principais
 
----
+### Atuais (Em desenvolvimento)
+* **Reprodutor Multitrack (DAW-style):** Controle individual de volume, solo e mute para cada faixa (stem).
+* **Inteligência Musical:** Sistema avançado de teoria musical que compreende e processa:
+    * Harmonia e Acordes.
+    * Métricas e Fórmulas de Compasso (Time Signatures) complexas.
+    * Transposição inteligente.
+* **Visualização Instrumental:** Diagramas interativos para Guitarra, Piano e Ukulele (baseado nos arquivos encontrados em `src/components/diagrams`).
+* **Gerenciamento de Setlist:** Organização de músicas para estudo ou (futuramente) performance.
+* **Ambiente atual:** Execução focada em **Web (navegador)** durante o desenvolvimento.
 
-## 📚 Documentation
+### Roadmap 🗺️
+- [ ] Otimização do motor de áudio para baixa latência.
+- [ ] Modo "Performance" dedicado para uso como VS Player ao vivo.
+- [ ] Melhorias na detecção e sincronia de grades de tempo (Grid).
+- [ ] Suporte expandido a formatos de arquivo.
 
-**Complete documentation is organized in the [`docs/`](./docs/) directory:**
+## 🛠️ Tecnologias Utilizadas
 
-### 📖 [Documentation Index](./docs/README.md)
-Start here for a complete overview of all documentation.
+O projeto é construído sobre uma pilha moderna e performática:
 
-### Quick Links
+* **Core:** [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
+* **Build Tool:** [Vite](https://vitejs.dev/)
+* (Sem Tauri/Capacitor por enquanto — suporte desktop/mobile será reavaliado futuramente.)
+* **Estilização:** Tailwind CSS.
+* **Áudio:** Web Audio API com processamento customizado.
 
-#### 🎵 Music Theory
-- [API Reference](./docs/music-theory/MUSIC_THEORY_API_REFERENCE.md) - Complete API docs
-- [Advanced Features](./docs/music-theory/MUSIC_THEORY_ADVANCED_FEATURES.md) - Advanced capabilities
-- [Module Overview](./src/lib/musicTheory/README.md) - Quick overview
+## 💻 Como Executar o Projeto
 
-#### 🎼 Bravura Music Font
-- [Implementation Guide](./docs/bravura/BRAVURA_IMPLEMENTATION.md) - Integration details
-- [Quick Start](./docs/bravura/BRAVURA_README.md) - Getting started
+Como o projeto é Open Source, você pode baixar, estudar o código e rodar na sua máquina.
 
-#### 🏗️ Architecture
-- [System Architecture](./docs/architecture/ARCHITECTURAL_REFACTORING.md) - Design & structure
-- [Advanced Features](./docs/architecture/ADVANCED_FEATURES_SUMMARY.md) - Feature overview
-
-#### 🔍 Quality Assurance
-- [QA Reports](./docs/qa-reports/) - Audit reports and testing
-- [Latest QA Summary](./docs/qa-reports/MUSIC_THEORY_QA_SUMMARY.md) - Recent audit
-
----
-
-## ✨ Key Features
-
-### 🎵 Music Theory Engine
-- Complete scale and chord generation
-- Advanced interval analysis
-- Guitar/piano/ukulele voicings
-- Alternative tunings support
-- Voice leading optimization
-- Time signature analysis (simple, compound, irregular)
-
-### 🎼 Professional Music Notation
-- Bravura SMuFL font integration
-- Chord symbol rendering
-- Music notation symbols
-- Interactive chord diagrams
-
-### 🎧 Audio Player
-- Multi-track audio playback
-- Independent track volume control
-- Real-time audio effects
-- Synchronized playback
-- Performance mode
-
-### 📚 Library Management
-- Song organization
-- Metadata management
-- Setlist creation
-- Search and filtering
-
----
-
-## 🛠️ Technology Stack
-
-- **Frontend:** React 18 + TypeScript 5
-- **Build Tool:** Vite
-- **UI:** Radix UI + Tailwind CSS
-- **State:** Zustand
-- **Audio:** Web Audio API
-- **Desktop:** Tauri (Rust)
-- **Music Font:** Bravura SMuFL
-
----
-
-## 📦 Project Structure
-
-```
-GoodMultitracks/
-├── docs/                    # 📚 Complete documentation
-│   ├── music-theory/        # Music theory engine docs
-│   ├── bravura/            # Music notation font docs
-│   ├── architecture/       # System architecture docs
-│   └── qa-reports/         # Quality assurance reports
-│
-├── src/
-│   ├── features/           # Feature modules
-│   │   ├── player/         # Audio player
-│   │   ├── library/        # Library management
-│   │   └── setlist/        # Performance mode
-│   │
-│   ├── lib/
-│   │   └── musicTheory/    # 🎵 Music theory engine
-│   │
-│   ├── components/         # React components
-│   ├── stores/            # State management
-│   └── services/          # Business logic
-│
-└── src-tauri/             # Tauri backend (Rust)
-```
-
----
-
-## 🎯 Getting Started for Developers
-
-1. **Clone and install:**
-   ```bash
-   git clone <repository-url>
-   cd GoodMultitracks
-   npm install
-   ```
-
-2. **Read the docs:**
-   - Start with [Documentation Index](./docs/README.md)
-   - Review [Music Theory API](./docs/music-theory/MUSIC_THEORY_API_REFERENCE.md)
-   - Check [Development Guidelines](./src/guidelines/Guidelines.md)
-
-3. **Run development server:**
-   ```bash
-   npm run dev
-   ```
-
-4. **Explore the codebase:**
-   - Music theory: `src/lib/musicTheory/`
-   - Player feature: `src/features/player/`
-   - Components: `src/components/`
-
----
-
-## 🧪 Testing
-
-```bash
-# Run tests (when vitest is installed)
-npm test
-
-# Run specific test suite
-npm test src/lib/musicTheory/__tests__/qa-verification.test.ts
-```
-
----
-
-## 📄 License
-
-Licensed under the GNU General Public License v2.0 (GPL-2.0).
-
-- Full text: see [LICENSE](./LICENSE)
-- SPDX identifier: GPL-2.0-only
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please:
-1. Read the [Documentation](./docs/README.md)
-2. Follow [Development Guidelines](./src/guidelines/Guidelines.md)
-3. Make you code
-3. Write tests for new features
-4. Update documentation
-
----
-
-## 📞 Support
-
-huilianpatrik@gmail.com
-
-
----
-
-**Version:** 0.0 (in develpment)  
-**Last Updated:** January 6, 2026  
-**Status:** Active Development
-
+### Pré-requisitos
+* [Node.js](https://nodejs.org/) (Versão 18 ou superior recomendada)
   
+
+### Passo a Passo
+
+1.  **Clone o repositório:**
+    ```bash
+    git clone [https://github.com/seu-usuario/goodmultitracks.git](https://github.com/seu-usuario/goodmultitracks.git)
+    cd goodmultitracks
+    ```
+
+2.  **Instale as dependências:**
+    ```bash
+    npm install
+    ```
+
+3.  **Para rodar no navegador (Modo Web):**
+    ```bash
+    npm run dev
+    ```
+
+   
+
+## 🤝 Como Contribuir
+
+Contribuições são muito bem-vindas! Se você é desenvolvedor (Front-end, Rust, ou entende de DSP/Áudio) ou músico com ideias de funcionalidades:
+
+1.  Faça um Fork do projeto.
+2.  Crie uma Branch para sua Feature (`git checkout -b feature/NovaFuncionalidade`).
+3.  Faça o Commit (`git commit -m 'Adicionando nova funcionalidade'`).
+4.  Faça o Push (`git push origin feature/NovaFuncionalidade`).
+5.  Abra um Pull Request.
+
+## 📄 Licença
+
+Licenciado sob **GNU GPL v2.0 (GPL-2.0-only)**. Consulte o arquivo [LICENSE](./LICENSE) para o texto completo.
+
+---
+*Desenvolvido com ❤️ por Huilian Patrik Seidel
+
+```

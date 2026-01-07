@@ -5,8 +5,6 @@
       "private": true,
       "license": "GPL-2.0-only",
       "dependencies": {
-            "@capacitor/cli": "^8.0.0",
-            "@capacitor/core": "^8.0.0",
             "@radix-ui/react-accordion": "^1.2.3",
             "@radix-ui/react-alert-dialog": "^1.1.6",
             "@radix-ui/react-aspect-ratio": "^1.1.2",
@@ -49,8 +47,6 @@
             "zustand": "^5.0.9"
       },
       "devDependencies": {
-            "@tauri-apps/api": "^2.9.1",
-            "@tauri-apps/cli": "^2.9.6",
             "@types/node": "^20.10.0",
             "@types/react": "^19.2.7",
             "@types/react-dom": "^19.2.3",
